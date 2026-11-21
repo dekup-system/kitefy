@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  # Modo mock: nenhuma chamada a provedor externo em CI.
+  LLM_PROVIDER_MODE: mock
+  SERP_PROVIDER: mock
+  IMAGE_PROVIDER: none
+  EMBEDDING_DIMENSION: "768"
+  NEXT_PUBLIC_APP_URL: http://localhost:3000
+  NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key-0000000000000000000000
+  SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key-000000000000000000
+
+jobs:
+  verify:
+    name: Lint, tipos e testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar dependências
+        run: npm ci --no-audit --no-fund
+
+      # esbuild (usado por vitest/tsx) precisa do postinstall liberado.
+      - name: Aprovar scripts de build permitidos
+        run: npm install-scripts approve esbuild || true
+
+      - name: Auditoria de licenças
+        run: npm run verify:licenses
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Testes (RLS, créditos, pgvector, agente, visual, billing)
+        run: npm test
+
+      - name: Build de produção
+        run: npm run build
+
+  secrets-scan:
+    name: Nenhum segredo no código
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Falha se .env.local foi commitado
+        run: |
+          if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example'; then
+            echo "::error::Arquivo de ambiente versionado. Remova antes de mergear."
+            exit 1
+          fi
+
+      - name: Falha em padrões de chave conhecidos
+        run: |
+          if git grep -n -I -E '(SUPABASE_SERVICE_ROLE_KEY|MP_ACCESS_TOKEN|ANTHROPIC_API_KEY|SERPER_API_KEY)=\S{16,}' -- ':!*.example' ':!*.md' ':!.github/*'; then
+            echo "::error::Possível segredo hardcoded detectado."
+            exit 1
+          fi

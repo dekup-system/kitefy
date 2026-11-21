@@ -1,0 +1,127 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { BrandForm } from "./brand-form";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
+import { PLANS } from "@/lib/pricing";
+import type { BrandProfileRow } from "@/types/domain";
+
+export const metadata: Metadata = { title: "Marca e voz" };
+
+export default async function BrandSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ brand?: string }>;
+}) {
+  const session = await getSessionContext();
+  if (!session) redirect("/login");
+
+  const params = await searchParams;
+  const supabase = await createSupabaseServerClient();
+
+  const brandsQuery = await supabase
+    .from("brand_profiles")
+    .select("*")
+    .eq("tenant_id", session.tenantId)
+    .order("created_at", { ascending: true });
+
+  const brands = (brandsQuery.data ?? []) as BrandProfileRow[];
+  const selected = brands.find((brand) => brand.id === params.brand) ?? brands[0];
+  const plan = PLANS[session.planTier];
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <PageHeader
+        title="Marca e voz"
+        description="O contexto da marca é o que faz o conteúdo parecer escrito por uma pessoa, não por um gerador."
+      />
+
+      {brands.length === 0 ? (
+        <EmptyState
+          title="Nenhuma marca cadastrada"
+          description="Crie a primeira marca em menos de um minuto."
+          action={
+            <Link href="/onboarding" className="text-sm underline underline-offset-4">
+              Ir para o onboarding
+            </Link>
+          }
+        />
+      ) : (
+        <>
+          {brands.length > 1 ? (
+            <nav aria-label="Selecionar marca" className="flex flex-wrap gap-2">
+              {brands.map((brand) => (
+                <Link
+                  key={brand.id}
+                  href={`/settings/brand?brand=${brand.id}`}
+                  aria-current={brand.id === selected?.id ? "page" : undefined}
+                  className={`inline-flex h-8 items-center rounded-full border px-3 text-sm ${
+                    brand.id === selected?.id
+                      ? "border-foreground/40 bg-accent font-medium"
+                      : "border-border hover:bg-accent/50"
+                  }`}
+                >
+                  {brand.brand_name}
+                </Link>
+              ))}
+            </nav>
+          ) : null}
+
+          {selected ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Perfil da marca</CardTitle>
+                <CardDescription>
+                  {brands.length} de {plan.maxBrands} marca(s) do plano {plan.name}.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BrandForm brand={selected} />
+              </CardContent>
+            </Card>
+          ) : null}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Fatos verificáveis (GEO)</CardTitle>
+              <CardDescription>
+                Cada fato precisa de fonte para poder ser citado por motores de busca e assistentes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {(selected?.entity_facts ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum fato cadastrado. Sem fatos com fonte, artigos GEO evitam números
+                  específicos — o que reduz a chance de citação.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {(selected?.entity_facts ?? []).map((fact, index) => (
+                    <li key={`${fact.claim}-${index}`} className="rounded-md border border-border p-3 text-sm">
+                      <p>{fact.claim}</p>
+                      {fact.source_url ? (
+                        <a
+                          href={fact.source_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 inline-block text-xs text-muted-foreground underline underline-offset-4"
+                        >
+                          {fact.source_url}
+                        </a>
+                      ) : (
+                        <p className="mt-1 text-xs text-warning">Sem fonte — não será usado como dado.</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}

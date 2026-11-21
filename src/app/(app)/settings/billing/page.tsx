@@ -1,0 +1,158 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { Check, ShieldCheck } from "lucide-react";
+import { PlanCheckout } from "./plan-checkout";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
+import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
+import { getServerEnv } from "@/lib/env";
+import { PLANS, PLAN_ORDER, formatBRL } from "@/lib/pricing";
+import { nextDaytimeBillingWindow } from "@/lib/billing/subscription-sync";
+import { formatDateTimeBR } from "@/lib/utils";
+import type { MpSubscriptionRow } from "@/types/domain";
+
+export const metadata: Metadata = { title: "Plano e cobrança" };
+
+export default async function BillingPage() {
+  const session = await getSessionContext();
+  if (!session) redirect("/login");
+
+  const supabase = await createSupabaseServerClient();
+  const subscription = await supabase
+    .from("mp_subscriptions")
+    .select("mp_preapproval_id, payment_method, plan_tier, status, next_billing_date, updated_at")
+    .eq("tenant_id", session.tenantId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<Pick<MpSubscriptionRow, "mp_preapproval_id" | "payment_method" | "plan_tier" | "status" | "next_billing_date" | "updated_at">>();
+
+  const env = getServerEnv();
+  const currentPlan = PLANS[session.planTier];
+  const nextWindow = nextDaytimeBillingWindow(new Date());
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-6">
+      <PageHeader
+        title="Plano e cobrança"
+        description="Assinatura em BRL via Mercado Pago. Pix Automático é a opção recomendada: menor taxa e renovação sem atrito."
+      />
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard label="Plano atual" value={currentPlan.name} hint={`${currentPlan.monthlyCredits} créditos/mês`} />
+        <StatCard
+          label="Assinatura"
+          value={subscription.data?.status ?? "não assinada"}
+          hint={
+            subscription.data?.payment_method === "pix_automatico"
+              ? "Pix Automático"
+              : subscription.data?.payment_method === "card_preapproval"
+                ? "Cartão recorrente"
+                : "Escolha um plano abaixo"
+          }
+        />
+        <StatCard
+          label="Próxima cobrança"
+          value={
+            subscription.data?.next_billing_date
+              ? formatDateTimeBR(subscription.data.next_billing_date)
+              : formatDateTimeBR(nextWindow.toISOString())
+          }
+          hint="Sempre em janela diurna (08h–18h BRT)"
+        />
+      </div>
+
+      {env.MP_ACCESS_TOKEN ? null : (
+        <Card className="border-warning/40">
+          <CardHeader>
+            <CardTitle className="text-sm">Mercado Pago não configurado neste ambiente</CardTitle>
+            <CardDescription>
+              Os botões de assinatura responderão 503 até MP_ACCESS_TOKEN e MP_WEBHOOK_SECRET serem
+              definidos no servidor. Nenhuma cobrança é simulada localmente.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {PLAN_ORDER.map((tier) => {
+          const plan = PLANS[tier];
+          const isCurrent = tier === session.planTier;
+          return (
+            <Card key={tier} className={isCurrent ? "border-foreground/30" : undefined}>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base">{plan.name}</CardTitle>
+                  {isCurrent ? <Badge variant="secondary">Atual</Badge> : null}
+                  {tier === "agency" ? <Badge variant="outline">Escala</Badge> : null}
+                </div>
+                <CardDescription>{plan.tagline}</CardDescription>
+                <p className="pt-1 font-mono text-lg font-medium">{formatBRL(plan.priceCents)}</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <ul className="space-y-1.5 text-sm text-muted-foreground">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2">
+                      <Check className="mt-0.5 size-3.5 shrink-0 text-foreground" aria-hidden="true" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                {isCurrent ? (
+                  <p className="text-xs text-muted-foreground">
+                    Você já está neste plano. Créditos são renovados na cobrança aprovada.
+                  </p>
+                ) : (
+                  <PlanCheckout
+                    planTier={tier}
+                    planName={plan.name}
+                    priceLabel={formatBRL(plan.priceCents)}
+                    recommended={tier !== "essential"}
+                    mpPublicKeyConfigured={Boolean(env.NEXT_PUBLIC_MP_PUBLIC_KEY)}
+                  />
+                )}
+
+                {tier === "pro" ? (
+                  <p className="text-xs text-muted-foreground">
+                    Inclui importação CSV e webhook GA4 de telemetria.
+                  </p>
+                ) : null}
+                {tier === "agency" ? (
+                  <p className="text-xs text-muted-foreground">
+                    Inclui links externos de aprovação com senha e expiração opcionais.
+                  </p>
+                ) : null}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <ShieldCheck className="size-4" aria-hidden="true" />
+            Como a cobrança funciona
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>
+            Cada criação de pagamento usa <code className="font-mono">X-Idempotency-Key</code> (UUID
+            v4) para impedir cobrança duplicada em retentativa.
+          </p>
+          <p>
+            O webhook valida <code className="font-mono">x-signature</code> com HMAC-SHA256 em tempo
+            constante, responde 200 imediatamente e processa em fila. Status do pagamento é sempre
+            confirmado na API do Mercado Pago antes de creditar.
+          </p>
+          <p>
+            Cobranças recorrentes são agendadas entre 08h e 18h (BRT) para evitar o bloqueio de
+            limite noturno (20h–06h) em contas pessoa física.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
