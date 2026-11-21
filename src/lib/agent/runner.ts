@@ -84,7 +84,12 @@ export async function startStudioRun(input: OrganicStudioInput): Promise<StudioR
     configFor(input.threadId),
   );
 
-  return buildRunResult(input.threadId, result as unknown as OrganicStudioStateType);
+  // `invoke` devolve apenas os valores do estado; as interrupções pendentes estão
+  // no snapshot do checkpointer. Sem esta leitura, o status voltaria "running"
+  // mesmo com o grafo parado em `interrupt()`.
+  const snapshot = await graph.getState(configFor(input.threadId));
+
+  return buildRunResult(input.threadId, result as unknown as OrganicStudioStateType, snapshot);
 }
 
 export async function resumeStudioRun(input: {

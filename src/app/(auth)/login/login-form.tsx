@@ -17,7 +17,15 @@ import {
 
 const initialState: AuthActionState = {};
 
-export function LoginForm({ next, oauthError }: { next: string; oauthError?: string }) {
+export function LoginForm({
+  next,
+  oauthError,
+  googleEnabled = false,
+}: {
+  next: string;
+  oauthError?: string;
+  googleEnabled?: boolean;
+}) {
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [signInState, signIn, signInPending] = useActionState(signInAction, initialState);
   const [signUpState, signUp, signUpPending] = useActionState(signUpAction, initialState);
@@ -27,19 +35,23 @@ export function LoginForm({ next, oauthError }: { next: string; oauthError?: str
 
   return (
     <div className="w-full space-y-6">
-      <form action={signInWithGoogleAction}>
-        <input type="hidden" name="next" value={next} />
-        <Button type="submit" variant="outline" className="w-full" size="lg">
-          <GoogleMark />
-          Continuar com Google
-        </Button>
-      </form>
+      {googleEnabled ? (
+        <>
+          <form action={signInWithGoogleAction}>
+            <input type="hidden" name="next" value={next} />
+            <Button type="submit" variant="outline" className="w-full" size="lg">
+              <GoogleMark />
+              Continuar com Google
+            </Button>
+          </form>
 
-      <div className="flex items-center gap-3" aria-hidden="true">
-        <span className="h-px flex-1 bg-border" />
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">ou</span>
-        <span className="h-px flex-1 bg-border" />
-      </div>
+          <div className="flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">ou</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      ) : null}
 
       {(oauthError || state.error || state.notice) && (
         <Alert variant={state.error || oauthError ? "destructive" : "success"}>
@@ -141,9 +153,11 @@ export function LoginForm({ next, oauthError }: { next: string; oauthError?: str
         </TabsContent>
       </Tabs>
 
-      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-        <Mail className="size-3.5" aria-hidden="true" />
-        Login por e-mail também aceita link mágico enviado após o cadastro.
+      <div className="flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+        <Mail className="size-3.5 shrink-0" aria-hidden="true" />
+        {googleEnabled
+          ? "Login por e-mail também aceita link mágico enviado após o cadastro."
+          : "Login com Google ainda não está habilitado neste projeto — use e-mail e senha."}
       </div>
     </div>
   );

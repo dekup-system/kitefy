@@ -33,35 +33,35 @@ import { getCheckpointer } from "@/lib/agent/checkpointer";
  */
 export function buildStudioGraph(checkpointer?: BaseCheckpointSaver) {
   const workflow = new StateGraph(OrganicStudioState)
-    .addNode("brandContext", brandContextNode)
-    .addNode("researchSeoGeo", researchSeoGeoNode)
-    .addNode("banditSelector", banditSelectorNode)
-    .addNode("contentGenerator", contentGeneratorNode)
-    .addNode("complianceGuardrail", complianceGuardrailNode)
-    .addNode("visualRender", visualRenderNode)
-    .addNode("humanApproval", humanApprovalNode)
-    .addNode("finalizeAsset", finalizeAssetNode)
-    .addNode("failed", failedNode)
-    .addEdge(START, "brandContext")
-    .addConditionalEdges("brandContext", shouldResearch, {
-      research: "researchSeoGeo",
-      bandit: "banditSelector",
+    .addNode("loadBrandContext", brandContextNode)
+    .addNode("researchSerp", researchSeoGeoNode)
+    .addNode("selectArms", banditSelectorNode)
+    .addNode("generateContent", contentGeneratorNode)
+    .addNode("checkCompliance", complianceGuardrailNode)
+    .addNode("renderVisuals", visualRenderNode)
+    .addNode("awaitApproval", humanApprovalNode)
+    .addNode("persistAsset", finalizeAssetNode)
+    .addNode("failRun", failedNode)
+    .addEdge(START, "loadBrandContext")
+    .addConditionalEdges("loadBrandContext", shouldResearch, {
+      research: "researchSerp",
+      bandit: "selectArms",
     })
-    .addEdge("researchSeoGeo", "banditSelector")
-    .addEdge("banditSelector", "contentGenerator")
-    .addEdge("contentGenerator", "complianceGuardrail")
-    .addConditionalEdges("complianceGuardrail", routeAfterCompliance, {
-      visualRender: "visualRender",
-      contentGenerator: "contentGenerator",
-      failed: "failed",
+    .addEdge("researchSerp", "selectArms")
+    .addEdge("selectArms", "generateContent")
+    .addEdge("generateContent", "checkCompliance")
+    .addConditionalEdges("checkCompliance", routeAfterCompliance, {
+      renderVisuals: "renderVisuals",
+      generateContent: "generateContent",
+      failRun: "failRun",
     })
-    .addEdge("visualRender", "humanApproval")
-    .addConditionalEdges("humanApproval", routeAfterApproval, {
-      finalizeAsset: "finalizeAsset",
+    .addEdge("renderVisuals", "awaitApproval")
+    .addConditionalEdges("awaitApproval", routeAfterApproval, {
+      persistAsset: "persistAsset",
       [END]: END,
     })
-    .addEdge("finalizeAsset", END)
-    .addEdge("failed", END);
+    .addEdge("persistAsset", END)
+    .addEdge("failRun", END);
 
   return workflow.compile({
     checkpointer: checkpointer ?? getCheckpointer(),

@@ -1,6 +1,5 @@
 import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import type { SourceType } from "@/types/domain";
-import { query, withTransaction } from "@/lib/db/pg";
 import { embedOne, toPgVector } from "@/lib/ai/embeddings";
 import { isSuccessPull } from "@/lib/agent/bandit";
 import { createLogger } from "@/lib/logger";
@@ -18,8 +17,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
  *     'winning_post') com embedding — é assim que o estúdio aprende o que
  *     funcionou e reaproveita no contexto de marca.
  *
- * Idempotência: a reindexação usa reference ao asset_id em metadata e só
- * insere uma vez por (asset_id, source_type).
+ * Acesso a dados via PostgREST (service_role): funciona apenas com as chaves de
+ * API, sem exigir conexão direta ao Postgres.
  */
 
 const log = createLogger("agent.distiller");
@@ -44,30 +43,47 @@ export interface DistillInput {
   p75?: number | null;
 }
 
+interface ArmKeyRow {
+  content_payload: { _meta?: { bandit_arm?: string } } | null;
+}
+
 async function loadP75(tenantId: string): Promise<number | null> {
-  const rows = await query<{ p75: number | string | null }>(
-    "select public.tenant_hook_rate_p75($1) as p75",
-    [tenantId],
-  );
-  const value = rows[0]?.p75;
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase.rpc("tenant_hook_rate_p75", { p_tenant_id: tenantId });
+
+  if (error) {
+    log.warn("Falha ao calcular P75 do tenant", { message: error.message });
+    return null;
+  }
+
+  const value = data as number | string | null;
   return value === null || value === undefined ? null : Number(value);
 }
 
-async function loadArmKey(assetId: string): Promise<string | null> {
-  const rows = await query<{ arm_key: string | null }>(
-    `select coalesce(
-              content_payload -> '_meta' ->> 'bandit_arm',
-              (select hv.angle_type || ':' || hv.framework
-                 from public.hook_variants hv
-                where hv.asset_id = ca.id
-                order by hv.is_selected desc, hv.created_at asc
-                limit 1)
-            ) as arm_key
-       from public.campaigns_and_assets ca
-      where ca.id = $1`,
-    [assetId],
-  );
-  return rows[0]?.arm_key ?? null;
+async function loadArmKey(tenantId: string, assetId: string): Promise<string | null> {
+  const supabase = createSupabaseAdminClient();
+
+  const asset = await supabase
+    .from("campaigns_and_assets")
+    .select("content_payload")
+    .eq("id", assetId)
+    .eq("tenant_id", tenantId)
+    .maybeSingle<ArmKeyRow>();
+
+  const fromMeta = asset.data?.content_payload?._meta?.bandit_arm;
+  if (typeof fromMeta === "string" && fromMeta.includes(":")) return fromMeta;
+
+  const hooks = await supabase
+    .from("hook_variants")
+    .select("angle_type, framework")
+    .eq("asset_id", assetId)
+    .eq("tenant_id", tenantId)
+    .order("is_selected", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ angle_type: string; framework: string }>();
+
+  if (!hooks.data) return null;
+  return `${hooks.data.angle_type}:${hooks.data.framework}`;
 }
 
 function assetToChunkText(payload: unknown): string {
@@ -75,7 +91,9 @@ function assetToChunkText(payload: unknown): string {
   const walk = (value: unknown): void => {
     if (typeof value === "string") parts.push(value);
     else if (Array.isArray(value)) value.forEach(walk);
-    else if (value && typeof value === "object") Object.values(value as Record<string, unknown>).forEach(walk);
+    else if (value && typeof value === "object") {
+      Object.values(value as Record<string, unknown>).forEach(walk);
+    }
   };
   walk(payload);
   return parts.join("\n").slice(0, 6000);
@@ -102,42 +120,36 @@ async function reindexWinningAsset(input: {
 }): Promise<boolean> {
   if (await alreadyIndexed(input.tenantId, input.assetId)) return false;
 
-  const rows = await query<{ title: string; content_payload: unknown; asset_type: string }>(
-    `select title, content_payload, asset_type
-       from public.campaigns_and_assets
-      where id = $1 and tenant_id = $2`,
-    [input.assetId, input.tenantId],
-  );
+  const supabase = createSupabaseAdminClient();
+  const asset = await supabase
+    .from("campaigns_and_assets")
+    .select("title, content_payload, asset_type")
+    .eq("id", input.assetId)
+    .eq("tenant_id", input.tenantId)
+    .maybeSingle<{ title: string; content_payload: unknown; asset_type: string }>();
 
-  const asset = rows[0];
-  if (!asset) return false;
+  if (!asset.data) return false;
 
-  const text = `${asset.title}\n\n${assetToChunkText(asset.content_payload)}`;
+  const text = `${asset.data.title}\n\n${assetToChunkText(asset.data.content_payload)}`;
   const embedding = await embedOne(text);
   const sourceType: SourceType = "winning_post";
 
-  await withTransaction(async (client) => {
-    await client.query(
-      `insert into public.knowledge_chunks
-         (tenant_id, brand_id, source_type, content, metadata, embedding, performance_score)
-       values ($1,$2,$3,$4,$5::jsonb,$6::extensions.vector,$7)`,
-      [
-        input.tenantId,
-        input.brandId,
-        sourceType,
-        text.slice(0, 8000),
-        JSON.stringify({
-          asset_id: input.assetId,
-          asset_type: asset.asset_type,
-          hook_rate: input.hookRate,
-          distilled_at: new Date().toISOString(),
-        }),
-        toPgVector(embedding),
-        input.hookRate,
-      ],
-    );
+  const { error } = await supabase.from("knowledge_chunks").insert({
+    tenant_id: input.tenantId,
+    brand_id: input.brandId,
+    source_type: sourceType,
+    content: text.slice(0, 8000),
+    metadata: {
+      asset_id: input.assetId,
+      asset_type: asset.data.asset_type,
+      hook_rate: input.hookRate,
+      distilled_at: new Date().toISOString(),
+    },
+    embedding: toPgVector(embedding),
+    performance_score: input.hookRate,
   });
 
+  if (error) throw new Error(`Falha ao reindexar o ativo vencedor: ${error.message}`);
   return true;
 }
 
@@ -146,18 +158,23 @@ export function buildTelemetryDistillerGraph() {
     .addNode("distill", async (state) => {
       const p75 = state.p75 ?? (await loadP75(state.tenantId));
       const success = isSuccessPull(state.hookRate, p75);
-      const armKey = await loadArmKey(state.assetId);
+      const armKey = await loadArmKey(state.tenantId, state.assetId);
 
       if (!armKey) {
         return { p75, success, armKey: null, error: "Ativo sem braço de bandit associado." };
       }
 
-      await query("select public.update_bandit_arm($1,$2,$3,$4)", [
-        state.tenantId,
-        state.brandId,
-        armKey,
-        success,
-      ]);
+      const supabase = createSupabaseAdminClient();
+      const { error } = await supabase.rpc("update_bandit_arm", {
+        p_tenant_id: state.tenantId,
+        p_brand_id: state.brandId,
+        p_arm_key: armKey,
+        p_success: success,
+      });
+
+      if (error) {
+        return { p75, success, armKey, error: `Falha ao atualizar o bandit: ${error.message}` };
+      }
 
       let reindexed = false;
       if (success) {

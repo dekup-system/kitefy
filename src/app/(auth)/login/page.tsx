@@ -6,6 +6,28 @@ import { LoginForm } from "./login-form";
 import { KitefyLogo } from "@/components/brand/kitefy-logo";
 import { getSessionContext } from "@/lib/supabase/server";
 
+/**
+ * O botão de Google só aparece se o provedor estiver habilitado no projeto
+ * Supabase (Authentication > Providers). Sem isso, o CTA levaria a um erro.
+ */
+async function isGoogleEnabled(): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) return false;
+
+  try {
+    const response = await fetch(`${url}/auth/v1/settings`, {
+      headers: { apikey: anon, Authorization: `Bearer ${anon}` },
+      next: { revalidate: 300 },
+    });
+    if (!response.ok) return false;
+    const settings = (await response.json()) as { external?: { google?: boolean } };
+    return Boolean(settings.external?.google);
+  } catch {
+    return false;
+  }
+}
+
 export const metadata: Metadata = {
   title: "Entrar",
   description: "Acesse o estúdio orgânico e GEO da sua marca.",
@@ -27,6 +49,7 @@ export default async function LoginPage({
 
   const params = await searchParams;
   const error = params.error ? decodeURIComponent(params.error) : undefined;
+  const googleEnabled = await isGoogleEnabled();
   const next = params.next ?? "/app";
 
   return (
@@ -74,7 +97,7 @@ export default async function LoginPage({
             </p>
           </div>
 
-          <LoginForm next={next} oauthError={error} />
+          <LoginForm next={next} oauthError={error} googleEnabled={googleEnabled} />
 
           <p className="text-center text-xs text-muted-foreground">
             Ainda não conhece?{" "}

@@ -91,12 +91,44 @@ Confirme no painel:
 
 ## 3. Vercel
 
-1. Importe o repositório; framework detectado: Next.js.
-2. Configure as env vars por ambiente (Production/Preview/Development).
-3. **Fluid Compute** habilitado (padrão no plano Pro).
-4. Rotas que já declaram `maxDuration`:
+1. Importe o repositório; framework detectado: Next.js. **Não** é preciso build command customizado.
+2. Configure as env vars por ambiente (Production/Preview/Development):
+
+| Variável | Production | Preview | Observação |
+| --- | --- | --- | --- |
+| `NEXT_PUBLIC_APP_URL` | URL final | URL do preview | base dos `redirectTo` do Auth |
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | ✅ | pública |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | ✅ | chave publicável (`sb_publishable_…`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | ✅ | **secret key** (`sb_secret_…`) — marque como Sensitive |
+| `SUPABASE_STORAGE_BUCKET` | `brand-assets` | idem | |
+| `LLM_PROVIDER_MODE` | `mock` ou `live` | `mock` | mock não gasta crédito de LLM |
+| `SERP_PROVIDER` | `mock`/`serper` | `mock` | |
+| `IMAGE_PROVIDER` | `none` | `none` | |
+| `EMBEDDING_DIMENSION` | `768` | `768` | igual ao `vector(768)` do banco |
+| `SUPABASE_DB_URL` | recomendado | opcional | sem ela o checkpointer usa `MemorySaver` |
+| `MP_ACCESS_TOKEN` / `MP_WEBHOOK_SECRET` | quando ativar cobrança | — | ausentes → rotas de billing respondem 503 |
+| `GA4_WEBHOOK_SECRET` | opcional | — | ≥ 16 caracteres |
+
+3. **Supabase → Authentication → URL Configuration**: adicione `https://SEU-DOMINIO/auth/callback`
+   em *Redirect URLs* e defina a *Site URL* com o domínio de produção. Sem isso o link de
+   confirmação de e-mail cai em `localhost`.
+4. **Confirmação de e-mail**: o projeto está com `mailer_autoconfirm = false`. Para testar o
+   login imediatamente após o deploy, desative “Confirm email” em
+   *Authentication → Providers → Email* (ou confirme pelo link recebido).
+5. **Fluid Compute** habilitado (padrão no Pro).
+6. Rotas que já declaram `maxDuration`:
    - `/api/studio/start` → 300s (geração de artigo GEO)
    - `/(app)/studio/[threadId]` → 300s (leitura de estado + assinatura de URLs)
+
+### Depois do primeiro deploy
+
+```bash
+# valida chaves, schema, bucket e service_role contra o projeto real
+npx tsx scripts/check-supabase.ts
+
+# fluxo completo (signup → grafo → render → Storage → aprovação → débito → ZIP)
+npx tsx scripts/e2e-check.ts
+```
 5. `serverExternalPackages` em `next.config.ts` mantém `@resvg/resvg-js`, `sharp`, `pg` e o
    checkpointer fora do bundle — não remova.
 6. `outputFileTracingIncludes` garante as fontes Geist nas rotas de render.

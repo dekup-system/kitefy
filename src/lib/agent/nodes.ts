@@ -15,7 +15,7 @@ import { buildRetryFeedback, evaluateCompliance } from "@/lib/agent/compliance-a
 import { renderAndUploadVisuals } from "@/lib/agent/visual-adapter";
 import { buildJsonLdForAsset } from "@/lib/agent/jsonld-builder";
 import { createSerpProvider } from "@/lib/serp/client";
-import { query, withTransaction } from "@/lib/db/pg";
+import { withTransaction } from "@/lib/db/pg";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env";
 import { CREDIT_COSTS } from "@/lib/pricing";
@@ -67,11 +67,22 @@ export async function brandContextNode(
   if (!data) throw new Error("Marca não encontrada para o tenant informado.");
 
   const embedding = await embedOne(`${state.objective} ${state.productInput}`);
-  const matches = await query<ChunkRow>(
-    `select content, source_type, similarity
-       from public.match_brand_chunks($1, $2, $3::extensions.vector, $4, $5)`,
-    [state.tenantId, state.brandId, toPgVector(embedding), 8, 0],
-  );
+
+  // RPC via PostgREST: não exige conexão direta ao Postgres (SUPABASE_DB_URL).
+  // O vector vai como literal '[..]' e o Postgres faz o cast para extensions.vector.
+  const { data: matches, error: matchError } = await supabase.rpc("match_brand_chunks", {
+    p_tenant_id: state.tenantId,
+    p_brand_id: state.brandId,
+    query_embedding: toPgVector(embedding),
+    match_count: 8,
+    match_threshold: 0,
+  });
+
+  if (matchError) {
+    throw new Error(`Falha na busca vetorial da marca: ${matchError.message}`);
+  }
+
+  const rows = (matches ?? []) as ChunkRow[];
 
   const brandContext: BrandContext = {
     brand_id: data.id,
@@ -81,7 +92,7 @@ export async function brandContextNode(
     tone_of_voice: data.tone_of_voice ?? {},
     visual_tokens: data.visual_tokens ?? {},
     entity_facts: Array.isArray(data.entity_facts) ? data.entity_facts : [],
-    top_chunks: matches.map((row) => ({
+    top_chunks: rows.map((row) => ({
       content: row.content,
       source_type: row.source_type,
       similarity: Number(row.similarity),
@@ -142,14 +153,18 @@ interface ArmStatRow {
 export async function banditSelectorNode(
   state: OrganicStudioStateType,
 ): Promise<OrganicStudioUpdate> {
-  const stats = await query<ArmStatRow>(
-    `select arm_key, alpha::float8 as alpha, beta::float8 as beta, pulls
-       from public.bandit_arm_stats
-      where tenant_id = $1 and brand_id = $2`,
-    [state.tenantId, state.brandId],
-  );
+  const supabase = createSupabaseAdminClient();
+  const { data: stats, error } = await supabase
+    .from("bandit_arm_stats")
+    .select("arm_key, alpha, beta, pulls")
+    .eq("tenant_id", state.tenantId)
+    .eq("brand_id", state.brandId);
 
-  const selection = selectArms({ stats });
+  if (error) {
+    throw new Error(`Falha ao carregar os braços do bandit: ${error.message}`);
+  }
+
+  const selection = selectArms({ stats: (stats ?? []) as ArmStatRow[] });
 
   const toArm = (angle: AngleType, framework: Framework) => ({
     angle_type: angle,
@@ -229,10 +244,10 @@ export async function complianceGuardrailNode(
 
 export function routeAfterCompliance(
   state: OrganicStudioStateType,
-): "visualRender" | "contentGenerator" | "failed" {
-  if (state.complianceReport?.approved) return "visualRender";
-  if ((state.complianceAttempts ?? 0) >= 2) return "failed";
-  return "contentGenerator";
+): "renderVisuals" | "generateContent" | "failRun" {
+  if (state.complianceReport?.approved) return "renderVisuals";
+  if ((state.complianceAttempts ?? 0) >= 2) return "failRun";
+  return "generateContent";
 }
 
 export async function failedNode(state: OrganicStudioStateType): Promise<OrganicStudioUpdate> {
@@ -316,8 +331,8 @@ export async function humanApprovalNode(
   };
 }
 
-export function routeAfterApproval(state: OrganicStudioStateType): "finalizeAsset" | typeof END {
-  return state.approvalStatus === "approved" ? "finalizeAsset" : END;
+export function routeAfterApproval(state: OrganicStudioStateType): "persistAsset" | typeof END {
+  return state.approvalStatus === "approved" ? "persistAsset" : END;
 }
 
 function creditsFor(assetType: OrganicStudioStateType["assetType"]): number {

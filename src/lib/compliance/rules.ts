@@ -174,7 +174,14 @@ const RULES: readonly RuleDefinition[] = [
   {
     id: "medical_before_after",
     severity: "blocker",
-    patterns: [/\bantes e depois\b/, /\bfotos? do antes e depois\b/],
+    // O padrão precisa de contexto de RESULTADO colado à expressão. Sem isso,
+    // "registre o número antes e depois" (métrica de conteúdo) vira bloqueador
+    // falso-positivo em qualquer marca classificada como saúde.
+    patterns: [
+      /\b(fotos?|imagens?|resultados?|transformac\w*|evoluc\w*)\b[^.!?]{0,40}\bantes e depois\b/,
+      /\bantes e depois\b[^.!?]{0,40}\b(resultados?|pacientes?|pele|corpo|procedimento|tratamento)\b/,
+      /\bfotos? do antes e depois\b/,
+    ],
     applies: (text) => MEDICAL_CONTEXT.test(text),
     suggestion:
       "Não use comparação antes/depois de resultado médico; substitua por informação educativa sem alegação de eficácia.",

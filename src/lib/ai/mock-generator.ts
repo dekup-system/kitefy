@@ -451,7 +451,7 @@ function buildCarousel(args: {
     `Estrutura em fato direto, contexto e dado verificável facilita a citação.`,
     `Medir retenção nos três segundos é mais útil que contar visualizações.`,
     `Ajuste uma variável por vez. Sem isso você não aprende, só acumula posts.`,
-    `Registre o número antes e depois. É o que transforma tentativa em método.`,
+    `Compare o número anterior com o atual. É o que transforma tentativa em método.`,
   ];
 
   const slides: CarouselOutput["slides"] = Array.from({ length: slideCount }, (_, index) => {
