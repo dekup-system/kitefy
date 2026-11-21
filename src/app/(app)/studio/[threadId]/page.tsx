@@ -57,6 +57,37 @@ export default async function StudioPage({
     .maybeSingle<CampaignAssetRow>();
 
   if (!run && !persisted.data) {
+    // Sem SUPABASE_DB_URL o estado do grafo vive apenas na memória da instância
+    // que gerou o ativo. Em serverless, outra invocação não o encontra: em vez de
+    // um 404 confuso, explicamos o que configurar.
+    if (!process.env.SUPABASE_DB_URL) {
+      return (
+        <div className="mx-auto max-w-2xl space-y-6 py-12">
+          <PageHeader
+            title="Rascunho não disponível nesta instância"
+            description="O ativo foi gerado, mas o estado do agente não persistiu entre requisições."
+          />
+          <Alert variant="warning">
+            <AlertTriangle className="size-4" aria-hidden="true" />
+            <AlertDescription>
+              Configure <code className="font-mono">SUPABASE_DB_URL</code> (connection string do
+              Postgres, em Supabase → Project Settings → Database) e rode{" "}
+              <code className="font-mono">npm run db:langgraph-setup</code> uma vez. Com o
+              checkpointer no Postgres, geração e aprovação sobrevivem a qualquer invocação.
+            </AlertDescription>
+          </Alert>
+          <div className="flex gap-3">
+            <Button asChild>
+              <Link href="/studio/new">Gerar outro ativo</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/campaigns">Ver campanhas</Link>
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     notFound();
   }
 
