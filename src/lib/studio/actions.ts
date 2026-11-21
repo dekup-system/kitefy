@@ -41,15 +41,22 @@ export async function decideStudioRunAction(formData: FormData): Promise<void> {
   const { threadId, approved, selectedHookIndex, title, note } = parsed.data;
 
   // O tenant do thread precisa ser o mesmo da sessão (evita cross-tenant).
-  const run = await resumeStudioRun({
-    threadId,
-    decision: {
-      approved,
-      selected_hook_index: selectedHookIndex,
-      title: title?.trim() || undefined,
-      note: note?.trim() || undefined,
-    },
-  });
+  let run;
+  try {
+    run = await resumeStudioRun({
+      threadId,
+      decision: {
+        approved,
+        selected_hook_index: selectedHookIndex,
+        title: title?.trim() || undefined,
+        note: note?.trim() || undefined,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Falha ao aplicar a decisão.";
+    log.error("Falha ao retomar run", { threadId, message });
+    redirect(`/studio/${threadId}?erro=${encodeURIComponent(message.slice(0, 240))}`);
+  }
 
   log.info("Decisão registrada", {
     threadId,

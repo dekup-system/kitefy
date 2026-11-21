@@ -97,11 +97,22 @@ export async function resumeStudioRun(input: {
   decision: ApprovalDecision;
 }): Promise<StudioRunResult> {
   const graph = getStudioGraph();
+  const config = configFor(input.threadId);
 
-  const result = await graph.invoke(
-    new Command({ resume: input.decision }),
-    configFor(input.threadId),
-  );
+  // Em serverless, `MemorySaver` (sem SUPABASE_DB_URL) não compartilha estado
+  // entre invocações. Sem este check, a aprovação falharia de forma opaca.
+  const snapshot = await graph.getState(config);
+  const hasState = snapshot?.values && Object.keys(snapshot.values as object).length > 0;
+
+  if (!hasState) {
+    throw new Error(
+      "Sessão de aprovação não encontrada neste servidor. Configure SUPABASE_DB_URL " +
+        "(connection string do Postgres) para persistir o estado do agente entre requisições " +
+        "e rode `npm run db:langgraph-setup` uma vez.",
+    );
+  }
+
+  const result = await graph.invoke(new Command({ resume: input.decision }), config);
 
   log.info("Run retomado", { threadId: input.threadId, approved: input.decision.approved });
 

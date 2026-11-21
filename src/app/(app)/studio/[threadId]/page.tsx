@@ -37,7 +37,7 @@ export default async function StudioPage({
   searchParams,
 }: {
   params: Promise<{ threadId: string }>;
-  searchParams: Promise<{ aprovado?: string; rejeitado?: string; error?: string }>;
+  searchParams: Promise<{ aprovado?: string; rejeitado?: string; error?: string; erro?: string }>;
 }) {
   const session = await getSessionContext();
   if (!session) notFound();
@@ -147,6 +147,13 @@ export default async function StudioPage({
           <AlertDescription>
             Ativo rejeitado. Nenhum crédito foi debitado. Ajuste o briefing e gere novamente.
           </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {query.erro ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="size-4" aria-hidden="true" />
+          <AlertDescription>{decodeURIComponent(query.erro)}</AlertDescription>
         </Alert>
       ) : null}
 
