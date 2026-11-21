@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { requireSupabase } from "@/lib/env";
+import { requireSupabasePublic } from "@/lib/env";
 import type { PlanTier, TenantRole } from "@/types/domain";
 
 /**
@@ -10,7 +10,7 @@ import type { PlanTier, TenantRole } from "@/types/domain";
  */
 export async function createSupabaseServerClient(): Promise<SupabaseClient> {
   const cookieStore = await cookies();
-  const { url, anonKey } = requireSupabase();
+  const { url, anonKey } = requireSupabasePublic();
 
   return createServerClient(url, anonKey, {
     cookies: {

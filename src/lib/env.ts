@@ -153,23 +153,55 @@ export function requireLiveProvider(provider: "llm" | "serp" | "mp" | "image"): 
   }
 }
 
-/** Supabase é obrigatório em qualquer rota de dados. */
-export function requireSupabase(): {
-  url: string;
-  anonKey: string;
-  serviceRoleKey: string;
-} {
+/**
+ * Chaves públicas do Supabase (URL + chave publicável).
+ *
+ * Suficiente para: cliente de sessão (RLS), auth, onboarding e leituras.
+ * NÃO use para operações administrativas — para isso existe `requireSupabaseAdmin`.
+ */
+export function requireSupabasePublic(): { url: string; anonKey: string } {
   const env = getServerEnv();
   const missing: string[] = [];
   if (!env.NEXT_PUBLIC_SUPABASE_URL) missing.push("NEXT_PUBLIC_SUPABASE_URL");
   if (!env.NEXT_PUBLIC_SUPABASE_ANON_KEY) missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  if (!env.SUPABASE_SERVICE_ROLE_KEY) missing.push("SUPABASE_SERVICE_ROLE_KEY");
   if (missing.length > 0) {
     throw new Error(`Supabase não configurado: faltam ${missing.join(", ")}.`);
   }
   return {
     url: env.NEXT_PUBLIC_SUPABASE_URL!,
     anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY!,
   };
+}
+
+/**
+ * Credenciais administrativas (service_role).
+ *
+ * Exigidas por: estúdio (grafo e Storage), billing, worker e exclusão LGPD.
+ * A ausência gera erro explícito — nunca um cliente admin com chave pública.
+ */
+export function requireSupabaseAdmin(): {
+  url: string;
+  anonKey: string;
+  serviceRoleKey: string;
+} {
+  const publicEnv = requireSupabasePublic();
+  const env = getServerEnv();
+
+  if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY ausente. Gere a secret key em Supabase > Project Settings > " +
+        "API Keys > Secret keys e configure-a no servidor (nunca no cliente).",
+    );
+  }
+
+  return { ...publicEnv, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY };
+}
+
+/** Compatibilidade: alias histórico para o par administrativo. */
+export function requireSupabase(): {
+  url: string;
+  anonKey: string;
+  serviceRoleKey: string;
+} {
+  return requireSupabaseAdmin();
 }

@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { requireSupabase } from "@/lib/env";
+import { requireSupabaseAdmin } from "@/lib/env";
 
 /**
  * Cliente com service_role: ignora RLS.
@@ -14,7 +14,7 @@ let adminClient: SupabaseClient | null = null;
 export function createSupabaseAdminClient(): SupabaseClient {
   if (adminClient) return adminClient;
 
-  const { url, serviceRoleKey } = requireSupabase();
+  const { url, serviceRoleKey } = requireSupabaseAdmin();
   adminClient = createClient(url, serviceRoleKey, {
     auth: {
       persistSession: false,
