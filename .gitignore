@@ -46,5 +46,6 @@ Thumbs.db
 /supabase/.branches
 /supabase/.temp
 
-# artifacts gerados pelo studio
-/artifacts
+# artifacts gerados pelo studio (capturas de QA são versionadas)
+/artifacts/*
+!/artifacts/shots/

@@ -19,7 +19,7 @@ export async function register(): Promise<void> {
         JSON.stringify({
           level: "info",
           scope: "boot",
-          message: "BrandPulse inicializado",
+          message: "Kitefy inicializado",
           llm_mode: mode,
           supabase,
           serp: env.SERP_PROVIDER,

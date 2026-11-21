@@ -216,7 +216,7 @@ export function parseTenantFromExternalReference(
  * Descobre o plano da assinatura, em ordem de confiança:
  *  1. `external_reference` composto (`tenantId:planTier`);
  *  2. valor recorrente idêntico ao preço de um plano (fonte única: `PLANS`);
- *  3. nome do plano no campo `reason` (ex.: "BrandPulse Crescimento Pro").
+ *  3. nome do plano no campo `reason` (ex.: "Kitefy - Pacote Crescimento Pro").
  */
 export function derivePlanTier(
   preapproval: MpPreapprovalSnapshot,

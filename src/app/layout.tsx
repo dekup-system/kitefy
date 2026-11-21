@@ -6,20 +6,29 @@ import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: {
-    default: "BrandPulse — Organic & GEO Studio",
-    template: "%s · BrandPulse",
+    default: "Kitefy — pacotes ágeis de marketing orgânico",
+    template: "%s · Kitefy",
   },
   description:
-    "Estúdio de conteúdo orgânico para marcas: roteiros, carrosséis, artigos GEO com citações em IA e um loop de aprendizado por Thompson Sampling.",
-  applicationName: "BrandPulse",
-  robots: { index: false, follow: false },
+    "Pacotes ágeis de marketing digital orgânico: roteiros, carrosséis e artigos GEO com padrão de marca, aprendizado por telemetria e exportação sem atrito.",
+  applicationName: "Kitefy",
+  robots: { index: true, follow: true },
   openGraph: {
-    title: "BrandPulse — Organic & GEO Studio",
+    title: "Kitefy — pacotes ágeis de marketing orgânico",
     description:
-      "Conteúdo orgânico com padrão de marca, aprendizado contínuo e exportação sem atrito.",
+      "Conteúdo orgânico com padrão de marca, entregue em dias. Pacotes Start, Lift e Flow.",
     locale: "pt_BR",
     type: "website",
+    siteName: "Kitefy",
+  },
+  icons: {
+    icon: [
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
@@ -27,8 +36,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fdfdfd" },
-    { media: "(prefers-color-scheme: dark)", color: "#131315" },
+    { media: "(prefers-color-scheme: light)", color: "#F8F8FA" },
+    { media: "(prefers-color-scheme: dark)", color: "#181331" },
   ],
 };
 
@@ -42,13 +51,13 @@ export default function RootLayout({
       <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
           <a
             href="#conteudo"
-            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-brand-navy focus:px-4 focus:py-2 focus:text-white"
           >
             Pular para o conteúdo
           </a>

@@ -4,105 +4,188 @@
 @custom-variant dark (&:is(.dark *));
 
 /* =============================================================================
-   BrandPulse — tokens de design (Tailwind v4, OKLCH)
-   Estética: neutra de alto contraste (Linear / Vercel / Stripe / Attio).
-   Nenhuma cor de marca saturada em áreas de conteúdo; cor só comunica estado.
+   Kitefy — Design tokens (Tailwind v4)
+   Manual de Identidade Cromática aplicado. Proporção 60/30/10:
+     60%  superfícies claras  — canvas #F8F8FA + surface #FFFFFF
+     30%  estrutura escura    — navy #181331, texto body #3B3752
+     10%  sinal laranja       — #FD3E01 só em CTA, badge e métrica de crescimento
+   Contraste medido (WCAG 2.1) documentado em docs/KITEFY-BRAND.md.
    ========================================================================== */
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem; /* 8px — manual de botões */
 
-  --background: oklch(0.995 0 0);
-  --foreground: oklch(0.145 0.004 265);
+  /* --- Marca ---------------------------------------------------------------- */
+  --brand-navy: #181331;
+  --brand-navy-soft: #3b3752;
+  --brand-signal: #fd3e01;
+  --brand-signal-hover: #e03500;
+  /* Derivado do signal para TEXTO pequeno: 5.08:1 sobre #FFF0EB (AA).
+     #FD3E01 puro dá 3.22:1 e reprovaria em caption de 12px. */
+  --brand-signal-text: #c42d00;
+  --brand-signal-tint: #fff0eb;
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0.004 265);
+  /* --- Superfícies ---------------------------------------------------------- */
+  --brand-canvas: #f8f8fa;
+  --brand-surface: #ffffff;
+  --brand-subtle: #f0f0f5;
+  --brand-border: #e4e4ec;
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0.004 265);
+  /* --- Texto ---------------------------------------------------------------- */
+  --brand-text-primary: #181331;
+  --brand-text-body: #3b3752;
+  --brand-text-muted: #6e6a85;
+  /* Derivado AAA para texto pequeno: 7.25:1 sobre canvas. */
+  --brand-text-muted-strong: #54506a;
 
-  --primary: oklch(0.2 0.005 265);
-  --primary-foreground: oklch(0.985 0 0);
+  /* --- Pacotes (código de cores do manual) ---------------------------------- */
+  --pack-start-tint: #ecebf5;
+  --pack-start-border: #d5d3e6;
+  --pack-flow-tint: #e8f8f1;
+  --pack-flow-text: #0f766e;
+  --pack-flow-border: #bcead5;
 
-  --secondary: oklch(0.968 0.002 265);
-  --secondary-foreground: oklch(0.24 0.005 265);
+  /* --- Tokens semânticos da aplicação --------------------------------------- */
+  --background: var(--brand-canvas);
+  --foreground: var(--brand-navy);
 
-  --muted: oklch(0.968 0.002 265);
-  --muted-foreground: oklch(0.52 0.008 265);
+  --card: var(--brand-surface);
+  --card-foreground: var(--brand-navy);
 
-  --accent: oklch(0.958 0.003 265);
-  --accent-foreground: oklch(0.24 0.005 265);
+  --popover: var(--brand-surface);
+  --popover-foreground: var(--brand-navy);
 
-  --destructive: oklch(0.585 0.2 27.3);
-  --destructive-foreground: oklch(0.985 0 0);
+  /* Primário institucional = navy. O laranja é reservado à conversão. */
+  --primary: var(--brand-navy);
+  --primary-foreground: #ffffff;
 
-  --success: oklch(0.55 0.14 155);
-  --warning: oklch(0.72 0.15 75);
+  --secondary: var(--brand-subtle);
+  --secondary-foreground: var(--brand-navy);
 
-  /* --border é decorativo (separadores/cards); --input delimita controles e
-     portanto precisa de 3:1 contra o fundo (WCAG 2.1 - 1.4.11).
-     Medido: oklch(0.66 0.008 265) sobre --background = 3.06:1. */
-  --border: oklch(0.9 0.004 265);
-  --input: oklch(0.66 0.008 265);
-  --ring: oklch(0.55 0.02 265);
+  --muted: var(--brand-subtle);
+  --muted-foreground: var(--brand-text-muted-strong);
 
-  --chart-1: oklch(0.35 0.02 265);
-  --chart-2: oklch(0.5 0.03 265);
-  --chart-3: oklch(0.65 0.03 265);
-  --chart-4: oklch(0.78 0.02 265);
-  --chart-5: oklch(0.88 0.01 265);
+  --accent: #efeff4;
+  --accent-foreground: var(--brand-navy);
 
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0.004 265);
-  --sidebar-border: oklch(0.92 0.003 265);
-  --sidebar-accent: oklch(0.958 0.003 265);
-  --sidebar-accent-foreground: oklch(0.24 0.005 265);
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+
+  --success: #0f766e;
+  --warning: #8a5200;
+
+  /* --border é decorativo (cards, separadores). --input delimita controle e
+     precisa de 3:1 (WCAG 1.4.11): #8F8BA3 sobre canvas = 3.10:1. */
+  --border: var(--brand-border);
+  --input: #8f8ba3;
+  --ring: var(--brand-navy);
+
+  --chart-1: #181331;
+  --chart-2: #3b3752;
+  --chart-3: #6e6a85;
+  --chart-4: #b4b1c4;
+  --chart-5: #fd3e01;
+
+  --sidebar: var(--brand-surface);
+  --sidebar-foreground: var(--brand-navy);
+  --sidebar-border: var(--brand-border);
+  --sidebar-accent: var(--brand-subtle);
+  --sidebar-accent-foreground: var(--brand-navy);
 }
 
 .dark {
-  --background: oklch(0.135 0.004 265);
-  --foreground: oklch(0.965 0 0);
+  /* Tema escuro derivado do navy: mantém a marca, sem inventar cor nova. */
+  --brand-canvas: #100b24;
+  --brand-surface: #171230;
+  --brand-subtle: #1f1938;
+  --brand-border: #2c2549;
 
-  --card: oklch(0.165 0.004 265);
-  --card-foreground: oklch(0.965 0 0);
+  --background: var(--brand-canvas);
+  --foreground: #f6f5fb;
 
-  --popover: oklch(0.165 0.004 265);
-  --popover-foreground: oklch(0.965 0 0);
+  --card: var(--brand-surface);
+  --card-foreground: #f6f5fb;
 
-  --primary: oklch(0.965 0 0);
-  --primary-foreground: oklch(0.17 0.004 265);
+  --popover: var(--brand-surface);
+  --popover-foreground: #f6f5fb;
 
-  --secondary: oklch(0.22 0.004 265);
-  --secondary-foreground: oklch(0.965 0 0);
+  /* No escuro o CTA laranja é o primário (contraste branco 3.58:1 em texto grande). */
+  --primary: #fd3e01;
+  --primary-foreground: #ffffff;
 
-  --muted: oklch(0.22 0.004 265);
-  --muted-foreground: oklch(0.68 0.008 265);
+  --secondary: #221c3d;
+  --secondary-foreground: #f6f5fb;
 
-  --accent: oklch(0.24 0.004 265);
-  --accent-foreground: oklch(0.965 0 0);
+  --muted: #221c3d;
+  --muted-foreground: #b9b5cc;
 
-  --destructive: oklch(0.62 0.19 25);
-  --destructive-foreground: oklch(0.985 0 0);
+  --accent: #241e40;
+  --accent-foreground: #f6f5fb;
 
-  --success: oklch(0.68 0.13 155);
-  --warning: oklch(0.78 0.14 75);
+  --destructive: #ff6b5e;
+  --destructive-foreground: #1a0b09;
 
-  /* Medido: oklch(0.5 0.008 265) sobre --background escuro = 3.09:1. */
-  --border: oklch(0.3 0.005 265);
-  --input: oklch(0.5 0.008 265);
-  --ring: oklch(0.7 0.015 265);
+  --success: #4fd1a5;
+  --warning: #f0b429;
 
-  --chart-1: oklch(0.92 0.01 265);
-  --chart-2: oklch(0.78 0.02 265);
-  --chart-3: oklch(0.64 0.02 265);
-  --chart-4: oklch(0.5 0.02 265);
-  --chart-5: oklch(0.36 0.02 265);
+  --border: var(--brand-border);
+  --input: #6e6a85;
+  --ring: #f6f5fb;
 
-  --sidebar: oklch(0.155 0.004 265);
-  --sidebar-foreground: oklch(0.965 0 0);
-  --sidebar-border: oklch(0.26 0.004 265);
-  --sidebar-accent: oklch(0.24 0.004 265);
-  --sidebar-accent-foreground: oklch(0.965 0 0);
+  --chart-1: #f6f5fb;
+  --chart-2: #b9b5cc;
+  --chart-3: #8b86a3;
+  --chart-4: #5d5878;
+  --chart-5: #fd3e01;
+
+  --sidebar: #14102a;
+  --sidebar-foreground: #f6f5fb;
+  --sidebar-border: var(--brand-border);
+  --sidebar-accent: #221c3d;
+  --sidebar-accent-foreground: #f6f5fb;
+}
+
+
+/* =============================================================================
+   Escopo de superfície clara da marca.
+   As páginas públicas (LP, pacotes, jurídico) seguem o manual cromatico, que é
+   uma identidade CLARA por definição. Sem este escopo, um usuário com o sistema
+   em modo escuro veria os títulos navy sobre fundo escuro (ilegível).
+   A aplicação autenticada continua com tema claro/escuro.
+   ========================================================================== */
+[data-surface="kitefy-light"] {
+  color-scheme: light;
+
+  --brand-canvas: #f8f8fa;
+  --brand-surface: #ffffff;
+  --brand-subtle: #f0f0f5;
+  --brand-border: #e4e4ec;
+
+  --background: #f8f8fa;
+  --foreground: #181331;
+
+  --card: #ffffff;
+  --card-foreground: #181331;
+  --popover: #ffffff;
+  --popover-foreground: #181331;
+
+  --primary: #181331;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f0f0f5;
+  --secondary-foreground: #181331;
+
+  --muted: #f0f0f5;
+  --muted-foreground: #54506a;
+
+  --accent: #efeff4;
+  --accent-foreground: #181331;
+
+  --border: #e4e4ec;
+  --input: #8f8ba3;
+  --ring: #181331;
+
+  --sidebar: #ffffff;
 }
 
 @theme inline {
@@ -138,6 +221,20 @@
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
 
+  /* Marca exposta como utilitários: bg-brand-navy, text-brand-signal, etc. */
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-soft: var(--brand-navy-soft);
+  --color-brand-signal: var(--brand-signal);
+  --color-brand-signal-hover: var(--brand-signal-hover);
+  --color-brand-signal-text: var(--brand-signal-text);
+  --color-brand-signal-tint: var(--brand-signal-tint);
+  --color-brand-canvas: var(--brand-canvas);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-border: var(--brand-border);
+  --color-brand-muted: var(--brand-text-muted);
+  --color-brand-muted-strong: var(--brand-text-muted-strong);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -146,8 +243,10 @@
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
 
-  --shadow-card: 0 1px 2px 0 oklch(0 0 0 / 0.04), 0 1px 3px 0 oklch(0 0 0 / 0.06);
-  --shadow-popover: 0 8px 24px -6px oklch(0 0 0 / 0.16), 0 2px 6px -2px oklch(0 0 0 / 0.08);
+  --shadow-card: 0 1px 2px 0 oklch(0.18 0.03 285 / 0.04), 0 1px 3px 0 oklch(0.18 0.03 285 / 0.06);
+  --shadow-popover: 0 8px 24px -6px oklch(0.18 0.03 285 / 0.16), 0 2px 6px -2px oklch(0.18 0.03 285 / 0.08);
+  /* Sombra do CTA — manual: apenas no hover. */
+  --shadow-signal: 0 4px 14px rgba(253, 62, 1, 0.25);
 }
 
 @layer base {
@@ -162,14 +261,14 @@
 
   body {
     background-color: var(--background);
-    color: var(--foreground);
+    color: var(--brand-text-body);
     font-family: var(--font-sans);
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Foco sempre visível e com contraste >= 3:1 (WCAG 2.1 AA). */
+  /* Foco sempre visível: navy sobre claro, branco sobre escuro (≥ 3:1). */
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
@@ -177,10 +276,10 @@
   }
 
   ::selection {
-    background-color: color-mix(in oklch, var(--foreground) 16%, transparent);
+    background-color: rgba(253, 62, 1, 0.18);
+    color: var(--brand-text-primary);
   }
 
-  /* Tabular numbers em métricas/créditos. */
   .font-mono,
   [data-mono="true"] {
     font-family: var(--font-mono);
@@ -199,6 +298,82 @@
   }
 }
 
+@layer components {
+  /* CTA de conversão: fundo signal + texto branco.
+     Texto branco sobre #FD3E01 mede 3.58:1 → só é conforme como TEXTO GRANDE
+     (≥18.66px semibold). Por isso o rótulo padrão é 19px/600. */
+  .kitefy-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 3.25rem;
+    padding-inline: 1.5rem;
+    border-radius: 8px;
+    background-color: var(--brand-signal);
+    color: #ffffff;
+    font-size: 1.1875rem; /* 19px */
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    transition:
+      background-color 150ms ease,
+      box-shadow 150ms ease,
+      transform 150ms ease;
+  }
+
+  .kitefy-cta:hover {
+    background-color: var(--brand-signal-hover);
+    box-shadow: var(--shadow-signal);
+  }
+
+  .kitefy-cta:active {
+    transform: translateY(1px);
+  }
+
+  /* Botão compacto: mesmo quando o espaço exige 15px, o texto branco sobre
+     signal reprovaria em AA. Aqui o rótulo vai em navy (4.99:1). */
+  .kitefy-cta-compact {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    height: 2.5rem;
+    padding-inline: 1rem;
+    border-radius: 8px;
+    background-color: var(--brand-navy);
+    color: #ffffff;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    transition: background-color 150ms ease;
+  }
+
+  .kitefy-cta-compact:hover {
+    background-color: #241c47;
+  }
+
+  .kitefy-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--brand-border);
+    border-radius: 999px;
+    background-color: var(--brand-surface);
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--brand-text-body);
+  }
+
+  .kitefy-rule {
+    height: 2px;
+    width: 2.5rem;
+    background-color: var(--brand-signal);
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -208,17 +383,17 @@
     text-wrap: pretty;
   }
 
-  /* Superfície sutil de "cartão" usada em tabelas e painéis densos. */
   .surface {
     background-color: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
   }
 
+  /* Grade sutil de fundo para seções editoriais (sem degradê pesado). */
   .grid-lines {
     background-image:
-      linear-gradient(to right, color-mix(in oklch, var(--border) 60%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in oklch, var(--border) 60%, transparent) 1px, transparent 1px);
+      linear-gradient(to right, color-mix(in oklch, var(--border) 70%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklch, var(--border) 70%, transparent) 1px, transparent 1px);
     background-size: 44px 44px;
   }
 
@@ -228,7 +403,6 @@
   }
 }
 
-/* Skeleton com shimmer respeitando prefers-reduced-motion. */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;

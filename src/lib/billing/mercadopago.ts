@@ -234,7 +234,7 @@ function notificationUrl(): string {
 }
 
 function planDescription(planTier: PlanTier): string {
-  return `BrandPulse Organic & GEO Studio - Plano ${PLANS[planTier].name}`;
+  return `Kitefy - Pacote ${PLANS[planTier].name}`;
 }
 
 /** Centavos → número decimal em BRL (ex.: 4990 → 49.9). */

@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 /**
- * Botão base do BrandPulse.
+ * Botão base da Kitefy.
  * Alvos de toque: sm 32px, default 36px, lg 40px, icon 36px.
  * O foco usa anel de 3px sobre `--ring` (4,79:1 contra o fundo no tema claro).
  */

@@ -123,7 +123,7 @@ export function buildFooter(meta: FooterMeta): string {
   const lines = [
     "---",
     "",
-    `Gerado por BrandPulse para ${meta.brandName}. Créditos consumidos: ${meta.credits}. Revisão humana recomendada antes da publicação.`,
+    `Gerado por Kitefy para ${meta.brandName}. Créditos consumidos: ${meta.credits}. Revisão humana recomendada antes da publicação.`,
   ];
 
   if (meta.models && meta.models.length > 0) {
@@ -157,7 +157,7 @@ export function buildContentHtml(markdownHtml: string, title: string, brandName:
 <article>
 ${markdownHtml}
 </article>
-<footer>Gerado por BrandPulse para ${escapeHtml(brandName)}. Revisão humana recomendada.</footer>
+<footer>Gerado por Kitefy para ${escapeHtml(brandName)}. Revisão humana recomendada.</footer>
 </body>
 </html>`;
 }

@@ -15,6 +15,7 @@ Copie `.env.example` para `.env.local` (nunca commite). Todas são validadas por
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | sim | públicas por desenho (RLS protege) |
 | `SUPABASE_SERVICE_ROLE_KEY` | sim | **somente servidor**; nunca no bundle |
 | `SUPABASE_DB_URL` | recomendada | PostgresSaver, pgmq e transações; sem ela usa `MemorySaver` |
+| `SUPABASE_SERVICE_ROLE_KEY` | sim (rotas de servidor) | sem ela: estúdio, billing, Storage e LGPD não operam |
 | `SUPABASE_STORAGE_BUCKET` | não | default `brand-assets` |
 | `LLM_PROVIDER_MODE` | não | `mock` (default) ou `live` |
 | `ANTHROPIC_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` | em `live` | modelo por spec `provider:model` |
@@ -55,13 +56,27 @@ npm run db:langgraph-setup     # checkpoints do LangGraph
 npm run db:seed                # marca demo + conhecimento + telemetria
 ```
 
-### Projeto remoto
+### Projeto remoto (Kitefy)
+
+Projeto atual: `exinnzybuxudnmhokosv` — <https://exinnzybuxudnmhokosv.supabase.co>
+
+**Caminho sem Docker e sem senha do banco (recomendado):**
+
+1. Dashboard → **SQL Editor** → New query
+2. Cole todo o conteúdo de **`supabase/kitefy-setup.sql`** (gerado por `npm run db:setup-sql`)
+3. Run → confirme 11 tabelas em `public`, todas com `rowsecurity = true`
+
+**Caminho por CLI (requer a senha do banco):**
 
 ```bash
-npx supabase link --project-ref <ref>
+npx supabase link --project-ref exinnzybuxudnmhokosv
 npx supabase db push
 SUPABASE_DB_URL=postgresql://... npm run db:langgraph-setup
 ```
+
+> A chave publicável (`sb_publishable_...`) cobre auth, onboarding e leituras protegidas por RLS.
+> As rotas de servidor — estúdio, billing, Storage e LGPD — exigem a **secret key** em
+> `SUPABASE_SERVICE_ROLE_KEY`. Sem ela, a geração falha com erro explicativo, nunca em silêncio.
 
 Confirme no painel:
 

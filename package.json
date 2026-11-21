@@ -18,7 +18,11 @@
     "test:coverage": "vitest run --coverage",
     "db:langgraph-setup": "tsx scripts/langgraph-setup.ts",
     "db:seed": "tsx scripts/seed-demo.ts",
-    "verify:licenses": "tsx scripts/verify-licenses.ts"
+    "verify:licenses": "tsx scripts/verify-licenses.ts",
+    "db:setup-sql": "tsx scripts/build-setup-sql.ts",
+    "brand:inspect": "tsx scripts/inspect-brand.ts",
+    "qa:overflow": "tsx scripts/diagnose-overflow.mts",
+    "qa:shot": "tsx scripts/cdp-shot.mts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "4.0.107",

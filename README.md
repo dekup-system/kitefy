@@ -1,8 +1,13 @@
-# BrandPulse — Organic & GEO Studio
+# Kitefy — pacotes ágeis de marketing orgânico
 
-SaaS B2B de produção de conteúdo orgânico com orquestração multi-agente (LangGraph.js, MIT),
-PostgreSQL/Supabase, renderização programática de imagens (Satori + resvg) e cobrança no Brasil
-via Mercado Pago.
+SaaS B2B de conteúdo orgânico em pacotes (Start / Lift / Flow) com orquestração multi-agente
+(LangGraph.js, MIT), PostgreSQL/Supabase, renderização programática de imagens (Satori + resvg) e
+cobrança no Brasil via Mercado Pago.
+
+- **Repositório:** <https://github.com/dekup-system/kitefy>
+- **Supabase:** projeto `exinnzybuxudnmhokosv`
+- **Identidade visual:** [`docs/KITEFY-BRAND.md`](docs/KITEFY-BRAND.md) — paleta, proporção
+  60/30/10, contraste medido e desvios justificados
 
 > **Entrega sem atrito, sem rede social.** Nada de OAuth de Meta/Instagram/TikTok/LinkedIn/X/YouTube,
 > nada de avatar digital, lip-sync, TTS ou clonagem de voz. O conteúdo sai para cópia em 1 clique,
@@ -23,7 +28,7 @@ via Mercado Pago.
 Verificação automatizada atual:
 
 ```
-21 arquivos de teste · 232 testes passando
+23 arquivos de teste · 237 testes passando
 tsc --noEmit .............. 0 erros
 eslint . .................. 0 erros, 0 avisos
 next build ................ 26 rotas compiladas
@@ -66,6 +71,20 @@ npm run dev
 Com `LLM_PROVIDER_MODE=mock` (padrão) o produto funciona ponta a ponta — onboarding, geração,
 aprovação, render, exportação, telemetria e aprendizado — sem chamar nenhum provedor.
 O conteúdo é gerado por um motor determinístico com bancos de frases em PT-BR.
+
+### Banco no projeto real (sem Docker)
+
+Cole **`supabase/kitefy-setup.sql`** no SQL Editor do Supabase e clique em Run. O arquivo é
+idempotente: cria as 11 tabelas com RLS, as funções transacionais, o bucket privado e as filas.
+Depois:
+
+```bash
+SUPABASE_DB_URL=postgresql://... npm run db:langgraph-setup   # checkpoints do LangGraph
+```
+
+Rotas de servidor (estúdio, billing, Storage, LGPD) exigem `SUPABASE_SERVICE_ROLE_KEY`
+(Supabase → Project Settings → API Keys → Secret keys). A chave publicável
+(`sb_publishable_...`) cobre auth, onboarding e leituras protegidas por RLS.
 
 ### Supabase local (opcional, requer Docker)
 
@@ -188,5 +207,6 @@ docs/                 arquitetura, operação, licenças, fases
 
 - [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) — decisões, schema, RLS, grafo, bandit, JSON-LD
 - [`docs/OPERACAO.md`](docs/OPERACAO.md) — env, deploy Vercel/Supabase, workers, spend caps, checklist MP
+- [`docs/KITEFY-BRAND.md`](docs/KITEFY-BRAND.md) — identidade cromática aplicada e contraste medido
 - [`docs/DEPENDENCIAS-LICENCAS.md`](docs/DEPENDENCIAS-LICENCAS.md) — auditoria e justificativas
 - [`docs/FASES.md`](docs/FASES.md) — critérios de aceite por fase e evidências

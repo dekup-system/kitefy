@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ArrowRight, CheckCircle2, ShieldCheck, Zap } from "lucide-react";
 import { LoginForm } from "./login-form";
+import { KitefyLogo } from "@/components/brand/kitefy-logo";
 import { getSessionContext } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -29,11 +30,10 @@ export default async function LoginPage({
   const next = params.next ?? "/app";
 
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
+    <div data-surface="kitefy-light" className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
       <div className="hidden flex-col justify-between border-r border-border bg-muted/30 p-12 lg:flex">
-        <Link href="/" className="inline-flex items-center gap-2 font-medium">
-          <span aria-hidden="true" className="inline-block size-2.5 rounded-full bg-foreground" />
-          BrandPulse
+        <Link href="/" aria-label="Kitefy — página inicial">
+          <KitefyLogo height={36} />
         </Link>
 
         <div className="max-w-md space-y-8">
@@ -65,9 +65,8 @@ export default async function LoginPage({
       <div className="flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-sm space-y-8">
           <div className="space-y-2 text-center lg:text-left">
-            <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium lg:hidden">
-              <span aria-hidden="true" className="inline-block size-2.5 rounded-full bg-foreground" />
-              BrandPulse
+            <Link href="/" aria-label="Kitefy — página inicial" className="inline-flex lg:hidden">
+              <KitefyLogo height={36} />
             </Link>
             <h2 className="text-2xl font-semibold tracking-tight">Entrar no estúdio</h2>
             <p className="text-sm text-muted-foreground">

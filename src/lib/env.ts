@@ -62,10 +62,30 @@ export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
 let cached: ServerEnv | null = null;
 
+/**
+ * Remove entradas vazias do ambiente.
+ *
+ * Painéis de deploy (Vercel, Supabase) e arquivos .env costumam declarar a chave
+ * com valor vazio (`SUPABASE_SERVICE_ROLE_KEY=`). Para o zod, "" é uma string
+ * inválida — e não "ausente". Aqui vazio vira ausente, então o default do schema
+ * (ou a ausência legítima) assume o controle.
+ */
+export function cleanEnvironment(
+  source: Record<string, string | undefined>,
+): Record<string, string> {
+  const cleaned: Record<string, string> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value !== "string") continue;
+    if (value.trim().length === 0) continue;
+    cleaned[key] = value;
+  }
+  return cleaned;
+}
+
 export function getServerEnv(): ServerEnv {
   if (cached) return cached;
 
-  const parsed = serverEnvSchema.safeParse(process.env);
+  const parsed = serverEnvSchema.safeParse(cleanEnvironment(process.env));
   if (!parsed.success) {
     const details = parsed.error.issues
       .map((issue) => `${issue.path.join(".")}: ${issue.message}`)

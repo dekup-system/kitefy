@@ -13,6 +13,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Pasta pai com lockfile próprio (C:\Users\mtres\package-lock.json):
+  // fixa a raiz do Turbopack neste projeto em vez de inferir para cima.
+  turbopack: { root: process.cwd() },
   serverExternalPackages: [
     "@resvg/resvg-js",
     "sharp",

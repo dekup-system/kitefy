@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Política de Privacidade",
-  description: "Como o BrandPulse trata dados pessoais, com base na LGPD.",
+  description: "Como a Kitefy trata dados pessoais, com base na LGPD.",
 };
 
 const SECTIONS = [
@@ -78,7 +78,7 @@ const SECTIONS = [
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="mx-auto max-w-3xl px-5 py-12">
+    <div data-surface="kitefy-light" className="mx-auto max-w-3xl px-5 py-12">
       <Link href="/" className="text-sm text-muted-foreground underline underline-offset-4">
         ← Voltar
       </Link>

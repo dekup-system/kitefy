@@ -6,6 +6,7 @@ import { CommandMenu } from "@/components/app/command-menu";
 import { UserMenu } from "@/components/app/user-menu";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Badge } from "@/components/ui/badge";
+import { KitefyLogoThemeAware } from "@/components/brand/kitefy-logo-theme-aware";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
 import { PLANS } from "@/lib/pricing";
 
@@ -38,9 +39,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[232px_1fr]">
       <aside className="hidden flex-col gap-6 border-r border-border bg-sidebar p-4 lg:flex">
         <div className="flex items-center justify-between gap-2">
-          <Link href="/app" className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
-            <span aria-hidden="true" className="inline-block size-2.5 rounded-full bg-foreground" />
-            BrandPulse
+          <Link href="/app" aria-label="Kitefy — visão geral">
+            <KitefyLogoThemeAware height={32} />
           </Link>
           <ThemeToggle />
         </div>
@@ -73,9 +73,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       <div className="flex min-w-0 flex-col">
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur lg:px-8">
-          <Link href="/app" className="inline-flex items-center gap-2 text-sm font-semibold lg:hidden">
-            <span aria-hidden="true" className="inline-block size-2.5 rounded-full bg-foreground" />
-            BrandPulse
+          <Link href="/app" aria-label="Kitefy — visão geral" className="inline-flex lg:hidden">
+            <KitefyLogoThemeAware height={30} />
           </Link>
           <div className="ml-auto flex items-center gap-2">
             <span className="hidden items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground sm:inline-flex">

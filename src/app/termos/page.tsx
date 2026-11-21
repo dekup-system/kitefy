@@ -3,13 +3,13 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Termos de Uso",
-  description: "Condições de uso do BrandPulse Organic & GEO Studio.",
+  description: "Condições de uso dos pacotes de marketing orgânico da Kitefy.",
 };
 
 const SECTIONS = [
   {
     title: "1. Objeto",
-    body: "O BrandPulse é um estúdio de produção de conteúdo orgânico. A plataforma gera roteiros, carrosséis, criativos, artigos e copies a partir do contexto da marca informado pelo cliente, entregando os arquivos para exportação.",
+    body: "A Kitefy é um serviço de pacotes ágeis de marketing digital orgânico. A plataforma gera roteiros, carrosséis, criativos, artigos e copies a partir do contexto da marca informado pelo cliente, entregando os arquivos para exportação.",
   },
   {
     title: "2. O que o serviço não faz",
@@ -51,7 +51,7 @@ const SECTIONS = [
 
 export default function TermsPage() {
   return (
-    <div className="mx-auto max-w-3xl px-5 py-12">
+    <div data-surface="kitefy-light" className="mx-auto max-w-3xl px-5 py-12">
       <Link href="/" className="text-sm text-muted-foreground underline underline-offset-4">
         ← Voltar
       </Link>
