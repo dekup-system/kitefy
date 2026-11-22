@@ -365,20 +365,53 @@ class SerperProvider implements SerpProvider {
       );
     }
 
+    // PAA e buscas relacionadas só aparecem no SERP dos EUA (gl=us). Quando a
+    // busca regional não devolve perguntas, repetimos com gl=us mantendo o hl —
+    // as perguntas continuam no idioma da marca e alimentam o FAQ do artigo GEO.
+    // Custo: uma consulta extra apenas quando falta PAA.
+    let peopleAlsoAskSource = parsed.data.peopleAlsoAsk ?? [];
+    let relatedSource = parsed.data.relatedSearches ?? [];
+
+    if (peopleAlsoAskSource.length === 0 && gl !== "us") {
+      try {
+        const fallbackResponse = await fetch(SERPER_ENDPOINT, {
+          method: "POST",
+          headers: { "X-API-KEY": apiKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ q: query, num, gl: "us", hl }),
+          signal: AbortSignal.timeout(SERPER_TIMEOUT_MS),
+        });
+
+        if (fallbackResponse.ok) {
+          const fallbackJson: unknown = await fallbackResponse.json().catch(() => null);
+          const fallbackParsed = serperResponseSchema.safeParse(fallbackJson);
+          if (fallbackParsed.success) {
+            peopleAlsoAskSource = fallbackParsed.data.peopleAlsoAsk ?? [];
+            relatedSource = fallbackParsed.data.relatedSearches ?? [];
+          }
+        }
+      } catch {
+        // Enriquecimento opcional: a ausência de PAA não invalida a pesquisa.
+      }
+    }
+
     const organic = parsed.data.organic ?? [];
-    const peopleAlsoAsk = (parsed.data.peopleAlsoAsk ?? [])
+    const peopleAlsoAsk = peopleAlsoAskSource
       .filter((item) => item.question.trim().length > 0)
       .map((item) => {
         const answer = item.snippet?.trim();
         return answer ? { question: item.question.trim(), answer } : { question: item.question.trim() };
       });
-    const relatedQueries = (parsed.data.relatedSearches ?? [])
+    const relatedQueries = relatedSource
       .map((item) => item.query.trim())
       .filter((item) => item.length > 0);
 
+    const uniqueQuestions = peopleAlsoAsk.filter(
+      (item, index, all) => all.findIndex((other) => other.question === item.question) === index,
+    );
+
     // O contrato SerpInsights não possui campo de buscas relacionadas; elas são
     // incorporadas aos gaps como tópicos que o concorrente não cobre.
-    const gapCandidates = [...peopleAlsoAsk.map((item) => item.question), ...relatedQueries];
+    const gapCandidates = [...uniqueQuestions.map((item) => item.question), ...relatedQueries];
 
     const competitorGaps = organic.slice(0, MAX_COMPETITORS).map((item) => ({
       url: item.link ?? "",
