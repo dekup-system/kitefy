@@ -1,6 +1,7 @@
 import type { EntityFact, ToneOfVoice, VisualTokens } from "@/types/domain";
 import { inferBrandSeed } from "@/lib/ai/mock-generator";
 import { createSerpProvider } from "@/lib/serp/client";
+import { crawlBrandSite, type SiteCrawlResult } from "@/lib/crawl/site";
 import { createLogger } from "@/lib/logger";
 
 /**
@@ -25,6 +26,13 @@ export interface BrandDraft {
   niche: string;
   confidence: "baixa" | "média" | "alta";
   needs_review: string[];
+  /** Resultado da leitura do site (quando havia URL). */
+  site_analysis: {
+    pages_read: number;
+    topics: string[];
+    json_ld_types: string[];
+    blocked_by_robots: boolean;
+  } | null;
 }
 
 export interface NicheTemplate {
@@ -168,6 +176,51 @@ export async function extractBrandDraft(
     needsReview.push("Não foi possível consultar a busca agora; o público foi inferido do texto.");
   }
 
+  // Leitura do site: transforma contexto declarado em contexto observado.
+  let siteAnalysis: BrandDraft["site_analysis"] = null;
+  let site: SiteCrawlResult | null = null;
+  let brandName = seed.brand_name;
+
+  if (seed.website_url) {
+    try {
+      site = await crawlBrandSite(seed.website_url, { budgetMs: 12_000 });
+      siteAnalysis = {
+        pages_read: site.pages.length,
+        topics: site.topics.slice(0, 6),
+        json_ld_types: site.json_ld_types,
+        blocked_by_robots: site.blocked_by_robots,
+      };
+
+      if (site.brand_name) brandName = site.brand_name;
+
+      if (site.description.length > 40) {
+        icp = template
+          ? `${site.description} ${template.icp_description}`
+          : site.description;
+      }
+
+      if (site.facts.length > 0) {
+        facts.length = 0;
+        for (const fact of site.facts.slice(0, 5)) {
+          facts.push({ claim: fact.claim, source_url: fact.source_url });
+        }
+        needsReview.push(
+          `${facts.length} fato(s) extraído(s) do site — confirme cada afirmação antes de publicar.`,
+        );
+      }
+
+      if (site.pages.length >= 2) confidence = "alta";
+      if (site.blocked_by_robots) {
+        needsReview.push("O robots.txt do site impede leitura automática; revise o contexto manualmente.");
+      }
+      for (const warning of site.warnings.slice(0, 2)) needsReview.push(warning);
+    } catch (error) {
+      needsReview.push(
+        `Não foi possível ler o site (${error instanceof Error ? error.message : "falha"}). Contexto inferido do texto.`,
+      );
+    }
+  }
+
   if (!seed.website_url) {
     needsReview.push("Sem site informado: adicione a URL para reforçar sinais de entidade (GEO).");
   }
@@ -179,7 +232,7 @@ export async function extractBrandDraft(
   }
 
   return {
-    brand_name: seed.brand_name,
+    brand_name: brandName,
     website_url: seed.website_url,
     icp_description: icp,
     tone_of_voice: template?.tone ?? {
@@ -202,6 +255,7 @@ export async function extractBrandDraft(
     niche: template?.id ?? seed.niche,
     confidence,
     needs_review: needsReview,
+    site_analysis: siteAnalysis,
   };
 }
 

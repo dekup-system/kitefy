@@ -80,12 +80,21 @@ export async function createBrandFromOnboardingAction(
   revalidatePath("/app");
   revalidatePath("/onboarding");
 
+  const site = draft.site_analysis;
+  const siteSummary =
+    site && site.pages_read > 0
+      ? `Li ${site.pages_read} página(s) do site` +
+        (site.topics.length > 0 ? ` e identifiquei ${site.topics.length} tópico(s)` : "") +
+        (site.json_ld_types.length > 0 ? ` (dados estruturados: ${site.json_ld_types.slice(0, 3).join(", ")})` : "") +
+        ". "
+      : "";
+
   return {
     brandId: inserted.data.id,
     notice:
       draft.needs_review.length > 0
-        ? `Marca criada. A revisar: ${draft.needs_review.join(" ")}`
-        : "Marca criada com sucesso.",
+        ? `${siteSummary}Marca criada. A revisar: ${draft.needs_review.join(" ")}`
+        : `${siteSummary}Marca criada com sucesso.`,
   };
 }
 

@@ -113,6 +113,38 @@ embeddings, por isso o Google permanece nesta função.
 
 Para voltar a Anthropic/Google, basta trocar as três variáveis `MODEL_*` — nenhum código muda.
 
+## 2c. SERP real e leitura do site
+
+### Ligar o SERP real (Serper)
+
+1. Crie a conta em **https://serper.dev** (2.500 consultas grátis; depois ~US$ 50/100k).
+2. Dashboard → **API Key** → copie.
+3. `.env.local` e Vercel:
+   ```
+   SERP_PROVIDER=serper
+   SERPER_API_KEY=...
+   ```
+Sem a chave, `SERP_PROVIDER=mock` devolve perguntas e lacunas **sintéticas** (determinísticas, para demo/teste).
+
+### Leitura do site no onboarding
+
+Quando o usuário informa uma URL, o onboarding lê até 5 páginas (home + institucionais) e extrai:
+título, descrição, headings (tópicos), tipos de JSON-LD e **candidatos a fato verificável** com a URL de origem.
+
+Limites e salvaguardas:
+
+| Item | Valor |
+| --- | --- |
+| Páginas por marca | 5 |
+| Tempo total | 12s no onboarding (20s no crawler) |
+| Bytes por página | 1,5 MB |
+| Execução de JS | nenhuma (HTML estático) |
+| `robots.txt` | respeitado; bloqueio é registrado em `needs_review` |
+| Destinos | só http(s), porta 80/443, host público (bloqueia localhost, IPs privados e metadados de nuvem) |
+
+Os fatos extraídos entram como **não verificados** e a UI pede confirmação — o sistema nunca inventa número:
+sem evidência concreta (ano, moeda, %, milhar, escala) e sem verbo de afirmação, a frase é descartada.
+
 ## 3. Vercel
 
 1. Importe o repositório; framework detectado: Next.js. **Não** é preciso build command customizado.
