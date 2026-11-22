@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
+  buildOfficialMpManifest,
   buildSignatureManifest,
   constantTimeEquals,
   parseSignatureHeader,
@@ -113,7 +114,8 @@ describe("verifyMpSignature", () => {
       nowMs: NOW_MS,
     });
 
-    expect(result).toEqual({ valid: true });
+    expect(result.valid).toBe(true);
+    expect(result.manifest).toBe("legacy_compact");
   });
 
   it("aceita assinatura válida com campos na ordem invertida e espaços", () => {
@@ -353,6 +355,72 @@ describe("verifyMpSignature", () => {
     });
 
     expect(result).toEqual({ valid: false, reason: "malformed" });
+  });
+
+  it("aceita o formato oficial do Mercado Pago (id:...;request-id:...;ts:...;)", () => {
+    const officialManifest = buildOfficialMpManifest({
+      dataId: DATA_ID,
+      requestId: REQUEST_ID,
+      ts: NOW_TS,
+    });
+    expect(officialManifest).toBe(`id:${DATA_ID};request-id:${REQUEST_ID};ts:${NOW_TS};`);
+    // Sem normalização do id: id alfanumérico maiúsculo precisa continuar igual.
+
+    const v1 = hmac(officialManifest, SECRET);
+    const result = verifyMpSignature({
+      signatureHeader: `ts=${NOW_TS},v1=${v1}`,
+      requestId: REQUEST_ID,
+      dataId: DATA_ID,
+      secret: SECRET,
+      nowMs: NOW_MS,
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.manifest).toBe("official_semicolon");
+  });
+
+  it("aceita o manifesto oficial sem o ponto e vírgula final", () => {
+    const manifest = buildOfficialMpManifest(
+      { dataId: DATA_ID, requestId: REQUEST_ID, ts: NOW_TS },
+      false,
+    );
+    const v1 = hmac(manifest, SECRET);
+
+    const result = verifyMpSignature({
+      signatureHeader: `ts=${NOW_TS},v1=${v1}`,
+      requestId: REQUEST_ID,
+      dataId: DATA_ID,
+      secret: SECRET,
+      nowMs: NOW_MS,
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.manifest).toBe("official");
+  });
+
+  it("não normaliza id alfanumérico em maiúsculas no manifesto oficial", () => {
+    // O SDK do Mercado Pago alerta: lower/trim extra mudam a string assinada.
+    const orderId = "ORD01JQ4S7K9X2M";
+    const manifest = buildOfficialMpManifest({
+      dataId: orderId,
+      requestId: REQUEST_ID,
+      ts: NOW_TS,
+    });
+
+    expect(manifest).toContain(`id:${orderId};`);
+    expect(manifest).not.toContain(`id:${orderId.toLowerCase()};`);
+
+    const v1 = hmac(manifest, SECRET);
+    const result = verifyMpSignature({
+      signatureHeader: `ts=${NOW_TS},v1=${v1}`,
+      requestId: REQUEST_ID,
+      dataId: orderId,
+      secret: SECRET,
+      nowMs: NOW_MS,
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.manifest).toBe("official_semicolon");
   });
 });
 

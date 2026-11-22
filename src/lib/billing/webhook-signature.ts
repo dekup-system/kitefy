@@ -22,9 +22,17 @@ export interface ParsedSignature {
 
 export type MpSignatureFailureReason = "missing" | "malformed" | "expired" | "mismatch";
 
+export type MpSignatureManifest = "official_semicolon" | "official" | "legacy_compact";
+
 export interface MpSignatureVerification {
   valid: boolean;
   reason?: MpSignatureFailureReason;
+  /**
+   * Formato de manifesto que validou. Serve para calibrar contra um evento real
+   * do Sandbox; depois de confirmado, os demais formatos devem ser removidos
+   * (aceitar vários amplia a superfície de verificação).
+   */
+  manifest?: MpSignatureManifest;
 }
 
 export interface SignatureManifestInput {
@@ -103,6 +111,26 @@ export function buildSignatureManifest({ dataId, requestId, ts }: SignatureManif
 }
 
 /**
+ * Manifesto oficial do Mercado Pago Webhooks v1:
+ * `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`
+ */
+/**
+ * Manifesto oficial do Mercado Pago.
+ *
+ * O SDK oficial alerta para NÃO normalizar `data.id`: ids de pedido chegam
+ * alfanuméricos com maiúsculas (ex.: ORD01JQ4S...) e qualquer lower/trim extra
+ * muda a string assinada. O `;` final aparece em parte da documentação — por
+ * isso testamos as duas variantes até capturar um evento real do Sandbox.
+ */
+export function buildOfficialMpManifest(
+  { dataId, requestId, ts }: SignatureManifestInput,
+  trailingSemicolon = true,
+): string {
+  const suffix = trailingSemicolon ? ";" : "";
+  return `id:${dataId.trim()};request-id:${requestId.trim()};ts:${ts.trim()}${suffix}`;
+}
+
+/**
  * Compara dois hex em tempo constante.
  *
  * `timingSafeEqual` lança quando os buffers têm tamanhos diferentes, então o
@@ -160,15 +188,30 @@ export function verifyMpSignature(input: VerifyMpSignatureInput): MpSignatureVer
     return { valid: false, reason: "expired" };
   }
 
-  const expectedHex = createHmac("sha256", secret)
-    .update(buildSignatureManifest({ dataId, requestId, ts: parsed.ts }), "utf8")
-    .digest("hex");
+  const sign = (manifest: string): string =>
+    createHmac("sha256", secret).update(manifest, "utf8").digest("hex");
 
-  if (!constantTimeEqualHex(expectedHex, parsed.v1)) {
+  const candidates: { manifest: MpSignatureManifest; value: string }[] = [
+    {
+      manifest: "official_semicolon",
+      value: sign(buildOfficialMpManifest({ dataId, requestId, ts: parsed.ts }, true)),
+    },
+    {
+      manifest: "official",
+      value: sign(buildOfficialMpManifest({ dataId, requestId, ts: parsed.ts }, false)),
+    },
+    {
+      manifest: "legacy_compact",
+      value: sign(buildSignatureManifest({ dataId, requestId, ts: parsed.ts })),
+    },
+  ];
+
+  const matched = candidates.find((candidate) => constantTimeEqualHex(candidate.value, parsed.v1));
+  if (!matched) {
     return { valid: false, reason: "mismatch" };
   }
 
-  return { valid: true };
+  return { valid: true, manifest: matched.manifest };
 }
 
 /**
