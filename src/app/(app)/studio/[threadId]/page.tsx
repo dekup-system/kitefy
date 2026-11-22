@@ -160,9 +160,13 @@ export default async function StudioPage({
               <Button asChild variant="outline" size="sm">
                 <a href={`/api/assets/${asset.id}/export?format=md`}>Markdown</a>
               </Button>
-              <Button asChild variant="outline" size="sm">
-                <a href={`/api/assets/${asset.id}/export?format=jsonld`}>JSON-LD</a>
-              </Button>
+              {/* JSON-LD só existe para artigo GEO; para os demais tipos o
+                  arquivo sairia praticamente vazio. */}
+              {asset.json_ld ? (
+                <Button asChild variant="outline" size="sm">
+                  <a href={`/api/assets/${asset.id}/export?format=jsonld`}>JSON-LD</a>
+                </Button>
+              ) : null}
             </div>
           ) : null
         }
