@@ -64,9 +64,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const url = new URL(request.url);
   // Mercado Pago envia `?data.id=...`; `data_id` é aceito por compatibilidade.
-  const dataId = url.searchParams.get("data.id") ?? url.searchParams.get("data_id");
+  const queryDataId = url.searchParams.get("data.id") ?? url.searchParams.get("data_id");
   const signatureHeader = request.headers.get("x-signature");
   const requestId = request.headers.get("x-request-id");
+
+  // O corpo é lido antes da verificação apenas para descobrir `data.id` quando
+  // ele não vem na query string (o simulador do painel e alguns eventos mandam
+  // só no corpo). Nenhuma ação de negócio acontece antes do HMAC validar.
+  let rawBody: unknown;
+  try {
+    rawBody = await request.json();
+  } catch {
+    log.warn("Corpo do webhook inválido", { requestId });
+    return NextResponse.json({ error: "Corpo do webhook inválido: JSON esperado." }, { status: 400 });
+  }
+
+  const parsed = notificationSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    log.warn("Payload do webhook não é um objeto JSON", { requestId });
+    return NextResponse.json({ error: "Corpo do webhook inválido: objeto JSON esperado." }, { status: 400 });
+  }
+
+  const notification = parsed.data;
+  const bodyData = notification.data;
+  const dataId =
+    queryDataId ??
+    (bodyData && typeof bodyData === "object"
+      ? readStringField(bodyData as Record<string, unknown>, "id")
+      : null) ??
+    readStringField(notification, "id");
 
   const verification = verifyMpSignature({
     signatureHeader,
@@ -83,27 +109,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       hasDataId: dataId !== null,
       hasSignatureHeader: signatureHeader !== null,
     });
-    return unauthorized();
+    return NextResponse.json(
+      { error: "Assinatura do webhook inválida.", reason: verification.reason ?? "unknown" },
+      { status: 401 },
+    );
   }
 
   // Após `valid`, `verifyMpSignature` já garantiu ambos; a checagem estreita tipos.
   if (dataId === null || requestId === null) return unauthorized();
 
-  let rawBody: unknown;
-  try {
-    rawBody = await request.json();
-  } catch {
-    log.warn("Corpo do webhook inválido", { requestId });
-    return NextResponse.json({ error: "Corpo do webhook inválido: JSON esperado." }, { status: 400 });
-  }
-
-  const parsed = notificationSchema.safeParse(rawBody);
-  if (!parsed.success) {
-    log.warn("Payload do webhook não é um objeto JSON", { requestId });
-    return NextResponse.json({ error: "Corpo do webhook inválido: objeto JSON esperado." }, { status: 400 });
-  }
-
-  const notification = parsed.data;
   const topic = readStringField(notification, "type") ?? readStringField(notification, "topic");
   const action = readStringField(notification, "action");
 
