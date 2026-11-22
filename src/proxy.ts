@@ -13,7 +13,13 @@ const DEFAULT_APP = "/app";
 
 function isPublic(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;
-  return pathname.startsWith("/api/webhooks/") || pathname.startsWith("/_next/") || pathname === "/favicon.ico";
+  // Webhooks (HMAC) e worker (x-worker-secret) se autenticam sozinhos.
+    return (
+      pathname.startsWith("/api/webhooks/") ||
+      pathname.startsWith("/api/jobs/") ||
+      pathname.startsWith("/_next/") ||
+      pathname === "/favicon.ico"
+    );
 }
 
 export default async function proxy(request: NextRequest) {
