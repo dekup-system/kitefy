@@ -23,7 +23,8 @@
     "brand:inspect": "tsx scripts/inspect-brand.ts",
     "qa:overflow": "tsx scripts/diagnose-overflow.mts",
     "qa:shot": "tsx scripts/cdp-shot.mts",
-    "db:check": "tsx scripts/check-supabase.ts"
+    "db:check": "tsx scripts/check-supabase.ts",
+    "db:ping": "tsx scripts/check-db-url.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "4.0.107",
