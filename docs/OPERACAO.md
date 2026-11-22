@@ -89,6 +89,30 @@ Confirme no painel:
 
 ---
 
+## 2b. Provedores de LLM (configuração atual: DeepSeek + Gemini)
+
+| Papel | Variável | Valor |
+| --- | --- | --- |
+| Roteamento, kits, guardrail | `MODEL_ROUTER` / `MODEL_GUARDRAIL` | `deepseek:deepseek-chat` |
+| Artigos GEO e landing pages | `MODEL_QUALITY` | `deepseek:deepseek-chat` (ou `deepseek:deepseek-reasoner`) |
+| Embeddings (busca vetorial) | `MODEL_EMBEDDING` | `google:gemini-embedding-2` (768d) |
+
+Chaves necessárias em `live`: **`DEEPSEEK_API_KEY`** (texto) e
+**`GOOGLE_GENERATIVE_AI_API_KEY`** (embeddings). A DeepSeek **não oferece** API de
+embeddings, por isso o Google permanece nesta função.
+
+### Saída estruturada: por que two paths
+
+- Anthropic/Google/OpenAI: `generateObject` com JSON Schema — o provedor é obrigado a
+  respeitar o contrato.
+- DeepSeek: o modo JSON garante apenas "é JSON". O código então **extrai o objeto**
+  (`parseJsonObject`), **valida com zod** (`content-schemas.ts`) e **retenta** até 3 vezes
+  passando os erros de validação no prompt.
+- Custo do retry: só acontece quando o modelo desvia do formato (minoria dos casos) e a
+  chamada é na DeepSeek, cujo token é uma fração do preço de Sonnet.
+
+Para voltar a Anthropic/Google, basta trocar as três variáveis `MODEL_*` — nenhum código muda.
+
 ## 3. Vercel
 
 1. Importe o repositório; framework detectado: Next.js. **Não** é preciso build command customizado.

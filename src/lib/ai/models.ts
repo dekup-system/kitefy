@@ -13,7 +13,7 @@ import { getServerEnv } from "@/lib/env";
  *  - embeddings -> Gemini Embedding com dimensão fixa (<= 2000).
  */
 
-export type ProviderId = "anthropic" | "google" | "openai";
+export type ProviderId = "anthropic" | "google" | "openai" | "deepseek";
 
 export interface ModelSpec {
   provider: ProviderId;
@@ -21,7 +21,15 @@ export interface ModelSpec {
   raw: string;
 }
 
-const KNOWN_PROVIDERS: readonly ProviderId[] = ["anthropic", "google", "openai"];
+const KNOWN_PROVIDERS: readonly ProviderId[] = ["anthropic", "google", "openai", "deepseek"];
+
+/**
+ * Base URL de provedores compatíveis com a API da OpenAI.
+ * A DeepSeek expõe `/v1` no mesmo formato de chat completions.
+ */
+const OPENAI_COMPATIBLE_BASE_URL: Partial<Record<ProviderId, string>> = {
+  deepseek: "https://api.deepseek.com/v1",
+};
 
 export function parseModelSpec(raw: string): ModelSpec {
   const trimmed = raw.trim();
@@ -82,6 +90,22 @@ function providerInstance(id: ProviderId): CallableProvider {
       instance = createOpenAI({ apiKey: env.OPENAI_API_KEY }) as unknown as AnyProvider;
       break;
     }
+    case "deepseek": {
+      if (!env.DEEPSEEK_API_KEY) {
+        throw new Error(
+          "DEEPSEEK_API_KEY ausente para o provider deepseek. Gere a chave em platform.deepseek.com.",
+        );
+      }
+      // DeepSeek é compatível com a API de chat da OpenAI. Usamos .chat() porque
+      // a Responses API da OpenAI não existe neste provedor.
+      const deepseek = createOpenAI({
+        apiKey: env.DEEPSEEK_API_KEY,
+        baseURL: OPENAI_COMPATIBLE_BASE_URL.deepseek,
+        name: "deepseek",
+      });
+      instance = ((modelId: string) => deepseek.chat(modelId)) as unknown as AnyProvider;
+      break;
+    }
   }
 
   const callable = instance as unknown as CallableProvider;
@@ -121,8 +145,24 @@ export function resetProviderCache(): void {
 }
 
 /**
+ * O provedor garante JSON Schema nativo (saída estruturada "de verdade")?
+ *
+ * A DeepSeek só garante "é JSON", não "é este JSON" — para ela usamos prompt +
+ * parse + validação zod com retentativa (src/lib/ai/generate.ts).
+ */
+export function supportsStructuredOutputs(spec: string): boolean {
+  try {
+    return parseModelSpec(spec).provider !== "deepseek";
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Capacidade de prompt caching: só modelos Anthropic suportam cacheControl.
  * Usado para decidir se o contexto de marca vai como bloco cacheado.
+ * (A DeepSeek tem cache automático de prefixo, sem cabeçalho, e por isso não
+ * precisa de nenhum código aqui.)
  */
 export function supportsPromptCaching(spec: string): boolean {
   try {

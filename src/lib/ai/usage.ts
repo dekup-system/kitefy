@@ -11,6 +11,9 @@ const PRICE_PER_MILLION: Record<string, { input: number; output: number; cachedI
   "anthropic:claude-haiku-5-5": { input: 0.8, output: 4, cachedInput: 0.08 },
   "google:gemini-3-flash-preview": { input: 0.3, output: 2.5, cachedInput: 0.075 },
   "google:gemini-embedding-2": { input: 0.15, output: 0, cachedInput: 0.15 },
+  // DeepSeek: cache miss ~0.27, cache hit ~0.07, saída ~1.10 (USD/1M tokens).
+  "deepseek:deepseek-chat": { input: 0.27, output: 1.1, cachedInput: 0.07 },
+  "deepseek:deepseek-reasoner": { input: 0.55, output: 2.19, cachedInput: 0.14 },
   "openai:gpt-5-mini": { input: 0.25, output: 2, cachedInput: 0.025 },
 };
 

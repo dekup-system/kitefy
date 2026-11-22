@@ -24,12 +24,13 @@ const serverEnvSchema = z.object({
   // --- Provedores ------------------------------------------------------------
   LLM_PROVIDER_MODE: z.enum(["mock", "live"]).default("mock"),
   ANTHROPIC_API_KEY: z.string().min(10).optional(),
+  DEEPSEEK_API_KEY: z.string().min(10).optional(),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(10).optional(),
   OPENAI_API_KEY: z.string().min(10).optional(),
 
-  MODEL_ROUTER: z.string().default("google:gemini-3-flash-preview"),
-  MODEL_QUALITY: z.string().default("anthropic:claude-sonnet-5-5"),
-  MODEL_GUARDRAIL: z.string().default("google:gemini-3-flash-preview"),
+  MODEL_ROUTER: z.string().default("deepseek:deepseek-chat"),
+  MODEL_QUALITY: z.string().default("deepseek:deepseek-chat"),
+  MODEL_GUARDRAIL: z.string().default("deepseek:deepseek-chat"),
   MODEL_EMBEDDING: z.string().default("google:gemini-embedding-2"),
   EMBEDDING_DIMENSION: z.coerce.number().int().min(64).max(2000).default(768),
 
@@ -126,9 +127,9 @@ export function requireLiveProvider(provider: "llm" | "serp" | "mp" | "image"): 
 
   if (provider === "llm") {
     if (env.LLM_PROVIDER_MODE === "mock") return;
-    if (!env.ANTHROPIC_API_KEY && !env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    if (!env.ANTHROPIC_API_KEY && !env.GOOGLE_GENERATIVE_AI_API_KEY && !env.DEEPSEEK_API_KEY) {
       throw new Error(
-        "LLM_PROVIDER_MODE=live exige ANTHROPIC_API_KEY ou GOOGLE_GENERATIVE_AI_API_KEY.",
+        "LLM_PROVIDER_MODE=live exige DEEPSEEK_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY ou ANTHROPIC_API_KEY.",
       );
     }
   }
