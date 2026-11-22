@@ -24,13 +24,20 @@ export function countWords(text: string): number {
 }
 
 const wordRange = (min: number, max: number, label: string) =>
-  z.string().refine(
-    (value) => {
+  z
+    .string()
+    .describe(`${label}: entre ${min} e ${max} palavras`)
+    .superRefine((value, ctx) => {
       const words = countWords(value);
-      return words >= min && words <= max;
-    },
-    { message: `${label} deve ter entre ${min} e ${max} palavras.` },
-  );
+      if (words < min || words > max) {
+        // A contagem real vai na mensagem: é ela que orienta a retentativa do
+        // modelo ("recebido: 17") e o relatório de erro para o usuário.
+        ctx.addIssue({
+          code: "custom",
+          message: `${label} deve ter entre ${min} e ${max} palavras (recebido: ${words}).`,
+        });
+      }
+    });
 
 export const angleTypeSchema = z.enum(ANGLE_TYPES);
 export const frameworkSchema = z.enum(FRAMEWORKS);
@@ -49,10 +56,12 @@ export type HookCandidateOutput = z.infer<typeof hookCandidateSchema>;
 export const captionSchema = z.object({
   seo: z
     .string()
+    .describe("Legenda SEO: 80 a 2.200 caracteres")
     .min(80)
     .max(2200, "Legenda SEO deve caber em 2.200 caracteres (Reels/API)."),
   extended: z
     .string()
+    .describe("Legenda estendida: 80 a 4.000 caracteres")
     .min(80)
     .max(4000, "Legenda estendida deve caber em 4.000 caracteres (TikTok)."),
   hashtags: z.array(z.string().min(2).max(40)).min(3).max(12),

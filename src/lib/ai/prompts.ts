@@ -63,6 +63,8 @@ export function buildSystemPrompt(assetType: AssetType): string {
     "",
     "REGRAS DE QUALIDADE:",
     "- Todo gancho tem 8 a 15 palavras e funciona sem contexto, nos 3 primeiros segundos.",
+    "  CONTE AS PALAVRAS antes de responder: 7 ou 16 palavras invalidam o ativo e forçam nova tentativa.",
+    "  Exemplo válido (11 palavras): \"Pare de postar por postar e meça o que retém atenção\".",
     "- Toda afirmação numérica deve vir do contexto de marca ou ser omitida.",
     "- Prefira exemplos concretos a adjetivos.",
   ];

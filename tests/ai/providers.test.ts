@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseJsonObject } from "@/lib/ai/generate";
+import { buildJsonContractFor, parseJsonObject } from "@/lib/ai/generate";
 import { parseModelSpec, supportsStructuredOutputs, supportsPromptCaching } from "@/lib/ai/models";
 import { estimateCostUsd } from "@/lib/ai/usage";
 import type { LanguageModelUsage } from "ai";
@@ -48,6 +48,27 @@ describe("capacidades por provedor", () => {
     expect(supportsPromptCaching("anthropic:claude-sonnet-5-5")).toBe(true);
     expect(supportsPromptCaching("deepseek:deepseek-chat")).toBe(false);
     expect(supportsPromptCaching("google:gemini-3-flash-preview")).toBe(false);
+  });
+});
+
+describe("contrato JSON para provedores sem schema nativo", () => {
+  it("inclui o schema do tipo de ativo e as chaves obrigatórias", () => {
+    const contract = buildJsonContractFor("short_script_kit");
+    expect(contract).toContain("CONTRATO DE SAÍDA");
+    expect(contract).toContain('"kind"');
+    expect(contract).toContain('"hooks"');
+    expect(contract).toContain("short_script_kit");
+  });
+
+  it("carrega os limites de palavra que o refine não expõe no JSON Schema", () => {
+    const contract = buildJsonContractFor("short_script_kit");
+    expect(contract).toMatch(/entre 8 e 15 palavras/);
+  });
+
+  it("carrega o limite de slides do carrossel", () => {
+    const contract = buildJsonContractFor("typo_carousel");
+    expect(contract).toContain('"minItems": 7');
+    expect(contract).toContain('"maxItems": 10');
   });
 });
 

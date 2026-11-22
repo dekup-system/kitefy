@@ -62,6 +62,37 @@ export function modelSpecForAsset(assetType: AssetType): string {
     : env.MODEL_ROUTER;
 }
 
+/**
+ * Contrato textual para provedores sem JSON Schema nativo (ex.: DeepSeek).
+ *
+ * Sem isso o modelo inventa nomes de campo ("titulo" em vez de "title") e a
+ * validação reprova. O JSON Schema sai do MESMO zod que valida a resposta,
+ * então contrato e validação nunca divergem.
+ */
+export function buildJsonContractFor(assetType: AssetType): string {
+  const schema = schemaFor(assetType);
+
+  let jsonSchema: string;
+  try {
+    jsonSchema = JSON.stringify(z.toJSONSchema(schema as z.ZodType), null, 2);
+  } catch {
+    return [
+      "## CONTRATO DE SAÍDA",
+      "Responda apenas com um objeto JSON válido, sem markdown e sem texto fora do JSON.",
+      "Use exatamente as chaves descritas no formato solicitado.",
+    ].join("\n");
+  }
+
+  return [
+    "## CONTRATO DE SAÍDA (obrigatório)",
+    "Responda APENAS com um objeto JSON que valide este JSON Schema.",
+    "Não renomeie campos, não crie campos novos e não use markdown.",
+    "```json",
+    jsonSchema,
+    "```",
+  ].join("\n");
+}
+
 function schemaFor(assetType: AssetType): z.ZodType<unknown> {
   const schema = SCHEMA_BY_ASSET[assetType];
   if (!schema) throw new Error(`Sem schema de conteúdo para ${assetType}.`);
@@ -142,10 +173,15 @@ export async function generateAssetContent(input: GenerateAssetInput): Promise<G
   let lastError: Error | null = null;
   const usageEntries: TokenUsageEntry[] = [];
 
+  // Provedor sem JSON Schema nativo recebe o contrato textual no system prompt.
+  const systemContent = structured
+    ? `${brandBlock}\n\n${systemPrompt}`
+    : `${brandBlock}\n\n${systemPrompt}\n\n${buildJsonContractFor(input.assetType)}`;
+
   const messages = (userContent: string) => [
     {
       role: "system" as const,
-      content: `${brandBlock}\n\n${systemPrompt}`,
+      content: systemContent,
       ...(cacheable
         ? { providerOptions: { anthropic: { cacheControl: { type: "ephemeral", ttl: "5m" } } } }
         : {}),
@@ -165,6 +201,7 @@ export async function generateAssetContent(input: GenerateAssetInput): Promise<G
           model,
           schema: schemaFor(input.assetType),
           messages: attemptMessages,
+          allowSystemInMessages: true,
           temperature,
           maxOutputTokens,
           maxRetries: 0,
@@ -186,6 +223,7 @@ export async function generateAssetContent(input: GenerateAssetInput): Promise<G
       const result = await generateText({
         model,
         messages: attemptMessages,
+        allowSystemInMessages: true,
         temperature,
         maxOutputTokens,
         maxRetries: 0,
@@ -273,6 +311,7 @@ export async function reviewWithGuardrailModel(input: {
         { role: "system", content: system },
         { role: "user", content: user },
       ],
+      allowSystemInMessages: true,
       temperature: 0,
       maxOutputTokens: 700,
       maxRetries: 0,
@@ -286,6 +325,7 @@ export async function reviewWithGuardrailModel(input: {
         { role: "system", content: system },
         { role: "user", content: user },
       ],
+      allowSystemInMessages: true,
       temperature: 0,
       maxOutputTokens: 700,
       maxRetries: 0,

@@ -14,6 +14,9 @@ const PRICE_PER_MILLION: Record<string, { input: number; output: number; cachedI
   // DeepSeek: cache miss ~0.27, cache hit ~0.07, saída ~1.10 (USD/1M tokens).
   "deepseek:deepseek-chat": { input: 0.27, output: 1.1, cachedInput: 0.07 },
   "deepseek:deepseek-reasoner": { input: 0.55, output: 2.19, cachedInput: 0.14 },
+  // Aproximação: o flash não tem tabela pública estável; usamos a faixa do chat
+  // para não superestimar o custo em 4x (fallback genérico). Ajuste se necessário.
+  "deepseek:deepseek-flash": { input: 0.27, output: 1.1, cachedInput: 0.07 },
   "openai:gpt-5-mini": { input: 0.25, output: 2, cachedInput: 0.025 },
 };
 
