@@ -100,6 +100,9 @@ export function buildSystemPrompt(assetType: AssetType): string {
     geo_article: [
       "",
       "FORMATO: artigo SEO/GEO de 1.500 a 2.500 palavras, em PT-BR.",
+      "ESTRUTURA DE REFERÊNCIA (conte as palavras): 4 seções, cada uma com 3 blocos de 120 a 200 palavras.",
+      "Isso soma ~1.700 palavras no corpo. Menos de 1.450 palavras invalida o artigo e força nova tentativa.",
+      "Cada bloco precisa de 100 palavras no mínimo — um parágrafo curto não é bloco.",
       "- Cada seção tem blocos tipados: direct_fact, context, verifiable_data.",
       "- O primeiro bloco de cada seção é o fato direto, respondível em uma frase.",
       "- Inclua FAQ com perguntas reais do público e key_takeaways.",

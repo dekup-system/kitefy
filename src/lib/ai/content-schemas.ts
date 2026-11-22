@@ -145,7 +145,20 @@ export type SingleCreativeOutput = z.infer<typeof singleCreativeSchema>;
 // --- Artigo GEO --------------------------------------------------------------
 export const articleBlockSchema = z.object({
   type: z.enum(["direct_fact", "context", "verifiable_data"]),
-  text: z.string().min(60).max(1800),
+  text: z
+    .string()
+    .describe("Bloco de 100 a 200 palavras, com afirmação completa")
+    .min(60)
+    .max(1800)
+    .superRefine((value, ctx) => {
+      const words = countWords(value);
+      if (words < 100) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Bloco curto: ${words} palavras (mínimo 100). Desenvolva o argumento com dado verificável.`,
+        });
+      }
+    }),
 });
 
 export const articleSectionSchema = z.object({
@@ -177,31 +190,60 @@ export const geoArticleSchema = z
     internal_links: z
       .array(z.object({ anchor: z.string().min(3).max(80), url: z.string().url() }))
       .max(6),
-    word_count: z.number().int().min(1450).max(2550),
-  })
-  .superRefine((value, ctx) => {
-    // O word_count declarado precisa refletir o texto real (tolerância de 12%).
-    const body = [
-      value.title,
-      ...value.sections.flatMap((section) => [
-        section.heading,
-        ...section.blocks.map((block) => block.text),
-      ]),
-      ...value.faq.flatMap((item) => [item.question, item.answer]),
-      ...value.key_takeaways,
-    ].join(" ");
-
-    const actual = countWords(body);
-    const tolerance = Math.max(80, Math.round(value.word_count * 0.12));
-    if (Math.abs(actual - value.word_count) > tolerance) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["word_count"],
-        message: `word_count declarado (${value.word_count}) difere do texto real (${actual}).`,
-      });
-    }
+    // O modelo não sabe contar palavras de forma confiável (declarou 1520 para
+    // um texto de 1241). Aceitamos qualquer valor e sempre sobrescrevemos com o
+    // total calculado em `normalizeGeoWordCount`. `.default(0)` mantém o campo
+    // obrigatório no tipo de saída — o modelo pode omiti-lo.
+    word_count: z.number().int().min(0).default(0),
   });
 export type GeoArticleOutput = z.infer<typeof geoArticleSchema>;
+
+/** Faixa exigida pela spec para artigo GEO. */
+export const GEO_WORD_RANGE = { min: 1450, max: 2550 } as const;
+
+/** Conta as palavras do artigo (título + seções + FAQ + takeaways). */
+export function countArticleWords(article: {
+  title: string;
+  sections: { heading: string; blocks: { text: string }[] }[];
+  faq: { question: string; answer: string }[];
+  key_takeaways: string[];
+}): number {
+  const body = [
+    article.title,
+    ...article.sections.flatMap((section) => [section.heading, ...section.blocks.map((b) => b.text)]),
+    ...article.faq.flatMap((item) => [item.question, item.answer]),
+    ...article.key_takeaways,
+  ].join(" ");
+
+  return countWords(body);
+}
+
+/**
+ * Recalcula `word_count` e valida a faixa da spec.
+ *
+ * A mensagem de erro traz a contagem real, que é o que orienta a retentativa
+ * ("o texto tem 1241 palavras, o mínimo é 1450").
+ */
+export function normalizeGeoWordCount(article: {
+  title: string;
+  sections: { heading: string; blocks: { text: string }[] }[];
+  faq: { question: string; answer: string }[];
+  key_takeaways: string[];
+  word_count?: number;
+}): number {
+  const actual = countArticleWords(article);
+
+  if (actual < GEO_WORD_RANGE.min || actual > GEO_WORD_RANGE.max) {
+    throw new Error(
+      `O artigo tem ${actual} palavras; a faixa exigida é ${GEO_WORD_RANGE.min} a ${GEO_WORD_RANGE.max}. ` +
+        (actual < GEO_WORD_RANGE.min
+          ? `Expanda as seções com mais dados verificáveis (faltam ${GEO_WORD_RANGE.min - actual}).`
+          : `Reduza o texto (excedeu ${actual - GEO_WORD_RANGE.max}).`),
+    );
+  }
+
+  return actual;
+}
 
 // --- Landing page copy -------------------------------------------------------
 export const landingPageCopySchema = z.object({

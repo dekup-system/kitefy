@@ -5,6 +5,7 @@ import { getLanguageModel, supportsPromptCaching, supportsStructuredOutputs } fr
 import { buildUsageEntry } from "@/lib/ai/usage";
 import {
   SCHEMA_BY_ASSET,
+  normalizeGeoWordCount,
   parseContentPayload,
   type ContentGenerationOutput,
 } from "@/lib/ai/content-schemas";
@@ -93,6 +94,21 @@ export function buildJsonContractFor(assetType: AssetType): string {
   ].join("\n");
 }
 
+/**
+ * Fecha o payload: recalcula campos que o modelo não sabe medir.
+ * Hoje apenas `word_count` do artigo GEO — o número declarado é descartado e
+ * substituído pela contagem real do texto.
+ */
+function finalizePayload(
+  assetType: AssetType,
+  payload: ContentGenerationOutput,
+): ContentGenerationOutput {
+  if (assetType === "geo_article" && payload.kind === "geo_article") {
+    return { ...payload, word_count: normalizeGeoWordCount(payload) };
+  }
+  return payload;
+}
+
 function schemaFor(assetType: AssetType): z.ZodType<unknown> {
   const schema = SCHEMA_BY_ASSET[assetType];
   if (!schema) throw new Error(`Sem schema de conteúdo para ${assetType}.`);
@@ -144,7 +160,7 @@ export async function generateAssetContent(input: GenerateAssetInput): Promise<G
       explorationArms: input.explorationArms,
       serpInsights: input.serpInsights ?? null,
     });
-    const validated = parseContentPayload(input.assetType, payload);
+    const validated = finalizePayload(input.assetType, parseContentPayload(input.assetType, payload));
     return {
       payload: validated,
       usage: [],
@@ -215,7 +231,10 @@ export async function generateAssetContent(input: GenerateAssetInput): Promise<G
           }),
         );
 
-        const payload = parseContentPayload(input.assetType, result.object);
+        const payload = finalizePayload(
+      input.assetType,
+      parseContentPayload(input.assetType, result.object),
+    );
         return { payload, usage: usageEntries, modelSpec, attempts: attempt, mode: "live" };
       }
 
@@ -237,7 +256,10 @@ export async function generateAssetContent(input: GenerateAssetInput): Promise<G
         }),
       );
 
-      const payload = parseContentPayload(input.assetType, parseJsonObject(result.text));
+      const payload = finalizePayload(
+      input.assetType,
+      parseContentPayload(input.assetType, parseJsonObject(result.text)),
+    );
       return { payload, usage: usageEntries, modelSpec, attempts: attempt, mode: "live" };
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));

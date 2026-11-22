@@ -251,7 +251,8 @@ function buildArticleParagraphs(
   productInput: string,
   blockType: "direct_fact" | "context" | "verifiable_data",
 ): string {
-  const sentences = pickMany(rng, ARTICLE_SENTENCES[blockType], 4);
+  // 6 sentenças garantem o mínimo de 100 palavras por bloco exigido pelo schema.
+  const sentences = pickMany(rng, ARTICLE_SENTENCES[blockType], 6);
   const subject = brand.brand_name;
   const intro =
     blockType === "direct_fact"
@@ -557,7 +558,8 @@ function buildGeoArticle(args: {
     if (index === 0 && paa.length > 0) {
       blocks.push({
         type: "context",
-        text: `Perguntas que aparecem na busca por este tema: ${paa.slice(0, 3).join("; ")}. Responder cada uma em um bloco próprio aumenta a chance de citação em respostas de IA.`,
+        // Precisa respeitar o mínimo de 100 palavras por bloco.
+        text: `Perguntas que aparecem na busca por este tema: ${paa.slice(0, 3).join("; ")}. Responder cada uma em um bloco próprio aumenta a chance de citação em respostas de IA. ${buildArticleParagraphs(rng, brand, objective, productInput, "context")}`,
       });
     }
     return { heading, blocks };

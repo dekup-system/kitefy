@@ -126,6 +126,14 @@ Para voltar a Anthropic/Google, basta trocar as três variáveis `MODEL_*` — n
    ```
 Sem a chave, `SERP_PROVIDER=mock` devolve perguntas e lacunas **sintéticas** (determinísticas, para demo/teste).
 
+### Contagem de palavras do artigo GEO
+
+O modelo **não sabe contar palavras** (declarou 1.520 para um texto de 1.241). Por isso o campo
+`word_count` da resposta é descartado: o pipeline recalcula o total e valida a faixa
+1.450–2.550. Se estiver fora, a mensagem de erro diz quantas faltam ("faltam 191 palavras"),
+o que alimenta a retentativa. Blocos do artigo exigem mínimo de **100 palavras** — sem isso o
+modelo entregava três parágrafos curtos e o texto nunca chegava ao tamanho contratado.
+
 ### Leitura do site no onboarding
 
 Quando o usuário informa uma URL, o onboarding lê até 5 páginas (home + institucionais) e extrai:
