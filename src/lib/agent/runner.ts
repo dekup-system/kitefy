@@ -221,3 +221,17 @@ export async function purgeStudioThread(threadId: string): Promise<void> {
   const { deleteThread } = await import("@/lib/agent/checkpointer");
   await deleteThread(threadId);
 }
+
+/**
+ * Autorização: o thread pertence mesmo ao tenant da sessão?
+ *
+ * Sem esta checagem, qualquer usuário autenticado que conhecesse um thread_id
+ * de outra organização poderia aprovar o rascunho alheio — e o débito cairia
+ * na conta da vítima.
+ */
+export async function runBelongsToTenant(threadId: string, tenantId: string): Promise<boolean> {
+  const graph = getStudioGraph();
+  const snapshot = await graph.getState(configFor(threadId));
+  const values = snapshot?.values as { tenantId?: string } | undefined;
+  return Boolean(values?.tenantId) && values?.tenantId === tenantId;
+}

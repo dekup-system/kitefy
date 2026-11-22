@@ -11,7 +11,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { readStudioRun } from "@/lib/agent/runner";
+import { readStudioRun, runBelongsToTenant } from "@/lib/agent/runner";
 import { decideStudioRunAction } from "@/lib/studio/actions";
 import { signVisualPaths } from "@/lib/agent/visual-adapter";
 import { buildContentMarkdown } from "@/lib/export/pack";
@@ -46,6 +46,11 @@ export default async function StudioPage({
   const query = await searchParams;
 
   const run = await readStudioRun(threadId).catch(() => null);
+
+  // Defesa em profundidade: o thread só é exibido para o tenant dono.
+  if (run && !(await runBelongsToTenant(threadId, session.tenantId).catch(() => false))) {
+    notFound();
+  }
 
   // Fallback: ativo já aprovado/persistido no banco (sobrevive a restart).
   const supabase = await createSupabaseServerClient();

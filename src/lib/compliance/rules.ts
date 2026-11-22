@@ -34,6 +34,11 @@ interface RuleDefinition {
   suggestion: string;
   /** Condição adicional avaliada sobre o texto normalizado completo. */
   applies?: (normalized: string) => boolean;
+  /**
+   * Ignora ocorrências negadas ("não usamos clonagem de voz", "sem avatar
+   * falante"). Sem isso, o próprio aviso de transparência vira bloqueador.
+   */
+  ignoreNegated?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -128,12 +133,15 @@ const RULES: readonly RuleDefinition[] = [
   {
     id: "medical_absolute_promise",
     severity: "blocker",
+    ignoreNegated: true,
     patterns: [
       /\bcura\b/,
       /\belimina (a |o )?(doenca|dor|gordura|celulite|diabetes|ansiedade)\b/,
       /\bgarantid[oa]\b[^.]{0,40}\bemagrec/,
       /\bemagrec\w*\s+\d+\s*kg\s+garantid\w*/,
       /\bgarantia de (emagrecimento|resultado medico)\b/,
+      /\bresultado\w*\s+garantid[oa]s?\b/,
+      /\bgarantid[oa]\b[^.]{0,20}\bresultado\b/,
     ],
     suggestion:
       "Remova a promessa absoluta de cura/resultado e descreva o benefício com evidência e ressalvas.",
@@ -143,6 +151,7 @@ const RULES: readonly RuleDefinition[] = [
   {
     id: "financial_guarantee",
     severity: "blocker",
+    ignoreNegated: true,
     patterns: [
       /\blucro garantido\b/,
       /\bretorno garantido\b/,
@@ -245,10 +254,13 @@ const RULES: readonly RuleDefinition[] = [
   {
     id: "forbidden_synthetic_media",
     severity: "blocker",
+    ignoreNegated: true,
     patterns: [
       /clonagem de voz/,
       /clone de voz/,
       /clonar (a )?voz/,
+      /\bclon\w*\b[^.!?]{0,25}\bvoz\b/,
+      /\bvoz clonada\b/,
       /\bavatar falante\b/,
       /\blip[- ]?sync\b/,
       /sincronia labial/,
@@ -320,10 +332,38 @@ function suggestionFor(assetType: string, suggestion: string): string {
   return label.length > 0 ? `Ajuste o ativo ${label}: ${suggestion}` : suggestion;
 }
 
-function findFirstMatch(patterns: readonly RegExp[], text: string): RegExpExecArray | null {
+/**
+ * Marcadores de negação imediatamente antes da expressão. O texto chega
+ * normalizado (sem acento, minúsculo), por isso "nao" e "não" coexistem.
+ */
+const NEGATION_BEFORE = /\b(nao|não|sem|nunca|jamais|nenhum|nenhuma|vedado|proibido|dispensa)\b[^.!?]{0,40}$/;
+
+function isNegatedAt(text: string, index: number): boolean {
+  const windowStart = Math.max(0, index - 70);
+  return NEGATION_BEFORE.test(text.slice(windowStart, index));
+}
+
+function findFirstMatch(
+  patterns: readonly RegExp[],
+  text: string,
+  ignoreNegated = false,
+): RegExpExecArray | null {
   for (const pattern of patterns) {
-    const match = pattern.exec(text);
-    if (match) return match;
+    if (!ignoreNegated) {
+      const match = pattern.exec(text);
+      if (match) return match;
+      continue;
+    }
+
+    // Percorre TODAS as ocorrências: a primeira pode estar negada e a segunda
+    // ser uma oferta real ("não clonamos voz, mas geramos avatar falante").
+    const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
+    const global = new RegExp(pattern.source, flags);
+    let match: RegExpExecArray | null;
+    while ((match = global.exec(text)) !== null) {
+      if (!isNegatedAt(text, match.index)) return match;
+      if (match.index === global.lastIndex) global.lastIndex += 1;
+    }
   }
   return null;
 }
@@ -363,7 +403,7 @@ export function runDeterministicComplianceCheck(
   const violations: ComplianceViolation[] = [];
 
   for (const rule of RULES) {
-    const match = findFirstMatch(rule.patterns, normalized);
+    const match = findFirstMatch(rule.patterns, normalized, rule.ignoreNegated === true);
     if (!match) continue;
     if (rule.applies && !rule.applies(normalized)) continue;
 

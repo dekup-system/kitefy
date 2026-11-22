@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { resumeStudioRun } from "@/lib/agent/runner";
+import { resumeStudioRun, runBelongsToTenant } from "@/lib/agent/runner";
 import { requireSessionContext } from "@/lib/supabase/server";
 import { createLogger } from "@/lib/logger";
 
@@ -40,7 +40,13 @@ export async function decideStudioRunAction(formData: FormData): Promise<void> {
 
   const { threadId, approved, selectedHookIndex, title, note } = parsed.data;
 
-  // O tenant do thread precisa ser o mesmo da sessão (evita cross-tenant).
+  // O thread precisa pertencer ao tenant da sessão (evita cross-tenant).
+  const ownsThread = await runBelongsToTenant(threadId, session.tenantId).catch(() => false);
+  if (!ownsThread) {
+    log.warn("Tentativa de aprovar thread de outro tenant", { threadId, tenantId: session.tenantId });
+    redirect(`/studio/${threadId}?erro=${encodeURIComponent("Este rascunho não pertence à sua conta.")}`);
+  }
+
   let run;
   try {
     run = await resumeStudioRun({
