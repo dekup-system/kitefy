@@ -25,7 +25,8 @@
     "qa:shot": "tsx scripts/cdp-shot.mts",
     "db:check": "tsx scripts/check-supabase.ts",
     "db:ping": "tsx scripts/check-db-url.ts",
-    "ai:compare": "tsx scripts/compare-models.ts"
+    "ai:compare": "tsx scripts/compare-models.ts",
+    "ai:check-embeddings": "tsx scripts/check-embeddings.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "4.0.107",
