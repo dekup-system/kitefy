@@ -26,7 +26,8 @@
     "db:check": "tsx scripts/check-supabase.ts",
     "db:ping": "tsx scripts/check-db-url.ts",
     "ai:compare": "tsx scripts/compare-models.ts",
-    "ai:check-embeddings": "tsx scripts/check-embeddings.ts"
+    "ai:check-embeddings": "tsx scripts/check-embeddings.ts",
+    "mp:check": "tsx scripts/check-mp.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "4.0.107",
