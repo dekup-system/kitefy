@@ -67,6 +67,16 @@ async function main(): Promise<void> {
   }
 
   const account = me.body as { id?: number; nickname?: string; email?: string; site_id?: string };
+  const payerArg = process.argv.find((arg) => arg.startsWith("--payer="));
+  const payerEmail = (payerArg?.split("=")[1] ?? process.env.MP_PAYER_EMAIL ?? account.email ?? "").trim();
+
+  if (payerEmail && account.email && payerEmail.toLowerCase() === account.email.toLowerCase()) {
+    console.error(
+      "O Mercado Pago recusa pagador igual ao recebedor. Crie um segundo usuario em Contas de teste e use --payer=<email do comprador>.",
+    );
+    process.exitCode = 1;
+    return;
+  }
   console.log(`conta .......: ${account.nickname ?? "-"} · id ${account.id ?? "-"} · ${account.site_id ?? "-"}`);
 
   const wantsCreate = process.argv.includes("--create");
@@ -81,6 +91,7 @@ async function main(): Promise<void> {
     body: JSON.stringify({
       reason: PREAPPROVAL_REASON,
       external_reference: `check-${Date.now()}`,
+      payer_email: payerEmail,
       back_url: `${backUrl}/settings/billing?mp=retorno`,
       status: "pending",
       auto_recurring: {
