@@ -44,6 +44,8 @@ export interface OrganicStudioInput {
   assetType: AssetType;
   productInput: string;
   researchEnabled: boolean;
+  /** Formato dos slides (4:5 feed, 9:16 story). */
+  visualFormat: "4:5" | "9:16";
   /** Usuário que iniciou; usado apenas para auditoria/LGPD. */
   requestedBy?: string;
 }
@@ -60,6 +62,7 @@ export const OrganicStudioState = Annotation.Root({
   assetType: Annotation<AssetType>,
   productInput: Annotation<string>,
   researchEnabled: Annotation<boolean>,
+  visualFormat: Annotation<"4:5" | "9:16">,
 
   // --- Contexto --------------------------------------------------------------
   brandContext: Annotation<BrandContext | null>,

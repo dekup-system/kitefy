@@ -158,6 +158,7 @@ async function main(): Promise<void> {
     assetType: "typo_carousel",
     productInput: "acompanhamento preventivo em três etapas",
     researchEnabled: false,
+    visualFormat: "4:5",
     requestedBy: userId,
   });
 

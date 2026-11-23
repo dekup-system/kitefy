@@ -32,6 +32,7 @@ const bodySchema = z.object({
   objective: z.string().trim().min(8, "Descreva o objetivo com pelo menos 8 caracteres.").max(280),
   productInput: z.string().trim().min(3, "Informe o produto ou oferta.").max(280),
   researchEnabled: z.boolean().default(false),
+  visualFormat: z.enum(["4:5", "9:16"]).default("4:5"),
 });
 
 const activeRunsByTenant = new Map<string, number>();
@@ -116,6 +117,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       assetType: parsed.data.assetType,
       productInput: parsed.data.productInput,
       researchEnabled,
+      visualFormat: parsed.data.visualFormat,
       requestedBy: session.user.id,
     });
 

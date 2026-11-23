@@ -280,6 +280,7 @@ export async function visualRenderNode(
       brandId: state.brandId,
       threadId: state.threadId,
       assetType: state.assetType,
+      format: state.visualFormat ?? "4:5",
       payload: state.draftPayload,
       brand: state.brandContext,
     });

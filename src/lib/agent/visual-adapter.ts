@@ -1,4 +1,5 @@
 import type { AssetType, BrandContext, ContentPayload, VisualTokens } from "@/types/domain";
+import type { RenderFormat } from "@/lib/visual/render";
 import { createLogger } from "@/lib/logger";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env";
@@ -24,6 +25,8 @@ export interface RenderVisualInput {
   brandId: string;
   threadId: string;
   assetType: AssetType;
+  /** Formato dos slides: feed (4:5) ou story/reels (9:16). */
+  format?: RenderFormat;
   payload: ContentPayload;
   brand: BrandContext;
 }
@@ -49,6 +52,8 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
 
   const tokens: VisualTokens = input.brand.visual_tokens ?? {};
   const warnings: string[] = [];
+  const format: RenderFormat = input.format ?? "4:5";
+
   let assets: RenderedAsset[] = [];
   let hasAiImagery = false;
 
@@ -62,7 +67,7 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
       cta: payload.cta,
       brandName: input.brand.brand_name,
       tokens,
-      format: "4:5",
+      format,
       output: "png",
       imageUrl: null,
       hasAiImagery,
@@ -75,7 +80,7 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
       slides: payload.slides,
       brandName: input.brand.brand_name,
       tokens,
-      format: "4:5",
+      format,
       output: "png",
     });
     assets = [...rendered.assets];

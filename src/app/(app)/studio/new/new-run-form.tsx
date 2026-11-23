@@ -115,12 +115,17 @@ export function NewRunForm({
   const [objective, setObjective] = useState(defaultObjective ?? "");
   const [product, setProduct] = useState(defaultProduct ?? "");
   const [research, setResearch] = useState(false);
+  const [visualFormat, setVisualFormat] = useState<"4:5" | "9:16">("4:5");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const currentBrand = brands.find((b) => b.id === brandId) ?? brands[0];
   const weeklyIdeas = currentBrand ? buildWeeklyIdeas(currentBrand) : [];
 
+  const needsVisualFormat =
+    assetType === "typo_carousel" ||
+    assetType === "hybrid_carousel" ||
+    assetType === "single_creative";
   const isResearchActive = assetType === "geo_article" ? true : research;
   const cost = totalRunCreditCost(assetType, isResearchActive);
   const insufficient = creditBalance < cost;
@@ -139,6 +144,7 @@ export function NewRunForm({
             objective: objective.trim(),
             productInput: product.trim(),
             researchEnabled: isResearchActive,
+            visualFormat,
           }),
         });
 
@@ -240,6 +246,34 @@ export function NewRunForm({
           })}
         </div>
       </fieldset>
+
+      {needsVisualFormat ? (
+        <Field
+          label="Onde você vai postar?"
+          hint="Muda o tamanho das imagens geradas. Feed é 1080×1350; Story/Reels é 1080×1920."
+        >
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: "4:5" as const, label: "Feed (4:5)" },
+              { value: "9:16" as const, label: "Story / Reels (9:16)" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setVisualFormat(option.value)}
+                aria-pressed={visualFormat === option.value}
+                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                  visualFormat === option.value
+                    ? "border-foreground/40 bg-accent font-medium"
+                    : "border-border bg-card text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </Field>
+      ) : null}
 
       <FieldGroup>
         <Field
