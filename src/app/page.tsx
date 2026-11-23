@@ -613,7 +613,7 @@ export default function KitefyLandingPage() {
           </div>
 
           <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
-            <p>© {new Date().getFullYear()} Kitefy.</p>
+            <p>todos os direitos reservados © {new Date().getFullYear()} Kitefy.</p>
             <p className="flex items-center gap-2">
               <span>
                 desenvolvido por{" "}
