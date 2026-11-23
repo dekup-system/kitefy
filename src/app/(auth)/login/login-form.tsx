@@ -93,17 +93,6 @@ export function LoginForm({
                   placeholder="••••••••"
                 />
               </Field>
-              <Field htmlFor="signup-password-confirm" label="Confirme a senha">
-                <Input
-                  id="signup-password-confirm"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  placeholder="••••••••"
-                />
-              </Field>
             </FieldGroup>
             <p id="signin-email-hint" className="text-xs text-muted-foreground">
               Sem senha? Use o Google acima — leva menos de 10 segundos.
@@ -139,6 +128,21 @@ export function LoginForm({
                 <Input
                   id="signup-password"
                   name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  placeholder="••••••••"
+                />
+              </Field>
+              <Field
+                htmlFor="signup-password-confirm"
+                label="Repita a senha"
+                hint="Para evitar erro de digitação."
+              >
+                <Input
+                  id="signup-password-confirm"
+                  name="confirmPassword"
                   type="password"
                   autoComplete="new-password"
                   required
