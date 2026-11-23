@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getServerEnv } from "@/lib/env";
 import { createLogger } from "@/lib/logger";
@@ -168,6 +168,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   log.info("Webhook do Mercado Pago aceito", { eventId, topic, duplicate: !inserted });
+
+  // Processa a fila logo após responder: o cliente paga e recebe os créditos em
+  // segundos, sem depender do cron. O cron diário é a rede de segurança para
+  // quando esta chamada falhar (deploy em andamento, timeout, etc.).
+  after(async () => {
+    try {
+      await fetch(new URL("/api/jobs/mercadopago", request.url), {
+        method: "POST",
+        headers: { "x-worker-secret": secret },
+      });
+    } catch (error) {
+      log.warn("Falha ao acionar o worker após o webhook (cron irá reprocessar)", {
+        eventId,
+        message: error instanceof Error ? error.message : "erro",
+      });
+    }
+  });
 
   return NextResponse.json({ received: true, eventId, duplicate: !inserted });
 }

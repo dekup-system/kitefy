@@ -230,6 +230,27 @@ async function processJob(job: QueuedJob<MpWebhookJobPayload>): Promise<JobResul
   }
 }
 
+/**
+ * Cron da Vercel: a Vercel chama com `Authorization: Bearer $CRON_SECRET`.
+ * Aceita também `x-worker-secret` para chamada manual.
+ */
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const env = getServerEnv();
+  const expected = env.CRON_SECRET;
+  const bearer = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  const workerSecret = request.headers.get("x-worker-secret") ?? "";
+  const authorized =
+    (expected && constantTimeEquals(bearer, expected)) ||
+    (env.MP_WEBHOOK_SECRET && constantTimeEquals(workerSecret, env.MP_WEBHOOK_SECRET));
+
+  if (!authorized) {
+    log.warn("Cron do worker rejeitado", { hasBearer: bearer.length > 0 });
+    return unauthorized();
+  }
+
+  return runWorker(limitSchema.parse(new URL(request.url).searchParams.get("limit")));
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   let env: ReturnType<typeof getServerEnv>;
   try {
@@ -263,7 +284,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const limit = limitSchema.parse(new URL(request.url).searchParams.get("limit"));
+  return runWorker(limit);
+}
 
+async function runWorker(limit: number): Promise<NextResponse> {
   let jobs: QueuedJob<MpWebhookJobPayload>[];
   try {
     jobs = await readWebhookJobs(limit, VISIBILITY_TIMEOUT_SECONDS);

@@ -50,6 +50,8 @@ const serverEnvSchema = z.object({
   MP_ENVIRONMENT: z.enum(["sandbox", "production"]).default("sandbox"),
   NEXT_PUBLIC_MP_PUBLIC_KEY: z.string().min(10).optional(),
   MP_WEBHOOK_SECRET: z.string().min(8).optional(),
+  /** Segredo do cron da Vercel (Authorization: Bearer). */
+  CRON_SECRET: z.string().min(8).optional(),
   MP_PLAN_ESSENTIAL: z.string().optional(),
   MP_PLAN_PRO: z.string().optional(),
   MP_PLAN_AGENCY: z.string().optional(),
