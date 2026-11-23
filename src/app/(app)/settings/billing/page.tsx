@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Check, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,11 @@ export default async function BillingPage() {
       <PageHeader
         title="Plano e cobrança"
         description="Assinatura mensal em BRL pelo Mercado Pago. Você escolhe a conta no checkout e os créditos entram na aprovação."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/settings/account">Minha conta</Link>
+          </Button>
+        }
       />
 
       <div className="grid gap-3 sm:grid-cols-3">

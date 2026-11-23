@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, ShieldCheck, User } from "lucide-react";
+import { LogOut, ShieldCheck, User, UserRound } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,12 @@ export function UserMenu({ accountName }: { accountName: string }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel>Conta</DropdownMenuLabel>
+        <DropdownMenuItem asChild>
+          <a href="/settings/account" className="flex items-center gap-2">
+            <UserRound className="size-4" aria-hidden="true" />
+            Minha conta
+          </a>
+        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <a href="/settings/brand" className="flex items-center gap-2">
             <User className="size-4" aria-hidden="true" />

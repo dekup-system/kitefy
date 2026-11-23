@@ -18,7 +18,7 @@ Projeto: `C:\Users\mtres\Documents\brandpulse` · repo `github.com/dekup-system/
 | SMTP Resend + e-mails com logo | ✅ (templates em `docs/EMAILS-TEMPLATES.md`) |
 | Lembrete semanal por e-mail | ✅ |
 | Domínio `kitefy.com.br` com SSL, Supabase Auth apontado | ✅ |
-| **Painel do usuário** | ⏳ pendente |
+| **Painel do usuário** | ✅ `/settings/account` |
 | **Perfis de marca (criar/editar/upload de logo)** | ⏳ pendente |
 | **Pacote Google** (sitemap.xml, robots.txt, verificação GSC) | ⏳ pendente |
 
@@ -37,11 +37,10 @@ npm run build
 npm run db:ping
 ```
 
-## Próximos três blocos
+## Próximos blocos
 
-1. **Painel do usuário** — pacote atual, renovar/upgrade, dados cadastrais editáveis.
-2. **Perfis de marca** — múltiplas marcas por conta, edição e upload de logomarca (Storage privado).
-3. **Pacote Google** — ZIP com `sitemap.xml`, `robots.txt` liberando GPTBot/Perplexity,
+1. **Perfis de marca** — múltiplas marcas por conta, edição e upload de logomarca (Storage privado).
+2. **Pacote Google** — ZIP com `sitemap.xml`, `robots.txt` liberando GPTBot/Perplexity,
    `index.html` com canonical/OG/JSON-LD e campo para o token de verificação do Search Console.
 
 ## Regras que não podem ser quebradas
