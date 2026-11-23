@@ -222,22 +222,80 @@ Fallback: sem `pgmq` (dev/teste), `enqueue_job` grava em `private.job_queue` e o
 
 ---
 
-## 5. Mercado Pago — validação no Sandbox
+## 5. Mercado Pago — cobrança, renovação e go-live
 
-1. Crie a aplicação no painel de developers e copie o **Access Token de teste**.
-2. Configure o webhook apontando para `https://SEU-DOMINIO/api/webhooks/mercadopago`, eventos
-   `payment`, `subscription_preapproval` e `subscription_authorized_payment`.
-3. Copie o **secret** do webhook para `MP_WEBHOOK_SECRET`.
-4. Roteiro de teste:
-   - assinar plano Pro com **Pix Automático** → deve redirecionar ao `init_point`;
-   - autorizar no app do banco de teste → `mp_subscriptions` recebe `pending`/`authorized`;
-   - simular pagamento aprovado → webhook 200 → worker credita o plano **uma vez** (repita o
-     evento: `mp_webhook_events` bloqueia duplicata e o crédito é idempotente por `reference_id`);
-   - adulterar `x-signature` → deve responder **401** sem nenhuma escrita;
-   - conferir `credit_ledger` com uma linha por cobrança.
+### 5.1 O que está implementado
 
-Cartão recorrente: só funciona com `NEXT_PUBLIC_MP_PUBLIC_KEY` e o Payment Brick renderizado no
-navegador (o token do cartão nasce no cliente).
+| Fluxo | Evento | Resultado |
+| --- | --- | --- |
+| Assinatura autorizada | `subscription_preapproval` | grava `mp_subscriptions`, atualiza `plan_tier` e credita o **mês corrente** (`subscription_credit`) |
+| Renovação mensal | `subscription_authorized_payment` | confirma a cobrança na API e credita o mês (`subscription_renewal`) |
+| Pagamento avulso | `payment` | creditado quando o `external_reference` traz o tenant |
+| Outros | `merchant_order`, chargebacks | arquivados (`topic_not_handled`) |
+
+Idempotência em três camadas: `mp_webhook_events.mp_event_id` (evento), `processed_at` (worker) e
+`credit_ledger.reference_id` (`subscription:<preapproval>:AAAA-MM` e
+`subscription_payment:<chargeId>`). Reentrega do MP não duplica crédito.
+
+O worker roda **logo após o webhook** (hook `after()` do Next) e o cron diário é a rede de
+segurança para falhas.
+
+### 5.2 Variáveis
+
+```
+MP_ACCESS_TOKEN=...                 # TEST- para sandbox, APP_USR- para produção
+NEXT_PUBLIC_MP_PUBLIC_KEY=...       # tokenização do cartão no navegador
+MP_WEBHOOK_SECRET=...               # assinatura secreta do webhook (uma por modo)
+MP_ENVIRONMENT=sandbox|production   # rótulo: o prefixo do token é que manda
+CRON_SECRET=...                     # Bearer do cron da Vercel
+```
+
+O segredo de produção pode ficar em `MP_WEBHOOK_SECRET_PRODUCTION` até a virada.
+
+### 5.3 Configuração no painel (developers → aplicação)
+
+1. **Webhooks** → modo que vai usar → URL `https://kitefy.vercel.app/api/webhooks/mercadopago`
+2. Eventos: **Planos e assinaturas** e **Pagamentos (legacy)**. Nada além disso.
+3. Salvar e copiar a **assinatura secreta**.
+4. **Contas de teste** → criar dois usuários: **recebedor** (dono do token) e **comprador**.
+   O Mercado Pago recusa `payer_email` igual ao recebedor (`Payer and collector cannot be the same user`).
+5. O e-mail do comprador de teste segue `test_user_<id>@testuser.com`.
+
+### 5.4 Roteiro de validação (sem cobrança real)
+
+```bash
+npm run mp:check                                        # valida token e mostra a conta
+npm run mp:check -- --create --cancel --payer=<email>   # assinatura pendente + link, cancelada depois
+```
+
+Fluxo manual do crédito:
+
+1. criar assinatura pendente com `external_reference` = UUID do tenant;
+2. abrir o `init_point` como comprador e pagar com cartão de teste
+   (`5031 4332 1540 6351`, nome `APRO`, validade futura, CVV `123`);
+3. o webhook chega → worker roda sozinho → `mp_subscriptions.status = active` e **+120 créditos**;
+4. repetir o evento: `already_processed` e **nenhum** crédito novo;
+5. conferir `credit_ledger` com uma linha por cobrança.
+
+Testar o HMAC diretamente (sem pagar):
+
+```ts
+// assina id:<data.id>;request-id:<uuid>;ts:<epoch>; com MP_WEBHOOK_SECRET
+POST https://kitefy.vercel.app/api/webhooks/mercadopago?data.id=<id>&type=payment
+headers: x-signature: ts=<epoch>,v1=<hmac>   x-request-id: <uuid>
+```
+
+Respostas esperadas: **200** aceito · **401** assinatura inválida (o corpo traz `reason`:
+`missing_header`, `invalid_header`, `expired`, `mismatch`) · **503** banco indisponível.
+
+### 5.5 Go-live
+
+1. Conta **DEKUP** → “Credenciais de produção” (setor, site, consentimento, captcha).
+2. Copiar Access Token/Public Key `APP_USR-…` → Vercel (Production + Preview).
+3. Trocar `MP_WEBHOOK_SECRET` pelo segredo do modo produção → **Redeploy**.
+4. Repetir o roteiro 5.4 com um cartão real de valor baixo e **estornar** em seguida.
+5. Criar o cron do worker (diário no Hobby) e conferir `CRON_SECRET`.
+6. Monitorar `mp_webhook_events` com `processed_at is null` por mais de 10 min → alerta.
 
 ---
 
