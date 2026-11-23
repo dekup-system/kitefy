@@ -149,6 +149,17 @@ async function handlePaymentJob(dataId: string, eventId: string): Promise<JobRes
 async function handlePreapprovalJob(dataId: string, eventId: string): Promise<JobResult> {
   const preapproval = await getPreApprovalById(dataId);
 
+  // Assinatura criada fora do app (sem tenant no external_reference) não pode ser
+  // creditada. É falha terminal, não transitória: arquiva em vez de reprocessar.
+  if (parseTenantFromExternalReference(preapproval.externalReference ?? "") === null) {
+    await markEventProcessed(eventId);
+    log.warn("Assinatura sem tenant no external_reference: evento arquivado", {
+      eventId,
+      preapprovalId: preapproval.preapprovalId,
+    });
+    return { eventId, outcome: "skipped", reason: "reference_missing" };
+  }
+
   await syncSubscriptionFromPreapproval({
     id: preapproval.preapprovalId,
     status: preapproval.status,

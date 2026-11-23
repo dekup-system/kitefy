@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createLogger } from "@/lib/logger";
 import { PLANS, PLAN_ORDER } from "@/lib/pricing";
+import { grantPlanCredits, pgCreditStore } from "@/lib/billing/credit-grants";
 import type { PaymentMethod, PlanTier } from "@/types/domain";
 
 /**
@@ -352,6 +353,59 @@ export async function syncSubscriptionFromPreapproval(
     throw new Error(
       "Não foi possível sincronizar a assinatura do Mercado Pago agora. O evento ficará pendente para nova tentativa.",
     );
+  }
+
+  // Quando a assinatura está ativa, sincroniza o plan_tier na tabela tenants.
+  if (row.status === "active") {
+    const { error: tenantError } = await supabase
+      .from("tenants")
+      .update({ plan_tier: row.plan_tier })
+      .eq("id", row.tenant_id);
+
+    if (tenantError) {
+      log.warn("Falha ao atualizar plan_tier do tenant na sincronização de assinatura", {
+        tenantId: row.tenant_id,
+        planTier: row.plan_tier,
+        message: tenantError.message,
+      });
+    }
+
+    // Concede os créditos do mês uma única vez por competência.
+    // A referência é determinística (assinatura + AAAA-MM), então reentregas do
+    // webhook não duplicam crédito.
+    const period = new Date().toISOString().slice(0, 7);
+    const referenceId = `subscription:${row.mp_preapproval_id}:${period}`;
+
+    try {
+      const existing = await pgCreditStore.query<{ id: string }>(
+        "select id from public.credit_ledger where tenant_id = $1 and reference_id = $2 limit 1",
+        [row.tenant_id, referenceId],
+      );
+
+      if (existing.length === 0) {
+        const balance = await grantPlanCredits(
+          row.tenant_id,
+          row.plan_tier,
+          "subscription_credit",
+          referenceId,
+          pgCreditStore,
+        );
+        log.info("Créditos da assinatura concedidos", {
+          tenantId: row.tenant_id,
+          planTier: row.plan_tier,
+          period,
+          balance,
+        });
+      }
+    } catch (grantError) {
+      // Falha de crédito não invalida a assinatura: o evento fica pendente e
+      // pode ser reprocessado sem duplicar (a referência protege).
+      log.warn("Falha ao conceder créditos da assinatura", {
+        tenantId: row.tenant_id,
+        period,
+        message: grantError instanceof Error ? grantError.message : "erro",
+      });
+    }
   }
 
   log.info("Assinatura sincronizada", {
