@@ -21,6 +21,26 @@ interface BrandOption {
   entity_facts?: { claim: string }[];
 }
 
+/** Atalhos para quem não sabe escrever o briefing: preenchem o objetivo. */
+const OBJECTIVE_PRESETS = [
+  {
+    label: "Por que escolher a gente",
+    text: "Explicar por que nossa forma de atender é diferente e por que isso importa para o cliente",
+  },
+  {
+    label: "Erro comum do cliente",
+    text: "Mostrar o erro mais comum que o cliente comete nesse assunto e como evitar sem gastar mais",
+  },
+  {
+    label: "Oferta do mês",
+    text: "Apresentar a oferta do mês com clareza: o que inclui, para quem serve e como começar",
+  },
+  {
+    label: "Dúvida frequente",
+    text: "Responder a dúvida que mais aparece no WhatsApp, em linguagem simples e sem promessa exagerada",
+  },
+] as const;
+
 const ASSET_OPTIONS: {
   type: AssetType;
   intent: string;
@@ -225,15 +245,29 @@ export function NewRunForm({
         <Field
           htmlFor="objective"
           label="2. Sobre o que vamos falar?"
-          hint="Explique a ideia ou dúvida que você quer responder para o seu cliente."
+          hint="Explique a ideia ou dúvida que você quer responder para o seu cliente. Se preferir, comece por uma sugestão:"
         >
-          <Input
-            id="objective"
-            value={objective}
-            onChange={(event) => setObjective(event.target.value)}
-            placeholder="Ex.: explicar por que fazer a revisão preventiva economiza tempo e dinheiro"
-            maxLength={280}
-          />
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              {OBJECTIVE_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => setObjective(preset.text)}
+                  className="rounded-full border border-border bg-card px-3 py-1 text-[12px] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <Input
+              id="objective"
+              value={objective}
+              onChange={(event) => setObjective(event.target.value)}
+              placeholder="Ex.: explicar por que fazer a revisão preventiva economiza tempo e dinheiro"
+              maxLength={280}
+            />
+          </div>
         </Field>
         <Field
           htmlFor="product"
