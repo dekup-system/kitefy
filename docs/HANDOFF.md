@@ -19,7 +19,7 @@ Projeto: `C:\Users\mtres\Documents\brandpulse` · repo `github.com/dekup-system/
 | Lembrete semanal por e-mail | ✅ |
 | Domínio `kitefy.com.br` com SSL, Supabase Auth apontado | ✅ |
 | **Painel do usuário** | ✅ `/settings/account` |
-| **Perfis de marca (criar/editar/upload de logo)** | ⏳ pendente |
+| **Perfis de marca (múltiplas, edição, logo)** | ✅ |
 | **Pacote Google** (sitemap.xml, robots.txt, verificação GSC) | ⏳ pendente |
 
 ## Credenciais
@@ -39,8 +39,7 @@ npm run db:ping
 
 ## Próximos blocos
 
-1. **Perfis de marca** — múltiplas marcas por conta, edição e upload de logomarca (Storage privado).
-2. **Pacote Google** — ZIP com `sitemap.xml`, `robots.txt` liberando GPTBot/Perplexity,
+1. **Pacote Google** — ZIP com `sitemap.xml`, `robots.txt` liberando GPTBot/Perplexity,
    `index.html` com canonical/OG/JSON-LD e campo para o token de verificação do Search Console.
 
 ## Regras que não podem ser quebradas

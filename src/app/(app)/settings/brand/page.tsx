@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BrandForm } from "./brand-form";
+import { BrandCreateForm } from "./brand-create-form";
+import { BrandLogoForm } from "./brand-logo-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
+import { signBrandLogo } from "@/lib/brand/logo-storage";
 import { PLANS } from "@/lib/pricing";
 import type { BrandProfileRow } from "@/types/domain";
 
@@ -32,12 +35,32 @@ export default async function BrandSettingsPage({
   const selected = brands.find((brand) => brand.id === params.brand) ?? brands[0];
   const plan = PLANS[session.planTier];
 
+  const logoPath = selected?.visual_tokens?.logo_path ?? null;
+  const logoUrl = logoPath ? await signBrandLogo(logoPath) : null;
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <PageHeader
         title="Marca e voz"
         description="O contexto da marca é o que faz o conteúdo parecer escrito por uma pessoa, não por um gerador."
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Adicionar marca</CardTitle>
+          <CardDescription>
+            {brands.length} de {plan.maxBrands} marca(s) do plano {plan.name}. Cada marca tem tom de
+            voz, cores e logomarca próprios.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BrandCreateForm
+            brandCount={brands.length}
+            maxBrands={plan.maxBrands}
+            planName={plan.name}
+          />
+        </CardContent>
+      </Card>
 
       {brands.length === 0 ? (
         <EmptyState
@@ -78,7 +101,13 @@ export default async function BrandSettingsPage({
                   {brands.length} de {plan.maxBrands} marca(s) do plano {plan.name}.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
+                <BrandLogoForm
+                  brandId={selected.id}
+                  brandName={selected.brand_name}
+                  logoUrl={logoUrl}
+                  hasLogo={Boolean(logoPath)}
+                />
                 <BrandForm brand={selected} />
               </CardContent>
             </Card>
