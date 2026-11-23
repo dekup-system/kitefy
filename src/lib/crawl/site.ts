@@ -471,11 +471,12 @@ async function loadRobots(origin: string): Promise<RobotsRules> {
 
 export async function crawlBrandSite(
   rawUrl: string,
-  options: { budgetMs?: number } = {},
+  options: { budgetMs?: number; maxPages?: number } = {},
 ): Promise<SiteCrawlResult> {
   const warnings: string[] = [];
   const started = Date.now();
   const budgetMs = Math.max(4_000, options.budgetMs ?? TOTAL_BUDGET_MS);
+  const maxPages = Math.min(MAX_PAGES, Math.max(1, options.maxPages ?? MAX_PAGES));
   const entry = assertSafePublicUrl(rawUrl);
   const origin = entry.origin;
 
@@ -531,9 +532,9 @@ export async function crawlBrandSite(
       pages.push(home.page);
       homeProfile = home.profile;
 
-      const candidates = pickInternalLinks(home.page.links, origin, MAX_PAGES - 1);
+      const candidates = pickInternalLinks(home.page.links, origin, maxPages - 1);
       for (const candidate of candidates) {
-        if (pages.length >= MAX_PAGES) break;
+        if (pages.length >= maxPages) break;
         const url = new URL(candidate.url);
         if (!isAllowedByRobots(url.pathname, rules)) continue;
         const visited = await visit(url, budgetMs);
