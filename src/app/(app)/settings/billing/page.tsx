@@ -30,6 +30,7 @@ export default async function BillingPage() {
 
   const env = getServerEnv();
   const currentPlan = PLANS[session.planTier];
+  const hasActiveSubscription = subscription.data?.status === "active";
   const nextWindow = nextDaytimeBillingWindow(new Date());
 
   return (
@@ -40,7 +41,15 @@ export default async function BillingPage() {
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Plano atual" value={currentPlan.name} hint={`${currentPlan.monthlyCredits} créditos/mês`} />
+        <StatCard
+          label="Plano atual"
+          value={currentPlan.name}
+          hint={
+            hasActiveSubscription
+              ? `${currentPlan.monthlyCredits} créditos/mês`
+              : `Ainda não assinado · ${currentPlan.monthlyCredits} créditos/mês ao assinar`
+          }
+        />
         <StatCard
           label="Assinatura"
           value={subscription.data?.status ?? "não assinada"}
@@ -53,13 +62,19 @@ export default async function BillingPage() {
           }
         />
         <StatCard
-          label="Próxima cobrança"
+          label={hasActiveSubscription ? "Próxima cobrança" : "Como ativar"}
           value={
-            subscription.data?.next_billing_date
-              ? formatDateTimeBR(subscription.data.next_billing_date)
-              : formatDateTimeBR(nextWindow.toISOString())
+            hasActiveSubscription
+              ? subscription.data?.next_billing_date
+                ? formatDateTimeBR(subscription.data.next_billing_date)
+                : formatDateTimeBR(nextWindow.toISOString())
+              : "Assine um plano abaixo"
           }
-          hint="Sempre em janela diurna (08h–18h BRT)"
+          hint={
+            hasActiveSubscription
+              ? "Sempre em janela diurna (08h–18h BRT)"
+              : "Os créditos do mês entram na aprovação do pagamento"
+          }
         />
       </div>
 
@@ -78,7 +93,7 @@ export default async function BillingPage() {
       <div className="grid gap-4 md:grid-cols-3">
         {PLAN_ORDER.map((tier) => {
           const plan = PLANS[tier];
-          const isCurrent = tier === session.planTier;
+          const isCurrent = tier === session.planTier && hasActiveSubscription;
           return (
             <Card key={tier} className={isCurrent ? "border-foreground/30" : undefined}>
               <CardHeader>
