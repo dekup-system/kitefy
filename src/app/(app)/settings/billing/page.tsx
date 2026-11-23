@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Check, ShieldCheck } from "lucide-react";
-import { PlanCheckout } from "./plan-checkout";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -10,6 +9,8 @@ import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/se
 import { getServerEnv } from "@/lib/env";
 import { PLANS, PLAN_ORDER, formatBRL } from "@/lib/pricing";
 import { nextDaytimeBillingWindow } from "@/lib/billing/subscription-sync";
+import { subscribeToPlanAction } from "@/lib/billing/actions";
+import { Button } from "@/components/ui/button";
 import { formatDateTimeBR } from "@/lib/utils";
 import type { MpSubscriptionRow } from "@/types/domain";
 
@@ -37,7 +38,7 @@ export default async function BillingPage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeader
         title="Plano e cobrança"
-        description="Assinatura em BRL via Mercado Pago. Pix Automático é a opção recomendada: menor taxa e renovação sem atrito."
+        description="Assinatura mensal em BRL pelo Mercado Pago. Você escolhe a conta no checkout e os créditos entram na aprovação."
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -55,7 +56,7 @@ export default async function BillingPage() {
           value={subscription.data?.status ?? "não assinada"}
           hint={
             subscription.data?.payment_method === "pix_automatico"
-              ? "Pix Automático"
+              ? "Mercado Pago"
               : subscription.data?.payment_method === "card_preapproval"
                 ? "Cartão recorrente"
                 : "Escolha um plano abaixo"
@@ -120,13 +121,21 @@ export default async function BillingPage() {
                     Você já está neste plano. Créditos são renovados na cobrança aprovada.
                   </p>
                 ) : (
-                  <PlanCheckout
-                    planTier={tier}
-                    planName={plan.name}
-                    priceLabel={formatBRL(plan.priceCents)}
-                    recommended={tier !== "essential"}
-                    mpPublicKeyConfigured={Boolean(env.NEXT_PUBLIC_MP_PUBLIC_KEY)}
-                  />
+                  <div className="space-y-2">
+                    <form action={subscribeToPlanAction}>
+                      <input type="hidden" name="tier" value={tier} />
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        variant={tier === "essential" ? "outline" : "default"}
+                      >
+                        Assinar {plan.name}
+                      </Button>
+                    </form>
+                    <p className="text-xs text-muted-foreground">
+                      Você paga no Mercado Pago com a conta que preferir — ou cria uma na hora.
+                    </p>
+                  </div>
                 )}
 
                 {tier === "pro" ? (
