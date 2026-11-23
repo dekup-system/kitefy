@@ -74,6 +74,15 @@ export async function signUpAction(
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
 
+  // Confirmação de senha é checada aqui (o navegador pode ser contornado).
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+  if (confirmPassword.length > 0 && confirmPassword !== parsed.data.password) {
+    return { error: "As senhas não conferem. Digite a mesma senha nos dois campos." };
+  }
+  if (confirmPassword.length === 0) {
+    return { error: "Confirme a senha no segundo campo." };
+  }
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
@@ -101,6 +110,34 @@ export async function signUpAction(
 
   revalidatePath("/", "layout");
   redirect("/onboarding");
+}
+
+/**
+ * "Entrar sem senha": envia um link mágico para o e-mail informado.
+ * A resposta é sempre a mesma, para não revelar se o e-mail tem conta.
+ */
+export async function sendMagicLinkAction(
+  _prev: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const email = String(formData.get("email") ?? "").trim();
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    return { error: "Informe um e-mail válido." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: `${getPublicEnv().appUrl}/auth/callback` },
+  });
+
+  if (error) {
+    log.warn("Falha ao enviar link mágico", { message: error.message });
+    return { error: "Não foi possível enviar o link agora. Tente novamente." };
+  }
+
+  return { notice: "Enviamos um link de acesso para o seu e-mail. Ele vale por 1 hora." };
 }
 
 export async function signInWithGoogleAction(formData: FormData): Promise<void> {

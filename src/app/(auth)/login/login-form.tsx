@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   signInAction,
   signInWithGoogleAction,
+  sendMagicLinkAction,
   signUpAction,
   type AuthActionState,
 } from "@/lib/auth/actions";
@@ -29,6 +30,7 @@ export function LoginForm({
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [signInState, signIn, signInPending] = useActionState(signInAction, initialState);
   const [signUpState, signUp, signUpPending] = useActionState(signUpAction, initialState);
+  const [magicState, magicLink, magicPending] = useActionState(sendMagicLinkAction, initialState);
 
   const state = tab === "signin" ? signInState : signUpState;
   const pending = signInPending || signUpPending;
@@ -86,6 +88,17 @@ export function LoginForm({
                   name="password"
                   type="password"
                   autoComplete="current-password"
+                  required
+                  minLength={8}
+                  placeholder="••••••••"
+                />
+              </Field>
+              <Field htmlFor="signup-password-confirm" label="Confirme a senha">
+                <Input
+                  id="signup-password-confirm"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
                   required
                   minLength={8}
                   placeholder="••••••••"
@@ -152,6 +165,29 @@ export function LoginForm({
           </form>
         </TabsContent>
       </Tabs>
+
+      {tab === "signin" ? (
+        <form action={magicLink} className="space-y-2 border-t border-border pt-4">
+          <p className="text-xs font-medium">Prefere entrar sem senha?</p>
+          <div className="flex gap-2">
+            <Input
+              name="email"
+              type="email"
+              required
+              placeholder="voce@empresa.com"
+              aria-label="E-mail para receber o link de acesso"
+            />
+            <Button type="submit" variant="outline" disabled={magicPending}>
+              {magicPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+              Enviar link
+            </Button>
+          </div>
+          {magicState.error ? <p className="text-xs text-destructive">{magicState.error}</p> : null}
+          {magicState.notice ? (
+            <p className="text-xs text-muted-foreground">{magicState.notice}</p>
+          ) : null}
+        </form>
+      ) : null}
 
       <div className="flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
         <Mail className="size-3.5 shrink-0" aria-hidden="true" />
