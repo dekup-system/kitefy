@@ -140,6 +140,55 @@ export async function sendMagicLinkAction(
   return { notice: "Enviamos um link de acesso para o seu e-mail. Ele vale por 1 hora." };
 }
 
+/** Envia o e-mail de redefinição de senha. */
+export async function requestPasswordResetAction(
+  _prev: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    return { error: "Informe um e-mail válido." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${getPublicEnv().appUrl}/auth/callback?next=/reset`,
+  });
+
+  if (error) {
+    log.warn("Falha ao pedir redefinição de senha", { message: error.message });
+    return { error: "Não foi possível enviar o e-mail agora. Tente novamente." };
+  }
+
+  return { notice: "Enviamos um link para você criar uma senha nova. Ele vale por 1 hora." };
+}
+
+/** Grava a nova senha do usuário autenticado pelo link de redefinição. */
+export async function updatePasswordAction(
+  _prev: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  if (password.length < 8) {
+    return { error: "A senha precisa ter pelo menos 8 caracteres." };
+  }
+  if (password !== confirmPassword) {
+    return { error: "As senhas não conferem." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    log.warn("Falha ao atualizar senha", { message: error.message });
+    return { error: "Não foi possível salvar a nova senha. Peça um novo link." };
+  }
+
+  redirect("/app");
+}
+
 export async function signInWithGoogleAction(formData: FormData): Promise<void> {
   const supabase = await createSupabaseServerClient();
   const next = safeNext(formData.get("next"));

@@ -12,6 +12,7 @@ import {
   signInAction,
   signInWithGoogleAction,
   sendMagicLinkAction,
+  requestPasswordResetAction,
   signUpAction,
   type AuthActionState,
 } from "@/lib/auth/actions";
@@ -31,6 +32,8 @@ export function LoginForm({
   const [signInState, signIn, signInPending] = useActionState(signInAction, initialState);
   const [signUpState, signUp, signUpPending] = useActionState(signUpAction, initialState);
   const [magicState, magicLink, magicPending] = useActionState(sendMagicLinkAction, initialState);
+  const [resetState, resetPassword, resetPending] = useActionState(requestPasswordResetAction, initialState);
+  const [forgot, setForgot] = useState(false);
 
   const state = tab === "signin" ? signInState : signUpState;
   const pending = signInPending || signUpPending;
@@ -95,13 +98,44 @@ export function LoginForm({
               </Field>
             </FieldGroup>
             <p id="signin-email-hint" className="text-xs text-muted-foreground">
-              Sem senha? Use o Google acima — leva menos de 10 segundos.
+              Sem senha? Use o link mágico abaixo — leva menos de 10 segundos.
             </p>
+            <button
+              type="button"
+              onClick={() => setForgot((value) => !value)}
+              className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            >
+              Esqueci minha senha
+            </button>
             <Button type="submit" className="w-full" disabled={pending}>
               {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
               Entrar
             </Button>
           </form>
+
+          {forgot ? (
+            <form action={resetPassword} className="mt-4 space-y-2 rounded-md border border-border p-3">
+              <p className="text-xs font-medium">Redefinir senha</p>
+              <p className="text-xs text-muted-foreground">
+                Informe o e-mail da conta. Enviamos um link para você criar uma senha nova.
+              </p>
+              <Input
+                name="email"
+                type="email"
+                required
+                placeholder="voce@empresa.com"
+                aria-label="E-mail para redefinir a senha"
+              />
+              <Button type="submit" variant="outline" className="w-full" disabled={resetPending}>
+                {resetPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+                Enviar link de redefinição
+              </Button>
+              {resetState.error ? <p className="text-xs text-destructive">{resetState.error}</p> : null}
+              {resetState.notice ? (
+                <p className="text-xs text-muted-foreground">{resetState.notice}</p>
+              ) : null}
+            </form>
+          ) : null}
         </TabsContent>
 
         <TabsContent value="signup">
