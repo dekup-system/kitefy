@@ -118,6 +118,39 @@ describe("Schema invariantes (11 tabelas, RLS e índices)", () => {
     expect(schema).toHaveLength(1);
   });
 
+  it("brand_profiles tem token do Search Console opcional e limitado a 200", async () => {
+    const column = await t.asSuperuser<{ is_nullable: string; data_type: string }>(
+      `select is_nullable, data_type
+         from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'brand_profiles'
+          and column_name = 'google_verification_token'`,
+    );
+    expect(column).toHaveLength(1);
+    expect(column[0]!.data_type).toBe("text");
+    expect(column[0]!.is_nullable).toBe("YES");
+
+    const constraints = await t.asSuperuser<{ conname: string }>(
+      `select conname from pg_constraint
+        where conrelid = 'public.brand_profiles'::regclass and contype = 'c'`,
+    );
+    expect(constraints.map((row) => row.conname)).toContain(
+      "brand_profiles_google_token_length",
+    );
+
+    const tenant = await t.asSuperuser<{ id: string }>(
+      `insert into public.tenants (name, slug) values ('Token Check', 'token-check') returning id`,
+    );
+    const message = await t.expectFailure(() =>
+      t.asSuperuser(
+        `insert into public.brand_profiles (tenant_id, brand_name, google_verification_token)
+         values ($1, 'Token Longo', repeat('a', 201))`,
+        [tenant[0]!.id],
+      ),
+    );
+    expect(message).toMatch(/brand_profiles_google_token_length|check constraint/i);
+  });
+
   it("cria o tenant e o membership no signup (trigger auth.users)", async () => {
     const user = await t.asSuperuser<{ id: string }>(
       `insert into auth.users (email, raw_user_meta_data)

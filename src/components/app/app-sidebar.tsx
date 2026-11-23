@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, FileStack, LayoutDashboard, Settings, Sparkles } from "lucide-react";
+import { BarChart3, FileStack, Globe, LayoutDashboard, Settings, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -10,6 +10,7 @@ const NAV = [
   { href: "/campaigns", label: "Meus conteúdos", icon: FileStack },
   { href: "/competitors", label: "Concorrentes", icon: BarChart3 },
   { href: "/telemetry", label: "Resultados", icon: BarChart3 },
+  { href: "/google", label: "Pacote Google", icon: Globe },
   { href: "/settings/brand", label: "Configurações", icon: Settings },
 ] as const;
 

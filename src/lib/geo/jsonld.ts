@@ -202,12 +202,23 @@ const JSON_ESCAPE_MAP: Readonly<Record<string, string>> = {
 };
 
 /**
- * Serializa JSON-LD para uso dentro de `<script type="application/ld+json">`.
- * Escapa `<`, `>`, `&` e os separadores de linha U+2028/U+2029, impedindo
- * `</script>` e quebra de contexto em parsers JavaScript.
+ * Serializa qualquer valor JSON para uso dentro de
+ * `<script type="application/ld+json">`. Escapa `<`, `>`, `&` e os separadores
+ * de linha U+2028/U+2029, impedindo `</script>` e quebra de contexto.
+ */
+export function serializeJsonLdValue(value: unknown): string {
+  return JSON.stringify(value).replace(
+    /[<>&\u2028\u2029]/g,
+    (char) => JSON_ESCAPE_MAP[char] ?? char,
+  );
+}
+
+/**
+ * Serializa um bundle JSON-LD (Article/FAQ/Product). Mantido por compatibilidade:
+ * delega para `serializeJsonLdValue`.
  */
 export function serializeJsonLd(bundle: JsonLdBundle): string {
-  return JSON.stringify(bundle).replace(/[<>&\u2028\u2029]/g, (char) => JSON_ESCAPE_MAP[char] ?? char);
+  return serializeJsonLdValue(bundle);
 }
 
 // ---------------------------------------------------------------------------

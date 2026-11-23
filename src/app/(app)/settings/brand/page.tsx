@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { BrandForm } from "./brand-form";
 import { BrandCreateForm } from "./brand-create-form";
 import { BrandLogoForm } from "./brand-logo-form";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -109,6 +110,17 @@ export default async function BrandSettingsPage({
                   hasLogo={Boolean(logoPath)}
                 />
                 <BrandForm brand={selected} />
+
+                <div className="border-t border-border pt-4">
+                  <p className="text-sm font-medium">Pacote Google</p>
+                  <p className="text-sm text-muted-foreground">
+                    ZIP com sitemap.xml, robots.txt liberando crawlers de IA e index.html com
+                    canonical, Open Graph e JSON-LD.
+                  </p>
+                  <Button asChild variant="outline" size="sm" className="mt-2">
+                    <Link href={`/google?brand=${selected.id}`}>Abrir Pacote Google</Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : null}

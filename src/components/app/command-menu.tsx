@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   BarChart3,
   FileStack,
+  Globe,
   LayoutDashboard,
   Plus,
   Search,
@@ -32,6 +33,7 @@ const DESTINATIONS = [
   { href: "/app", label: "Visão geral", icon: LayoutDashboard },
   { href: "/campaigns", label: "Campanhas", icon: FileStack },
   { href: "/telemetry", label: "Telemetria", icon: BarChart3 },
+  { href: "/google", label: "Pacote Google", icon: Globe },
   { href: "/settings/account", label: "Minha conta", icon: UserRound },
   { href: "/settings/brand", label: "Marca e voz", icon: Settings },
   { href: "/settings/privacy", label: "Privacidade e LGPD", icon: ShieldCheck },

@@ -51,7 +51,7 @@ via script ou reimportar documentos). Nunca deixe o valor do banco diferente do 
 
 ```bash
 npx supabase start
-npx supabase db reset          # aplica as 6 migrations
+npx supabase db reset          # aplica as 7 migrations
 npm run db:langgraph-setup     # checkpoints do LangGraph
 npm run db:seed                # marca demo + conhecimento + telemetria
 ```

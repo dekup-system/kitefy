@@ -62,6 +62,8 @@ export interface BrandProfileRow {
   tone_of_voice: ToneOfVoice;
   visual_tokens: VisualTokens;
   entity_facts: EntityFact[];
+  /** Token do Search Console usado no Pacote Google (nunca é segredo). */
+  google_verification_token: string | null;
   created_at: string;
   updated_at: string;
 }
