@@ -44,6 +44,11 @@ const TABLES = [
   "credit_ledger",
   "mp_subscriptions",
   "mp_webhook_events",
+  "discount_coupons",
+  "coupon_redemptions",
+  "billing_revenue_events",
+  "api_usage_events",
+  "admin_audit_log",
 ];
 
 describe("supabase/kitefy-setup.sql", () => {
@@ -83,6 +88,7 @@ describe("supabase/kitefy-setup.sql", () => {
         "handle_new_user",
         "is_tenant_member",
         "enqueue_job",
+        "confirm_coupon_redemption",
       ]) {
         expect(fnNames, `função ausente: ${fn}`).toContain(fn);
       }
@@ -100,6 +106,15 @@ describe("supabase/kitefy-setup.sql", () => {
           where c.relname = 'performance_telemetry' and a.attname = 'hook_rate'`,
       );
       expect(generated.rows[0]?.attgenerated).toBe("s");
+
+      const amountColumn = await db.query<{ count: number }>(
+        `select count(*)::int as count
+           from information_schema.columns
+          where table_schema = 'public'
+            and table_name = 'mp_subscriptions'
+            and column_name = 'amount_cents'`,
+      );
+      expect(amountColumn.rows[0]?.count).toBe(1);
     } finally {
       await db.close();
     }

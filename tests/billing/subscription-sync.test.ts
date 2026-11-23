@@ -107,6 +107,7 @@ describe("parseTenantFromExternalReference", () => {
     expect(parseTenantFromExternalReference(TENANT_ID)).toEqual({
       tenantId: TENANT_ID,
       planHint: null,
+      couponCode: null,
     });
   });
 
@@ -114,6 +115,15 @@ describe("parseTenantFromExternalReference", () => {
     expect(parseTenantFromExternalReference(`${TENANT_ID}:agency`)).toEqual({
       tenantId: TENANT_ID,
       planHint: "agency",
+      couponCode: null,
+    });
+  });
+
+  it("extrai o cupom do external_reference (normalizado em maiúsculas)", () => {
+    expect(parseTenantFromExternalReference(`${TENANT_ID}:pro:kite-abc123`)).toEqual({
+      tenantId: TENANT_ID,
+      planHint: "pro",
+      couponCode: "KITE-ABC123",
     });
   });
 
@@ -178,6 +188,7 @@ describe("buildSubscriptionRow", () => {
       plan_tier: "pro",
       status: "active",
       next_billing_date: "2026-03-11T11:00:00.000Z",
+      amount_cents: PLANS.pro.priceCents,
     });
   });
 
@@ -209,6 +220,17 @@ describe("buildSubscriptionRow", () => {
     );
 
     expect(row.plan_tier).toBe("agency");
+    expect(row.amount_cents).toBe(1);
+  });
+
+  it("mantém amount_cents nulo quando o MP não informa o valor", () => {
+    const row = buildSubscriptionRow({
+      id: "pre-sem-valor",
+      status: "pending",
+      external_reference: `${TENANT_ID}:essential`,
+    });
+
+    expect(row.amount_cents).toBeNull();
   });
 
   it("lança quando o PreApproval não tem id", () => {

@@ -16,6 +16,8 @@ import {
   isSettledRecurringCharge,
 } from "@/lib/billing/authorized-payment";
 import { grantPlanCredits, pgCreditStore } from "@/lib/billing/credit-grants";
+import { recordRevenueEvent } from "@/lib/billing/revenue";
+import type { PlanTier } from "@/types/domain";
 import {
   ackWebhookJob,
   nackWebhookJob,
@@ -135,6 +137,16 @@ async function handlePaymentJob(dataId: string, eventId: string): Promise<JobRes
     reference.planHint,
   );
 
+  if (payment.amountCents !== null) {
+    await recordRevenueEvent({
+      source: "payment",
+      externalId: payment.paymentId,
+      tenantId: reference.tenantId,
+      planTier: reference.planHint,
+      amountCents: payment.amountCents,
+    });
+  }
+
   await markEventProcessed(eventId);
 
   log.info("Crédito de pagamento processado", {
@@ -216,7 +228,12 @@ async function handleAuthorizedPaymentJob(dataId: string, eventId: string): Prom
   );
 
   const tenantId = subscription[0]?.tenant_id;
-  const planTier = subscription[0]?.plan_tier;
+  const planTierRaw = subscription[0]?.plan_tier;
+  const planTier: PlanTier | null =
+    planTierRaw === "essential" || planTierRaw === "pro" || planTierRaw === "agency"
+      ? planTierRaw
+      : null;
+
   if (!tenantId || !planTier) {
     await markEventProcessed(eventId);
     log.warn("Cobranca de assinatura sem tenant conhecido: evento arquivado", {
@@ -224,6 +241,17 @@ async function handleAuthorizedPaymentJob(dataId: string, eventId: string): Prom
       preapprovalId: charge.preapprovalId,
     });
     return { eventId, outcome: "skipped", reason: "subscription_unknown" };
+  }
+
+  if (charge.amountCents !== null) {
+    await recordRevenueEvent({
+      source: "subscription",
+      externalId: charge.id,
+      tenantId,
+      planTier,
+      amountCents: charge.amountCents,
+      occurredAt: charge.debitDate,
+    });
   }
 
   // Uma concessao por cobranca: reentrega do mesmo evento nao duplica credito.
@@ -236,7 +264,7 @@ async function handleAuthorizedPaymentJob(dataId: string, eventId: string): Prom
   if (existing.length === 0) {
     await grantPlanCredits(
       tenantId,
-      planTier as Parameters<typeof grantPlanCredits>[1],
+      planTier,
       "subscription_renewal",
       referenceId,
       pgCreditStore,

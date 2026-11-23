@@ -10,6 +10,7 @@
  */
 
 import { PLANS } from "@/lib/pricing";
+import { normalizeCouponCode } from "@/lib/billing/coupons";
 import type { PlanTier } from "@/types/domain";
 
 const MP_API = "https://api.mercadopago.com";
@@ -20,18 +21,38 @@ export interface PlanCheckoutResult {
   planId: string;
 }
 
-export async function createPlanCheckout(input: {
+export interface PlanCheckoutInput {
   tenantId: string;
   tier: PlanTier;
   appUrl: string;
-}): Promise<PlanCheckoutResult> {
+  /** Valor final em centavos (já com desconto). Default: preço do plano. */
+  amountCents?: number;
+  /** Cupom aplicado, embutido no external_reference para confirmação no webhook. */
+  couponCode?: string | null;
+}
+
+export async function createPlanCheckout(input: PlanCheckoutInput): Promise<PlanCheckoutResult> {
   const accessToken = process.env.MP_ACCESS_TOKEN;
   if (!accessToken) {
     throw new Error("Mercado Pago não configurado: MP_ACCESS_TOKEN ausente.");
   }
 
   const plan = PLANS[input.tier];
-  const amount = plan.priceCents / 100;
+  const amountCents = input.amountCents ?? plan.priceCents;
+
+  if (!Number.isInteger(amountCents) || amountCents < 100 || amountCents > 10_000_000) {
+    throw new Error("Valor do plano inválido para cobrança.");
+  }
+
+  const couponCode = normalizeCouponCode(input.couponCode ?? null);
+  if (input.couponCode && !couponCode) {
+    throw new Error("Cupom inválido para o checkout.");
+  }
+
+  const amount = amountCents / 100;
+  const externalReference = couponCode
+    ? `${input.tenantId}:${input.tier}:${couponCode}`
+    : `${input.tenantId}:${input.tier}`;
 
   const response = await fetch(`${MP_API}/preapproval_plan`, {
     method: "POST",
@@ -40,8 +61,8 @@ export async function createPlanCheckout(input: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      reason: `Kitefy ${plan.name}`,
-      external_reference: input.tenantId,
+      reason: couponCode ? `Kitefy ${plan.name} (cupom ${couponCode})` : `Kitefy ${plan.name}`,
+      external_reference: externalReference,
       back_url: `${input.appUrl}/settings/billing?mp=retorno`,
       auto_recurring: {
         frequency: 1,

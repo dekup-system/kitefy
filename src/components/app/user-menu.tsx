@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, ShieldCheck, User, UserRound } from "lucide-react";
+import { LogOut, ShieldCheck, ShieldAlert, User, UserRound } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOutAction } from "@/lib/auth/actions";
 
-export function UserMenu({ accountName }: { accountName: string }) {
+export function UserMenu({
+  accountName,
+  isAdmin = false,
+}: {
+  accountName: string;
+  isAdmin?: boolean;
+}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -23,6 +29,14 @@ export function UserMenu({ accountName }: { accountName: string }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel>Conta</DropdownMenuLabel>
+        {isAdmin ? (
+          <DropdownMenuItem asChild>
+            <a href="/admin" className="flex items-center gap-2">
+              <ShieldAlert className="size-4" aria-hidden="true" />
+              Administração
+            </a>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem asChild>
           <a href="/settings/account" className="flex items-center gap-2">
             <UserRound className="size-4" aria-hidden="true" />

@@ -3,8 +3,9 @@
 Projeto: `C:\Users\mtres\Documents\brandpulse` · repo `github.com/dekup-system/kitefy` · branch `main`
 Produção: `https://www.kitefy.com.br`
 
-Commits desta sessão: `bf512a2` (painel do usuário), `fb019f1` (perfis de marca) e o commit
-do Pacote Google no topo do histórico (`git log -1`). Base anterior: `b645ce1`.
+Commits desta sessão: `bf512a2` (painel do usuário), `fb019f1` (perfis de marca), o commit do
+Pacote Google e o do console administrativo no topo do histórico (`git log -1`).
+Base anterior: `b645ce1`.
 
 ## Estado atual (tudo verificado)
 
@@ -24,6 +25,7 @@ do Pacote Google no topo do histórico (`git log -1`). Base anterior: `b645ce1`.
 | **Painel do usuário** | ✅ `/settings/account` |
 | **Perfis de marca (múltiplas, edição, logo privado)** | ✅ `/settings/brand` |
 | **Pacote Google (sitemap, robots de IA, index, GSC)** | ✅ `/google` |
+| **Console administrativo (contas, planos, cupons, receita, custos)** | ✅ `/admin` |
 
 ## O que foi entregue nesta sessão
 
@@ -65,31 +67,63 @@ do Pacote Google no topo do histórico (`git log -1`). Base anterior: `b645ce1`.
   `google-site-verification=` ou a meta tag inteira; validado antes de salvar.
 - Builder puro em `src/lib/export/google-pack.ts` (sem rede), com escaping de XML/HTML/JSON-LD.
 
+### 4. Console administrativo — `/admin`
+
+- Acesso por flag `auth.users.app_metadata.is_admin` (só gravável com service_role/Admin API).
+  `getSessionContext().isPlatformAdmin` libera o link na sidebar/menu e o layout `/admin` responde
+  `404` para quem não é admin. Toda action revalida a flag no servidor.
+- **Visão geral**: MRR (valor real das assinaturas), receita confirmada em 30 dias, custo estimado de
+  API, margem, contas, marcas, conteúdos, cupons, custo por modelo e últimos usos.
+- **Contas e planos** (`/admin/contas`): busca por nome/slug/e-mail, plano, assinatura, créditos,
+  receita e custo por conta. No detalhe: alterar plano (sem tocar na cobrança do MP) e ajustar
+  créditos via `consume_credits` (extrato + auditoria).
+- **Cupons** (`/admin/cupons`): gerador `KITE-XXXXXX` (ou código custom), desconto de 1–90%,
+  limite de usos, validade, ativação/desativação, resgates e receita gerada. O cupom é validado no
+  servidor e embutido no `external_reference` (`tenantId:plano:CUPOM`); o resgate só é confirmado
+  quando a assinatura fica ativa (RPC `confirm_coupon_redemption`, idempotente).
+- **Receita e custos** (`/admin/receita`): MRR/ARPU, receita 30d e histórica, série mensal, receita
+  por plano, extrato de cobranças e custo por provider/modelo.
+- Dados novos (migration `20260101000008_admin_console.sql`):
+  `discount_coupons`, `coupon_redemptions`, `billing_revenue_events`, `api_usage_events`,
+  `admin_audit_log` e `mp_subscriptions.amount_cents`.
+- Custo de IA: o runner grava `api_usage_events` após cada invoke/retomada, com sequência
+  determinística (`thread_id + sequence`) para não duplicar. Estimativa por tokens de LLM;
+  embeddings/SERP/imagens não entram nessa conta.
+
 ## Aplicar em produção
 
-A migration `0007` já está incluída no script único. Rode:
+As migrations `0007` e `0008` **já foram aplicadas** no projeto `exinnzybuxudnmhokosv` (verificado:
+5 tabelas novas com RLS e `mp_subscriptions.amount_cents` presente). Para regenerar o script único:
 
 ```bash
-npm run db:setup-sql        # regenera supabase/kitefy-setup.sql (7 migrations)
+npm run db:setup-sql        # regenera supabase/kitefy-setup.sql (8 migrations)
 ```
 
-e cole o arquivo no **SQL Editor** do Supabase (`exinnzybuxudnmhokosv`), ou use `npx supabase db push`.
-Confirme que `brand_profiles.google_verification_token` existe e que o bucket privado continua
-configurado. Nenhuma variável de ambiente nova é necessária.
+Aplicação idempotente por CLI (usa `SUPABASE_DB_URL`):
+
+```bash
+npm run db:apply-setup -- supabase/migrations/20260101000008_admin_console.sql --apply
+```
+
+Confirme que `brand_profiles.google_verification_token` existe, que o bucket privado continua
+configurado e que as 5 tabelas internas têm RLS. Nenhuma variável de ambiente nova é obrigatória;
+`ADMIN_USD_BRL_RATE` (default 5,4) só ajusta a margem estimada.
 
 ## Verificação rápida
 
 ```bash
-npm run typecheck && npm run lint && npm test   # 367 testes
+npm run typecheck && npm run lint && npm test   # 398 testes
 npm run build
 npm run db:ping
 ```
 
-## Próximos passos (opcionais)
+## Próximos passos
 
-- Smoke manual em produção: upload de logo (bucket privado) e download do Pacote Google com token
-  real do Search Console.
-- Nenhum bloco da lista original ficou pendente.
+- **Deploy**: o console `/admin` só fica disponível após publicar este commit (Vercel). As migrations
+  já estão aplicadas, então não há passo de banco no deploy.
+- A conta `kitefy.flow@gmail.com` foi criada com e-mail confirmado e `is_admin=true`; a senha
+  temporária foi entregue fora do Git e deve ser trocada no primeiro login (Minha conta).
+- Smoke manual: abrir `/admin`, conferir MRR/custos, gerar um cupom e testar um checkout com cupom.
 
 ## Credenciais
 
@@ -98,6 +132,10 @@ DeepSeek, Gemini, Serper, Mercado Pago (produção), Resend, CRON_SECRET.
 
 Conta de produção Supabase: `exinnzybuxudnmhokosv` · MP: DEKUP_EDITOR (id 1403168693).
 
+Admin da plataforma: `kitefy.flow@gmail.com` (user id `60052eb0-3afc-4a59-8f33-d28f683aeaf8`,
+tenant `884f54e2-f64e-4b93-8719-3e954d1e3c93`). A promoção é feita por
+`npm run admin:create -- email` e grava `app_metadata.is_admin=true`; nenhuma senha fica no repo.
+
 ## Regras que não podem ser quebradas
 
 - RLS em todas as tabelas; `tenant_id` nunca vem do cliente.
@@ -105,3 +143,5 @@ Conta de produção Supabase: `exinnzybuxudnmhokosv` · MP: DEKUP_EDITOR (id 140
 - Sem OAuth social, sem avatar/TTS, sem clonagem de voz.
 - Débito de crédito só após aprovação humana; estorno em falha.
 - Produto só para o Brasil (locale pt-BR fixo).
+- Admin só com `app_metadata.is_admin=true`; ações administrativas usam service_role no servidor e
+  gravam em `admin_audit_log`.

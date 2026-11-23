@@ -226,6 +226,21 @@ describe("Isolamento RLS entre tenants", () => {
     expect(message).toMatch(/row-level security|violates/i);
   });
 
+  it("dados administrativos ficam inacessíveis para o cliente", async () => {
+    for (const table of [
+      "discount_coupons",
+      "coupon_redemptions",
+      "billing_revenue_events",
+      "api_usage_events",
+      "admin_audit_log",
+    ]) {
+      const message = await t.expectFailure(() =>
+        t.asUser(userA.userId, `select count(*)::int from public.${table}`),
+      );
+      expect(message).toMatch(/permission denied/i);
+    }
+  });
+
   it("anônimo não lê nenhuma tabela de negócio", async () => {
     const message = await t.expectFailure(() =>
       t.asAnon("select count(*)::int from public.tenants"),

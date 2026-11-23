@@ -59,6 +59,10 @@ const serverEnvSchema = z.object({
   // --- App -------------------------------------------------------------------
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+
+  // --- Console administrativo -------------------------------------------------
+  /** Câmbio usado só para estimar margem (receita BRL x custo USD). */
+  ADMIN_USD_BRL_RATE: z.coerce.number().min(1).max(20).default(5.4),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

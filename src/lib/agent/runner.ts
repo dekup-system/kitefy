@@ -8,6 +8,7 @@ import type {
   StudioViewModel,
 } from "@/lib/agent/state";
 import { sumUsage } from "@/lib/ai/usage";
+import { recordApiUsage } from "@/lib/ai/usage-store";
 import { createLogger } from "@/lib/logger";
 import type { ContentPayload } from "@/types/domain";
 
@@ -85,12 +86,22 @@ export async function startStudioRun(input: OrganicStudioInput): Promise<StudioR
     configFor(input.threadId),
   );
 
+  const finalState = result as unknown as OrganicStudioStateType;
+
+  // Custo estimado de LLM (best-effort; não impede a geração).
+  await recordApiUsage(finalState.tokenUsageLog ?? [], {
+    tenantId: input.tenantId,
+    threadId: input.threadId,
+    assetType: input.assetType,
+    startSequence: 0,
+  });
+
   // `invoke` devolve apenas os valores do estado; as interrupções pendentes estão
   // no snapshot do checkpointer. Sem esta leitura, o status voltaria "running"
   // mesmo com o grafo parado em `interrupt()`.
   const snapshot = await graph.getState(configFor(input.threadId));
 
-  return buildRunResult(input.threadId, result as unknown as OrganicStudioStateType, snapshot);
+  return buildRunResult(input.threadId, finalState, snapshot);
 }
 
 export async function resumeStudioRun(input: {
@@ -113,7 +124,21 @@ export async function resumeStudioRun(input: {
     );
   }
 
+  const priorUsage = Array.isArray(
+    (snapshot.values as { tokenUsageLog?: unknown } | undefined)?.tokenUsageLog,
+  )
+    ? ((snapshot.values as { tokenUsageLog: unknown[] }).tokenUsageLog.length)
+    : 0;
+
   const result = await graph.invoke(new Command({ resume: input.decision }), config);
+  const finalState = result as unknown as OrganicStudioStateType;
+
+  await recordApiUsage((finalState.tokenUsageLog ?? []).slice(priorUsage), {
+    tenantId: finalState.tenantId,
+    threadId: input.threadId,
+    assetType: finalState.assetType,
+    startSequence: priorUsage,
+  });
 
   log.info("Run retomado", { threadId: input.threadId, approved: input.decision.approved });
 

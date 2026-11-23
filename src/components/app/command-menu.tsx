@@ -10,6 +10,7 @@ import {
   Plus,
   Search,
   Settings,
+  ShieldAlert,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -39,9 +40,12 @@ const DESTINATIONS = [
   { href: "/settings/privacy", label: "Privacidade e LGPD", icon: ShieldCheck },
 ];
 
-export function CommandMenu() {
+const ADMIN_DESTINATION = { href: "/admin", label: "Administração", icon: ShieldAlert } as const;
+
+export function CommandMenu({ isAdmin = false }: { isAdmin?: boolean }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const destinations = isAdmin ? [ADMIN_DESTINATION, ...DESTINATIONS] : DESTINATIONS;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -91,7 +95,7 @@ export function CommandMenu() {
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Navegar">
-            {DESTINATIONS.map((item) => (
+            {destinations.map((item) => (
               <CommandItem key={item.href} value={`${item.label} ${item.href}`} onSelect={() => go(item.href)}>
                 <item.icon className="size-4" aria-hidden="true" />
                 {item.label}

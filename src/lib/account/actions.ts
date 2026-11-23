@@ -10,6 +10,9 @@ import { createLogger } from "@/lib/logger";
 import { createPlanCheckout } from "@/lib/billing/plan-checkout";
 import { cancelPreApproval, isMpConfigured, MercadoPagoError } from "@/lib/billing/mercadopago";
 import { resolvePlanChange } from "@/lib/billing/plan-change";
+import { computeDiscountedPriceCents } from "@/lib/billing/coupons";
+import { findUsableCoupon } from "@/lib/billing/coupon-store";
+import { PLANS } from "@/lib/pricing";
 import type { PlanTier } from "@/types/domain";
 
 /**
@@ -211,6 +214,22 @@ export async function changePlanAction(
     };
   }
 
+  const couponRaw = String(formData.get("couponCode") ?? "").trim();
+  let couponCode: string | null = null;
+  let amountCents = PLANS[targetTier].priceCents;
+
+  if (couponRaw.length > 0) {
+    const coupon = await findUsableCoupon(couponRaw);
+    if (!coupon.ok) {
+      return { error: coupon.error };
+    }
+    couponCode = coupon.coupon.code;
+    amountCents = computeDiscountedPriceCents(
+      PLANS[targetTier].priceCents,
+      coupon.coupon.percent_off,
+    );
+  }
+
   let initPoint: string;
 
   try {
@@ -218,6 +237,8 @@ export async function changePlanAction(
       tenantId: session.tenantId,
       tier: targetTier,
       appUrl: getPublicEnv().appUrl,
+      amountCents,
+      couponCode,
     });
     initPoint = checkout.initPoint;
 

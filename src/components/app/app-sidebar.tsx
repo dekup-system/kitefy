@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, FileStack, Globe, LayoutDashboard, Settings, Sparkles } from "lucide-react";
+import { BarChart3, FileStack, Globe, LayoutDashboard, Settings, ShieldAlert, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -14,12 +14,15 @@ const NAV = [
   { href: "/settings/brand", label: "Configurações", icon: Settings },
 ] as const;
 
-export function AppSidebar() {
+const ADMIN_NAV = { href: "/admin", label: "Administração", icon: ShieldAlert } as const;
+
+export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
+  const items = isAdmin ? [NAV[0], ADMIN_NAV, ...NAV.slice(1)] : NAV;
 
   return (
     <nav aria-label="Navegação principal" className="flex flex-col gap-1">
-      {NAV.map((item) => {
+      {items.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link

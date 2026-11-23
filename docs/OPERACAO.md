@@ -51,7 +51,7 @@ via script ou reimportar documentos). Nunca deixe o valor do banco diferente do 
 
 ```bash
 npx supabase start
-npx supabase db reset          # aplica as 7 migrations
+npx supabase db reset          # aplica as 8 migrations
 npm run db:langgraph-setup     # checkpoints do LangGraph
 npm run db:seed                # marca demo + conhecimento + telemetria
 ```
@@ -64,7 +64,7 @@ Projeto atual: `exinnzybuxudnmhokosv` — <https://exinnzybuxudnmhokosv.supabase
 
 1. Dashboard → **SQL Editor** → New query
 2. Cole todo o conteúdo de **`supabase/kitefy-setup.sql`** (gerado por `npm run db:setup-sql`)
-3. Run → confirme 11 tabelas em `public`, todas com `rowsecurity = true`
+3. Run → confirme 16 tabelas em `public`, todas com `rowsecurity = true`
 
 **Caminho por CLI (requer a senha do banco):**
 

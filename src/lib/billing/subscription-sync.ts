@@ -2,6 +2,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createLogger } from "@/lib/logger";
 import { PLANS, PLAN_ORDER } from "@/lib/pricing";
 import { grantPlanCredits, pgCreditStore } from "@/lib/billing/credit-grants";
+import { normalizeCouponCode } from "@/lib/billing/coupons";
+import { confirmCouponRedemption } from "@/lib/billing/coupon-store";
 import type { PaymentMethod, PlanTier } from "@/types/domain";
 
 /**
@@ -193,24 +195,25 @@ function normalizeText(value: string): string {
 
 /**
  * `external_reference` das assinaturas é o `tenantId`; aceitamos também o formato
- * composto `tenantId:planTier` (usado quando o checkout precisa desambiguar plano).
+ * composto `tenantId:planTier` (checkout) e `tenantId:planTier:COUPON` (cupom).
  */
 export function parseTenantFromExternalReference(
   externalReference: string | null | undefined,
-): { tenantId: string; planHint: PlanTier | null } | null {
+): { tenantId: string; planHint: PlanTier | null; couponCode: string | null } | null {
   if (typeof externalReference !== "string") return null;
 
   const trimmed = externalReference.trim();
   if (trimmed.length === 0) return null;
 
-  const [tenantPart, planPart] = trimmed.split(":");
+  const [tenantPart, planPart, couponPart] = trimmed.split(":");
   const tenantId = (tenantPart ?? "").trim();
   if (!UUID_PATTERN.test(tenantId)) return null;
 
   const planCandidate = (planPart ?? "").trim();
   const planHint: PlanTier | null = isPlanTier(planCandidate) ? planCandidate : null;
+  const couponCode = normalizeCouponCode(couponPart ?? null);
 
-  return { tenantId, planHint };
+  return { tenantId, planHint, couponCode };
 }
 
 /**
@@ -264,6 +267,7 @@ export interface SubscriptionRow {
   plan_tier: PlanTier;
   status: InternalSubscriptionStatus;
   next_billing_date: string | null;
+  amount_cents: number | null;
 }
 
 export interface SubscriptionSyncOptions {
@@ -295,6 +299,12 @@ export function buildSubscriptionRow(
 
   const planTier = derivePlanTier(preapproval, options.planTier ?? tenant.planHint);
 
+  const rawAmount = preapproval.auto_recurring?.transaction_amount;
+  const amountCents =
+    typeof rawAmount === "number" && Number.isFinite(rawAmount) && rawAmount > 0
+      ? Math.round(rawAmount * 100)
+      : null;
+
   return {
     tenant_id: tenant.tenantId,
     mp_preapproval_id: preapprovalId,
@@ -302,6 +312,7 @@ export function buildSubscriptionRow(
     plan_tier: planTier,
     status: mapMpStatus(preapproval.status),
     next_billing_date: toNextBillingDate(preapproval.next_payment_date),
+    amount_cents: amountCents,
   };
 }
 
@@ -325,6 +336,7 @@ export interface SyncedSubscription {
   status: InternalSubscriptionStatus;
   paymentMethod: PaymentMethod;
   nextBillingDate: string | null;
+  amountCents: number | null;
 }
 
 /**
@@ -337,6 +349,7 @@ export async function syncSubscriptionFromPreapproval(
   options: SubscriptionSyncOptions = {},
 ): Promise<SyncedSubscription> {
   const row = buildSubscriptionRow(preapproval, options);
+  const reference = parseTenantFromExternalReference(preapproval.external_reference);
 
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase
@@ -406,6 +419,18 @@ export async function syncSubscriptionFromPreapproval(
         message: grantError instanceof Error ? grantError.message : "erro",
       });
     }
+
+    // Cupom: o external_reference carrega o código aplicado no checkout.
+    // A confirmação é idempotente e nunca derruba a assinatura já autorizada.
+    const couponCode = reference?.couponCode ?? null;
+    if (couponCode) {
+      await confirmCouponRedemption({
+        code: couponCode,
+        tenantId: row.tenant_id,
+        preapprovalId: row.mp_preapproval_id,
+        amountCents: row.amount_cents,
+      });
+    }
   }
 
   log.info("Assinatura sincronizada", {
@@ -422,5 +447,6 @@ export async function syncSubscriptionFromPreapproval(
     status: row.status,
     paymentMethod: row.payment_method,
     nextBillingDate: row.next_billing_date,
+    amountCents: row.amount_cents,
   };
 }

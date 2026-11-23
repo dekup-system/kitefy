@@ -46,7 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
 
         <NewAssetLink />
-        <AppSidebar />
+        <AppSidebar isAdmin={session.isPlatformAdmin} />
 
         <div className="mt-auto space-y-3">
           <div className="rounded-lg border border-border bg-card p-3">
@@ -67,7 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               Gerenciar plano
             </Link>
           </div>
-          <UserMenu accountName={tenant.name} />
+          <UserMenu accountName={tenant.name} isAdmin={session.isPlatformAdmin} />
         </div>
       </aside>
 
@@ -80,12 +80,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className="hidden items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground sm:inline-flex">
               <span className="font-mono">{tenant.credit_balance}</span> créditos
             </span>
-            <CommandMenu />
+            <CommandMenu isAdmin={session.isPlatformAdmin} />
             <div className="lg:hidden">
               <ThemeToggle />
             </div>
             <div className="lg:hidden">
-              <UserMenu accountName={tenant.name} />
+              <UserMenu accountName={tenant.name} isAdmin={session.isPlatformAdmin} />
             </div>
           </div>
         </header>
@@ -96,7 +96,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           aria-label="Navegação inferior"
           className="sticky bottom-0 flex items-center justify-around border-t border-border bg-background/95 px-2 py-1.5 backdrop-blur lg:hidden"
         >
-          <AppSidebar />
+          <AppSidebar isAdmin={session.isPlatformAdmin} />
         </nav>
       </div>
     </div>

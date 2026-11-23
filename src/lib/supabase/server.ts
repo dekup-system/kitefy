@@ -36,6 +36,8 @@ export interface SessionContext {
   role: TenantRole;
   planTier: PlanTier;
   brandCount: number;
+  /** `true` somente quando o app_metadata do Auth tem `is_admin: true`. */
+  isPlatformAdmin: boolean;
 }
 
 /**
@@ -80,6 +82,8 @@ export async function getSessionContext(): Promise<SessionContext | null> {
     role: row.role,
     planTier: row.tenants.plan_tier,
     brandCount: brands.count ?? 0,
+    // app_metadata só é gravável com service_role/Admin API — nunca pelo cliente.
+    isPlatformAdmin: user.app_metadata?.is_admin === true,
   };
 }
 

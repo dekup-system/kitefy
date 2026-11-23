@@ -32,6 +32,18 @@ export function formatPercent(value: number | null | undefined, digits = 1): str
   return `${(value * 100).toFixed(digits)}%`;
 }
 
+const usdFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 2,
+});
+
+/** Valores em dólar (custo estimado de APIs). */
+export function formatUsd(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  return usdFormatter.format(value);
+}
+
 export function truncate(text: string, max = 140): string {
   if (text.length <= max) return text;
   return `${text.slice(0, max - 1).trimEnd()}…`;

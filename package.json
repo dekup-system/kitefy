@@ -25,6 +25,8 @@
     "qa:shot": "tsx scripts/cdp-shot.mts",
     "db:check": "tsx scripts/check-supabase.ts",
     "db:ping": "tsx scripts/check-db-url.ts",
+    "db:apply-setup": "tsx scripts/apply-setup-sql.ts",
+    "admin:create": "tsx scripts/create-admin.ts",
     "ai:compare": "tsx scripts/compare-models.ts",
     "ai:check-embeddings": "tsx scripts/check-embeddings.ts",
     "mp:check": "tsx scripts/check-mp.ts"

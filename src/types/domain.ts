@@ -151,7 +151,72 @@ export interface MpSubscriptionRow {
   plan_tier: PlanTier;
   status: string;
   next_billing_date: string | null;
+  /** Valor recorrente autorizado no MP (centavos BRL), já com desconto de cupom. */
+  amount_cents: number | null;
   updated_at: string;
+}
+
+export interface DiscountCouponRow {
+  id: string;
+  code: string;
+  percent_off: number;
+  max_redemptions: number;
+  times_redeemed: number;
+  valid_until: string | null;
+  active: boolean;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CouponRedemptionRow {
+  id: string;
+  coupon_id: string;
+  tenant_id: string;
+  preapproval_id: string;
+  percent_off: number;
+  amount_cents: number | null;
+  created_at: string;
+}
+
+export interface BillingRevenueEventRow {
+  id: string;
+  source: "subscription" | "payment";
+  external_id: string;
+  tenant_id: string | null;
+  plan_tier: PlanTier | null;
+  amount_cents: number;
+  currency: string;
+  coupon_id: string | null;
+  occurred_at: string;
+  created_at: string;
+}
+
+export interface ApiUsageEventRow {
+  id: string;
+  tenant_id: string;
+  thread_id: string;
+  asset_type: string | null;
+  node: string;
+  provider: string;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cached_tokens: number;
+  cost_usd: number;
+  sequence: number;
+  created_at: string;
+}
+
+export interface AdminAuditLogRow {
+  id: string;
+  admin_user_id: string | null;
+  admin_email: string | null;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  payload: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface MpWebhookEventRow {
