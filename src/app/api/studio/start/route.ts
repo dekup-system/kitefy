@@ -3,7 +3,7 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { startStudioRun } from "@/lib/agent/runner";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
-import { CREDIT_COSTS } from "@/lib/pricing";
+import { totalRunCreditCost } from "@/lib/pricing";
 import { createLogger } from "@/lib/logger";
 import { getServerEnv } from "@/lib/env";
 
@@ -33,6 +33,9 @@ const bodySchema = z.object({
   productInput: z.string().trim().min(3, "Informe o produto ou oferta.").max(280),
   researchEnabled: z.boolean().default(false),
 });
+
+const activeRunsByTenant = new Map<string, number>();
+const MAX_CONCURRENT_RUNS_PER_TENANT = 3;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = await getSessionContext();
@@ -78,17 +81,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .eq("id", session.tenantId)
     .single<{ credit_balance: number; plan_tier: string }>();
 
-  const cost = CREDIT_COSTS[parsed.data.assetType];
+  const researchEnabled = parsed.data.researchEnabled || parsed.data.assetType === "geo_article";
+  const cost = totalRunCreditCost(parsed.data.assetType, researchEnabled);
   if (!tenant.data || tenant.data.credit_balance < cost) {
     return NextResponse.json(
       {
-        error: `Créditos insuficientes: este ativo custa ${cost} e você tem ${tenant.data?.credit_balance ?? 0}.`,
+        error: `Créditos insuficientes: este conteúdo custa ${cost} e você tem ${tenant.data?.credit_balance ?? 0}.`,
         code: "insufficient_credits",
       },
       { status: 402 },
     );
   }
 
+  const currentActive = activeRunsByTenant.get(session.tenantId) ?? 0;
+  if (currentActive >= MAX_CONCURRENT_RUNS_PER_TENANT) {
+    return NextResponse.json(
+      {
+        error: "Você já tem 3 conteúdos sendo gerados ao mesmo tempo. Aguarde alguns segundos e tente novamente.",
+        code: "too_many_concurrent_runs",
+      },
+      { status: 429 },
+    );
+  }
+
+  activeRunsByTenant.set(session.tenantId, currentActive + 1);
   const threadId = randomUUID();
 
   try {
@@ -99,7 +115,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       objective: parsed.data.objective,
       assetType: parsed.data.assetType,
       productInput: parsed.data.productInput,
-      researchEnabled: parsed.data.researchEnabled || parsed.data.assetType === "geo_article",
+      researchEnabled,
       requestedBy: session.user.id,
     });
 
@@ -117,5 +133,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { error: `Não foi possível gerar o ativo: ${message}`, threadId },
       { status: 500 },
     );
+  } finally {
+    const remaining = (activeRunsByTenant.get(session.tenantId) ?? 1) - 1;
+    if (remaining <= 0) activeRunsByTenant.delete(session.tenantId);
+    else activeRunsByTenant.set(session.tenantId, remaining);
   }
 }

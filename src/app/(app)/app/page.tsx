@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, BarChart3, FileStack, Sparkles, Target, Wallet } from "lucide-react";
+import { ArrowRight, BarChart3, FileStack, Lightbulb, Sparkles, Target, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
+import { buildWeeklyIdeas } from "@/lib/onboarding/extract";
 import { PLANS } from "@/lib/pricing";
 import { formatDateTimeBR, formatPercent } from "@/lib/utils";
 import type { CampaignAssetRow, PerformanceTelemetryRow } from "@/types/domain";
@@ -26,8 +27,17 @@ export const metadata: Metadata = { title: "Visão geral" };
 const STATUS_LABEL: Record<string, string> = {
   draft: "Rascunho",
   awaiting_approval: "Aguardando",
-  approved: "Aprovado",
-  exported: "Exportado",
+  approved: "Pronto",
+  exported: "Publicado",
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  short_script_kit: "Roteiro de vídeo",
+  typo_carousel: "Carrossel Instagram",
+  hybrid_carousel: "Carrossel ilustrado",
+  single_creative: "Post único",
+  geo_article: "Artigo para Blog",
+  lp_copy: "Página de vendas",
 };
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warning" | "outline"> = {
@@ -49,7 +59,10 @@ export default async function DashboardPage() {
       .select("credit_balance, plan_tier, name")
       .eq("id", session.tenantId)
       .single<{ credit_balance: number; plan_tier: keyof typeof PLANS; name: string }>(),
-    supabase.from("brand_profiles").select("id, brand_name").eq("tenant_id", session.tenantId),
+    supabase
+      .from("brand_profiles")
+      .select("id, brand_name, icp_description, entity_facts")
+      .eq("tenant_id", session.tenantId),
     supabase
       .from("campaigns_and_assets")
       .select("id, title, asset_type, status, created_at, thread_id")
@@ -84,20 +97,64 @@ export default async function DashboardPage() {
   monthStart.setHours(0, 0, 0, 0);
   const assetsThisMonth = assetRows.filter((row) => new Date(row.created_at) >= monthStart).length;
 
+  const primaryBrand = (brands.data ?? [])[0] as
+    | { id: string; brand_name: string; icp_description?: string | null; entity_facts?: { claim: string }[] }
+    | undefined;
+  const weeklyIdeas = primaryBrand ? buildWeeklyIdeas(primaryBrand) : [];
+
   return (
     <div className="space-y-8">
       <PageHeader
         title={`Olá, ${tenant.data?.name ?? "bem-vindo"}`}
-        description="Tudo o que importa agora: créditos, ativos recentes e o retorno observado do orgânico."
+        description="Seus conteúdos prontos para publicar, ideias da semana e créditos disponíveis."
         actions={
           <Button asChild>
             <Link href="/studio/new">
               <Sparkles className="size-4" aria-hidden="true" />
-              Novo ativo
+              Criar conteúdo
             </Link>
           </Button>
         }
       />
+
+      {primaryBrand && weeklyIdeas.length > 0 ? (
+        <Card className="border-foreground/20 bg-muted/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Lightbulb className="size-4" aria-hidden="true" />
+              O que postar esta semana em {primaryBrand.brand_name}
+            </CardTitle>
+            <CardDescription>
+              Escolha uma sugestão abaixo para criar o conteúdo completo com imagens e legenda em menos de 1 minuto.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-3">
+            {weeklyIdeas.map((idea) => {
+              const params = new URLSearchParams({
+                brand: primaryBrand.id,
+                type: idea.assetType,
+                objective: idea.objective,
+                product: idea.productInput,
+              });
+              return (
+                <Link
+                  key={idea.id}
+                  href={`/studio/new?${params.toString()}`}
+                  className="group flex flex-col justify-between gap-2 rounded-lg border border-border bg-card p-3.5 transition-colors hover:border-foreground/40 hover:bg-accent/40"
+                >
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-medium text-muted-foreground">{idea.badge}</span>
+                    <p className="text-sm font-semibold leading-snug group-hover:underline">{idea.title}</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground group-hover:text-foreground">
+                    Criar agora <ArrowRight className="size-3" aria-hidden="true" />
+                  </span>
+                </Link>
+              );
+            })}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -107,21 +164,21 @@ export default async function DashboardPage() {
           icon={<Wallet className="size-4" aria-hidden="true" />}
         />
         <StatCard
-          label="Ativos no mês"
+          label="Conteúdos no mês"
           value={<span className="font-mono">{assetsThisMonth}</span>}
-          hint="Aprovados ou em revisão neste ciclo"
+          hint="Prontos ou publicados neste ciclo"
           icon={<FileStack className="size-4" aria-hidden="true" />}
         />
         <StatCard
-          label="Hook rate médio"
+          label="Atenção nos 3s (Média)"
           value={<span className="font-mono">{avgHookRate === null ? "—" : formatPercent(avgHookRate)}</span>}
-          hint="Retenção nos 3 primeiros segundos"
+          hint="Pessoas que continuam vendo o post"
           icon={<Target className="size-4" aria-hidden="true" />}
         />
         <StatCard
-          label="Citações em IA"
+          label="Presença em Buscas / IA"
           value={<span className="font-mono">{citations}</span>}
-          hint="Somatório da telemetria registrada"
+          hint="Citações registradas nos seus artigos"
           icon={<BarChart3 className="size-4" aria-hidden="true" />}
         />
       </div>
@@ -130,8 +187,8 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex-row items-center justify-between gap-2">
             <div>
-              <CardTitle>Ativos recentes</CardTitle>
-              <CardDescription>Os últimos conteúdos gerados pelo estúdio.</CardDescription>
+              <CardTitle>Conteúdos recentes</CardTitle>
+              <CardDescription>Seus últimos posts, carrosséis e roteiros gerados.</CardDescription>
             </div>
             <Button asChild variant="ghost" size="sm">
               <Link href="/campaigns">
@@ -143,11 +200,11 @@ export default async function DashboardPage() {
             {assetRows.length === 0 ? (
               <EmptyState
                 icon={<Sparkles className="size-5" aria-hidden="true" />}
-                title="Nenhum ativo ainda"
-                description="Gere o primeiro em menos de um minuto: roteiro curto custa 1 crédito."
+                title="Nenhum conteúdo ainda"
+                description="Crie o primeiro em menos de um minuto: carrossel ou roteiro custa 1 crédito."
                 action={
                   <Button asChild size="sm">
-                    <Link href="/studio/new">Começar agora</Link>
+                    <Link href="/studio/new">Criar primeiro post</Link>
                   </Button>
                 }
               />
@@ -155,9 +212,9 @@ export default async function DashboardPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Ativo</TableHead>
+                    <TableHead>Conteúdo</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Criado</TableHead>
+                    <TableHead className="text-right">Data</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -170,7 +227,9 @@ export default async function DashboardPage() {
                         >
                           {row.title}
                         </Link>
-                        <span className="block text-xs text-muted-foreground">{row.asset_type}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {TYPE_LABEL[row.asset_type] ?? row.asset_type}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <Badge variant={STATUS_VARIANT[row.status] ?? "outline"}>
@@ -221,15 +280,14 @@ export default async function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Aprendizado</CardTitle>
+              <CardTitle>Como o estúdio aprende</CardTitle>
               <CardDescription>
-                O estúdio usa Thompson Sampling: cada telemetria registrada ajusta a probabilidade do
-                ângulo vencedor.
+                Quando você marca um post como &ldquo;Bombou&rdquo;, o estúdio guarda o estilo de abertura para repetir o que dá resultado no seu público.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/telemetry">Registrar telemetria</Link>
+                <Link href="/telemetry">Ver resultados</Link>
               </Button>
             </CardContent>
           </Card>

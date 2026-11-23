@@ -178,15 +178,48 @@ export function isAllowedByRobots(pathname: string, rules: RobotsRules): boolean
 // Fetch com limites
 // ---------------------------------------------------------------------------
 
+const MAX_REDIRECTS = 5;
+
+async function fetchSafeWithRedirects(
+  initialUrl: URL,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  let current = initialUrl;
+
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+    assertSafePublicUrl(current.toString());
+
+    const response = await fetch(current, {
+      ...init,
+      redirect: "manual",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) return response;
+      current = assertSafePublicUrl(new URL(location, current).toString());
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error("Limite de redirecionamentos excedido.");
+}
+
 async function fetchLimited(
   url: URL,
   timeoutMs: number,
 ): Promise<{ status: number; contentType: string; body: string }> {
-  const response = await fetch(url, {
-    redirect: "follow",
-    headers: { "User-Agent": USER_AGENT, Accept: "text/html,application/xhtml+xml" },
-    signal: AbortSignal.timeout(timeoutMs),
-  });
+  const response = await fetchSafeWithRedirects(
+    url,
+    {
+      headers: { "User-Agent": USER_AGENT, Accept: "text/html,application/xhtml+xml" },
+    },
+    timeoutMs,
+  );
 
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("text/html") && !contentType.includes("application/xhtml")) {

@@ -85,6 +85,17 @@ export function creditCost(subject: CostSubject): number {
   return CREDIT_COSTS[subject];
 }
 
+/**
+ * Custo total de uma geração no estúdio.
+ * Quando a pesquisa de mercado (SERP) é ativada em formatos que não são
+ * artigos GEO (o artigo GEO já embute SERP nos seus 5 créditos), soma +1 crédito.
+ */
+export function totalRunCreditCost(assetType: AssetType, researchEnabled = false): number {
+  const base = CREDIT_COSTS[assetType];
+  const extraSerp = researchEnabled && assetType !== "geo_article" ? CREDIT_COSTS.serp_analysis : 0;
+  return base + extraSerp;
+}
+
 export function formatBRL(cents: number): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",

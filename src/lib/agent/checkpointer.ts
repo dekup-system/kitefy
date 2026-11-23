@@ -1,6 +1,7 @@
 import { MemorySaver } from "@langchain/langgraph";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
+import { getPgPool } from "@/lib/db/pg";
 import { getServerEnv } from "@/lib/env";
 import { createLogger } from "@/lib/logger";
 
@@ -36,7 +37,9 @@ export function getCheckpointer(): BaseCheckpointSaver {
     return cached;
   }
 
-  cached = PostgresSaver.fromConnString(env.SUPABASE_DB_URL, { schema: "langgraph" });
+  // Compartilha o mesmo pg.Pool de src/lib/db/pg.ts para não duplicar
+  // conexões no Session/Transaction Pooler do Supabase em serverless.
+  cached = new PostgresSaver(getPgPool(), undefined, { schema: "langgraph" });
   cachedMode = "postgres";
   return cached;
 }

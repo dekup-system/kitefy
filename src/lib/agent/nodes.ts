@@ -14,11 +14,11 @@ import { embedOne, toPgVector } from "@/lib/ai/embeddings";
 import { buildRetryFeedback, evaluateCompliance } from "@/lib/agent/compliance-adapter";
 import { renderAndUploadVisuals } from "@/lib/agent/visual-adapter";
 import { buildJsonLdForAsset } from "@/lib/agent/jsonld-builder";
-import { createSerpProvider } from "@/lib/serp/client";
+import { searchWithCache } from "@/lib/serp/client";
 import { withTransaction } from "@/lib/db/pg";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env";
-import { CREDIT_COSTS } from "@/lib/pricing";
+import { totalRunCreditCost } from "@/lib/pricing";
 import { createLogger } from "@/lib/logger";
 import type { CarouselOutput, GeoArticleOutput, ShortScriptKitOutput } from "@/lib/ai/content-schemas";
 
@@ -120,10 +120,9 @@ export function shouldResearch(state: OrganicStudioStateType): "research" | "ban
 export async function researchSeoGeoNode(
   state: OrganicStudioStateType,
 ): Promise<OrganicStudioUpdate> {
-  const provider = createSerpProvider();
   const queryText = `${state.objective} ${state.productInput}`.trim();
 
-  const insights = await provider.search({
+  const insights = await searchWithCache({
     query: queryText,
     locale: "pt-BR",
     num: 10,
@@ -188,6 +187,11 @@ export async function contentGeneratorNode(
   if (!state.brandContext) throw new Error("brandContextNode não executou antes do gerador.");
   if (!state.selectedArm) throw new Error("banditSelectorNode não executou antes do gerador.");
 
+  const complianceFeedback =
+    state.complianceReport && !state.complianceReport.approved
+      ? buildRetryFeedback(state.complianceReport)
+      : undefined;
+
   const result = await generateAssetContent({
     node: "contentGenerator",
     assetType: state.assetType,
@@ -203,12 +207,14 @@ export async function contentGeneratorNode(
       framework: arm.framework,
     })),
     serpInsights: state.serpInsights,
+    complianceFeedback,
   });
 
   // Guarda o modelo usado nos metadados do ativo (transparência de IA).
   return {
     draftPayload: result.payload as ContentPayload,
     tokenUsageLog: result.usage,
+    error: null,
   };
 }
 
@@ -316,7 +322,7 @@ export async function humanApprovalNode(
     hooks: hooksFromPayload(payload, state),
     compliance: state.complianceReport,
     visualPaths: state.renderedVisualPaths,
-    creditsCost: creditsFor(state.assetType),
+    creditsCost: creditsFor(state.assetType, state.researchEnabled),
     requires_transparency_label: state.complianceReport?.requires_transparency_label ?? false,
   });
 
@@ -335,8 +341,8 @@ export function routeAfterApproval(state: OrganicStudioStateType): "persistAsset
   return state.approvalStatus === "approved" ? "persistAsset" : END;
 }
 
-function creditsFor(assetType: OrganicStudioStateType["assetType"]): number {
-  return CREDIT_COSTS[assetType];
+function creditsFor(assetType: OrganicStudioStateType["assetType"], researchEnabled = false): number {
+  return totalRunCreditCost(assetType, researchEnabled);
 }
 
 // ---------------------------------------------------------------------------
@@ -349,7 +355,7 @@ export async function finalizeAssetNode(
   if (!state.draftPayload) throw new Error("Nada para persistir.");
   if (state.approvalStatus !== "approved") throw new Error("Ativo não aprovado.");
 
-  const credits = creditsFor(state.assetType);
+  const credits = creditsFor(state.assetType, state.researchEnabled);
   const title = state.approvalDecision?.title?.trim() || deriveTitle(state.draftPayload);
   const hooks = hooksFromPayload(state.draftPayload, state);
   const selectedIndex = state.approvalDecision?.selected_hook_index ?? 0;

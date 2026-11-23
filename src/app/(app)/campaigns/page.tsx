@@ -19,13 +19,13 @@ import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/se
 import { formatDateTimeBR } from "@/lib/utils";
 import type { CampaignAssetRow } from "@/types/domain";
 
-export const metadata: Metadata = { title: "Campanhas" };
+export const metadata: Metadata = { title: "Meus conteúdos" };
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Rascunho",
   awaiting_approval: "Aguardando",
-  approved: "Aprovado",
-  exported: "Exportado",
+  approved: "Pronto para postar",
+  exported: "Já publicado",
 };
 
 const STATUS_VARIANT: Record<string, "success" | "warning" | "outline" | "secondary"> = {
@@ -36,12 +36,12 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "outline" | "second
 };
 
 const TYPE_LABEL: Record<string, string> = {
-  short_script_kit: "Roteiro",
-  typo_carousel: "Carrossel tipográfico",
-  hybrid_carousel: "Carrossel híbrido",
-  single_creative: "Criativo",
-  geo_article: "Artigo GEO",
-  lp_copy: "Landing page",
+  short_script_kit: "Roteiro de vídeo",
+  typo_carousel: "Carrossel Instagram",
+  hybrid_carousel: "Carrossel ilustrado",
+  single_creative: "Post único",
+  geo_article: "Artigo para Blog",
+  lp_copy: "Página de vendas",
 };
 
 export default async function CampaignsPage({
@@ -114,13 +114,13 @@ export default async function CampaignsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Campanhas"
-        description="Tabela densa, ordenável e filtrável. Todos os ativos ficam aqui até serem exportados."
+        title="Meus conteúdos"
+        description="Todos os seus carrosséis, roteiros e artigos salvos, prontos para copiar a legenda e baixar as imagens."
         actions={
           <Button asChild>
             <Link href="/studio/new">
               <Sparkles className="size-4" aria-hidden="true" />
-              Novo ativo
+              Criar conteúdo
             </Link>
           </Button>
         }

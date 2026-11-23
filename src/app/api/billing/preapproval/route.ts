@@ -90,7 +90,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const { method, planTier, cardTokenId } = parsed.data;
     const appUrl = getServerEnv().NEXT_PUBLIC_APP_URL.replace(/\/+$/, "");
-    const backUrl = `${appUrl}/configuracoes/cobranca?mp=retorno`;
+    const backUrl = `${appUrl}/settings/billing?mp=retorno`;
 
     const base = {
       tenantId: session.tenantId,

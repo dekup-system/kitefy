@@ -1,6 +1,6 @@
 import type { EntityFact, ToneOfVoice, VisualTokens } from "@/types/domain";
 import { inferBrandSeed } from "@/lib/ai/mock-generator";
-import { createSerpProvider } from "@/lib/serp/client";
+import { searchWithCache } from "@/lib/serp/client";
 import { crawlBrandSite, type SiteCrawlResult } from "@/lib/crawl/site";
 import { createLogger } from "@/lib/logger";
 
@@ -46,12 +46,12 @@ export interface NicheTemplate {
   seed_facts: string[];
 }
 
-/** Três templates clicáveis exibidos no onboarding junto do campo único. */
+/** Seis templates clicáveis exibidos no onboarding para pequenos negócios e empresas. */
 export const NICHE_TEMPLATES: NicheTemplate[] = [
   {
     id: "saude",
     label: "Saúde e bem-estar",
-    description: "Clínicas, consultórios e profissionais de saúde.",
+    description: "Clínicas, consultórios, médicos, dentistas e fisio.",
     example_input: "Clínica de fisioterapia esportiva em São Paulo",
     tone: {
       archetype: "especialista acessível",
@@ -77,9 +77,37 @@ export const NICHE_TEMPLATES: NicheTemplate[] = [
     ],
   },
   {
+    id: "beleza",
+    label: "Beleza e estética",
+    description: "Salões, clínicas de estética, barbearias e estúdios.",
+    example_input: "Estúdio de estética facial e limpeza de pele em Curitiba",
+    tone: {
+      archetype: "anfitrião especialista",
+      descriptors: ["acolhedor", "claro", "orientado a autocuidado"],
+      avoid: ["promessa milagrosa", "antes e depois", "exagero"],
+      reading_level: "ensino médio",
+      exemplars: ["Cuidado constante aparece na saúde da pele o ano inteiro."],
+    },
+    visual_tokens: {
+      primary: "#4a2535",
+      secondary: "#f8eff3",
+      accent: "#9c4a6b",
+      background: "#fffcfd",
+      foreground: "#23121a",
+      theme: "light",
+      radius: 16,
+    },
+    icp_description:
+      "Pessoas de 25 a 50 anos que buscam atendimento com hora marcada, produtos seguros e orientação prática de rotina.",
+    seed_facts: [
+      "Atendimento com hora marcada e avaliação individualizada",
+      "Produtos dermatologicamente testados com protocolo personalizado",
+    ],
+  },
+  {
     id: "ecommerce",
-    label: "E-commerce e produto físico",
-    description: "Marcas de moda, casa, beleza e acessórios.",
+    label: "Loja e produto físico",
+    description: "Moda, casa, cosméticos, acessórios e varejo.",
     example_input: "Marca de tênis minimalistas feitos no Brasil",
     tone: {
       archetype: "curador confiável",
@@ -105,9 +133,65 @@ export const NICHE_TEMPLATES: NicheTemplate[] = [
     ],
   },
   {
+    id: "gastronomia",
+    label: "Gastronomia e alimentação",
+    description: "Restaurantes, cafeterias, confeitarias e delivery.",
+    example_input: "Padaria artesanal de fermentação natural em Belo Horizonte",
+    tone: {
+      archetype: "artesão próximo",
+      descriptors: ["sensorial", "direto", "autêntico"],
+      avoid: ["clichê publicitário", "superlativo sem prova"],
+      reading_level: "ensino médio",
+      exemplars: ["Fornada fresca todos os dias às 8h e às 16h."],
+    },
+    visual_tokens: {
+      primary: "#5c2c16",
+      secondary: "#f7EFEA",
+      accent: "#c85a28",
+      background: "#fffdf9",
+      foreground: "#26130a",
+      theme: "light",
+      radius: 12,
+    },
+    icp_description:
+      "Moradores e trabalhadores da região que valorizam ingrediente de verdade, preparo fresco e pedido rápido.",
+    seed_facts: [
+      "Ingredientes selecionados com preparo diário na própria cozinha",
+      "Atendimento no salão e entrega própria na região",
+    ],
+  },
+  {
+    id: "servicos",
+    label: "Serviços e profissionais",
+    description: "Advocacia, contabilidade, arquitetura, oficinas e aulas.",
+    example_input: "Escritório de arquitetura residencial e reformas rápidas",
+    tone: {
+      archetype: "consultor prático",
+      descriptors: ["didático", "organizado", "transparente"],
+      avoid: ["jargão difícil", "promessa de prazo irreal"],
+      reading_level: "ensino médio",
+      exemplars: ["Planejamento claro evita surpresa no orçamento."],
+    },
+    visual_tokens: {
+      primary: "#1e293b",
+      secondary: "#f1f5f9",
+      accent: "#0284c7",
+      background: "#fcfcfd",
+      foreground: "#0f172a",
+      theme: "light",
+      radius: 10,
+    },
+    icp_description:
+      "Clientes que precisam resolver um problema técnico com segurança, orçamento previsível e acompanhamento próximo.",
+    seed_facts: [
+      "Orçamento detalhado por etapa antes de iniciar o serviço",
+      "Acompanhamento direto com cronograma semanal",
+    ],
+  },
+  {
     id: "b2b",
-    label: "B2B e SaaS",
-    description: "Software, consultorias e serviços para empresas.",
+    label: "B2B, Tecnologia e SaaS",
+    description: "Software, consultorias corporativas e serviços para empresas.",
     example_input: "Plataforma de gestão de frotas para transportadoras",
     tone: {
       archetype: "parceiro técnico",
@@ -159,8 +243,7 @@ export async function extractBrandDraft(
 
   // Enriquecimento opcional: perguntas reais do público (PAA).
   try {
-    const provider = createSerpProvider();
-    const insights = await provider.search({
+    const insights = await searchWithCache({
       query: `${seed.brand_name} ${template?.label ?? ""} ${input}`.trim().slice(0, 180),
       locale: "pt-BR",
       num: 5,
@@ -222,13 +305,13 @@ export async function extractBrandDraft(
   }
 
   if (!seed.website_url) {
-    needsReview.push("Sem site informado: adicione a URL para reforçar sinais de entidade (GEO).");
+    needsReview.push("Quando quiser, adicione o site ou link do seu negócio em Configurações.");
   }
   if (facts.length === 0) {
-    needsReview.push("Nenhum fato verificável cadastrado: adicione números com fonte para artigos GEO.");
+    needsReview.push("Adicione diferenciais reais do seu negócio em Configurações para enriquecer seus posts.");
   }
   if (confidence !== "alta") {
-    needsReview.push("Tom de voz inferido do texto. Revise os descritores em Configurações da marca.");
+    needsReview.push("Estilo de voz configurado automaticamente. Você pode personalizar cores e fatos quando quiser.");
   }
 
   return {
@@ -272,28 +355,96 @@ export function firstAssetSuggestion(niche: string): {
         assetType: "short_script_kit",
         objective: "Explicar o valor da avaliação preventiva em 45 segundos",
         productInput: "avaliação preventiva em três etapas",
-        rationale: "Roteiro curto mostra o padrão de voz e é gravável hoje, sem avatar.",
+        rationale: "Roteiro de vídeo curto mostra seu estilo de voz e já sai pronto para gravar no celular.",
+      };
+    case "beleza":
+      return {
+        assetType: "typo_carousel",
+        objective: "Mostrar 5 cuidados essenciais que mantêm o resultado do procedimento por mais tempo",
+        productInput: "atendimento com avaliação personalizada",
+        rationale: "Carrossel educativo gera salvamentos no Instagram e já sai com todas as imagens prontas.",
       };
     case "ecommerce":
       return {
         assetType: "typo_carousel",
         objective: "Mostrar o que realmente diferencia o produto no uso diário",
         productInput: "produto principal da marca",
-        rationale: "Carrossel tipográfico sai pronto em minutos e custa 1 crédito.",
+        rationale: "Carrossel de imagens sai diagramado em segundos e custa 1 crédito.",
+      };
+    case "gastronomia":
+      return {
+        assetType: "typo_carousel",
+        objective: "Mostrar os bastidores do preparo fresco e os itens mais pedidos da casa",
+        productInput: "cardápio artesanal feito no dia",
+        rationale: "Carrossel com passo a passo abre o apetite e já entrega a legenda pronta para postar.",
+      };
+    case "servicos":
+      return {
+        assetType: "typo_carousel",
+        objective: "Responder as 5 dúvidas mais comuns antes de contratar o serviço",
+        productInput: "diagnóstico e orçamento planejado",
+        rationale: "Tirar dúvidas em carrossel passa autoridade imediata e atrai clientes mais qualificados.",
       };
     case "b2b":
       return {
         assetType: "geo_article",
-        objective: "Responder a pergunta que o comprador faz antes da demo",
+        objective: "Responder a pergunta que o comprador faz antes da reunião comercial",
         productInput: "principal dor operacional do cliente",
-        rationale: "Artigo GEO é o ativo com maior chance de citação em respostas de IA.",
+        rationale: "Artigo completo posiciona sua empresa no Google e em respostas de inteligência artificial.",
       };
     default:
       return {
-        assetType: "short_script_kit",
-        objective: "Explicar a promessa central da marca em 45 segundos",
-        productInput: "principal oferta da marca",
-        rationale: "Começar pelo roteiro valida o tom de voz antes de investir em artigos.",
+        assetType: "typo_carousel",
+        objective: "Explicar os 5 maiores benefícios do nosso trabalho para o cliente",
+        productInput: "principal serviço ou produto da marca",
+        rationale: "Carrossel de imagens já sai diagramado nas cores da marca com legenda pronta.",
       };
   }
+}
+
+/**
+ * Gera 3 ideias práticas ("O que postar esta semana") de forma 100% determinística
+ * a partir do nome, público e fatos cadastrados na marca (custo US$ 0 de LLM).
+ */
+export function buildWeeklyIdeas(brand: {
+  brand_name: string;
+  icp_description?: string | null;
+  entity_facts?: { claim: string }[];
+}): {
+  id: string;
+  badge: string;
+  title: string;
+  assetType: "typo_carousel" | "short_script_kit" | "single_creative";
+  objective: string;
+  productInput: string;
+}[] {
+  const firstFact = brand.entity_facts?.[0]?.claim?.slice(0, 120) || `atendimento e diferencial da ${brand.brand_name}`;
+  const secondFact = brand.entity_facts?.[1]?.claim?.slice(0, 120) || `serviço principal da ${brand.brand_name}`;
+
+  return [
+    {
+      id: "mito-verdade",
+      badge: "Para gerar salvamentos · Carrossel (7–10 imagens)",
+      title: "Derrubar o erro mais comum do seu cliente",
+      assetType: "typo_carousel",
+      objective: `Explicar os erros mais comuns que o público comete e como resolver com segurança`,
+      productInput: firstFact,
+    },
+    {
+      id: "duvida-rapida",
+      badge: "Para atrair seguidores · Roteiro de Reels (45s)",
+      title: "Responder a pergunta nº 1 do balcão / WhatsApp",
+      assetType: "short_script_kit",
+      objective: `Responder de forma direta a principal dúvida de quem procura ${brand.brand_name}`,
+      productInput: secondFact,
+    },
+    {
+      id: "oferta-direta",
+      badge: "Para chamar no WhatsApp · Post único de Feed",
+      title: "Apresentar seu diferencial com convite direto",
+      assetType: "single_creative",
+      objective: `Destacar por que escolher ${brand.brand_name} economiza tempo e traz segurança`,
+      productInput: firstFact,
+    },
+  ];
 }

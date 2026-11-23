@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { TestDatabase, createUserWithTenant } from "./harness";
+import { totalRunCreditCost } from "@/lib/pricing";
+import { buildWeeklyIdeas } from "@/lib/onboarding/extract";
 
 describe("Sistema de créditos atômico", () => {
   let t: TestDatabase;
@@ -152,5 +154,24 @@ describe("Sistema de créditos atômico", () => {
     );
     // hook_rates: 0.10, 0.35, 0.50, 0.60 -> P75 = 0.525
     expect(Number(rows[0]!.tenant_hook_rate_p75)).toBeCloseTo(0.525, 3);
+  });
+
+  it("totalRunCreditCost soma +1 crédito quando SERP é ativado em formatos sociais e mantém 5 em geo_article", () => {
+    expect(totalRunCreditCost("short_script_kit", false)).toBe(1);
+    expect(totalRunCreditCost("short_script_kit", true)).toBe(2);
+    expect(totalRunCreditCost("typo_carousel", true)).toBe(2);
+    expect(totalRunCreditCost("geo_article", false)).toBe(5);
+    expect(totalRunCreditCost("geo_article", true)).toBe(5);
+  });
+
+  it("buildWeeklyIdeas gera 3 pautas determinísticas sem chamadas externas", () => {
+    const ideas = buildWeeklyIdeas({
+      brand_name: "Clínica Aurora",
+      entity_facts: [{ claim: "Atendimento preventivo em três etapas" }],
+    });
+    expect(ideas).toHaveLength(3);
+    expect(ideas[0]?.assetType).toBe("typo_carousel");
+    expect(ideas[1]?.assetType).toBe("short_script_kit");
+    expect(ideas[2]?.assetType).toBe("single_creative");
   });
 });

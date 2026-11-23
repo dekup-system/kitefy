@@ -6,7 +6,7 @@ import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/se
 import { getServerEnv } from "@/lib/env";
 import type { AssetType } from "@/types/domain";
 
-export const metadata: Metadata = { title: "Novo ativo" };
+export const metadata: Metadata = { title: "Criar conteúdo" };
 
 const ASSET_TYPES: AssetType[] = [
   "short_script_kit",
@@ -30,11 +30,16 @@ export default async function NewStudioRunPage({
 
   const brandsQuery = await supabase
     .from("brand_profiles")
-    .select("id, brand_name")
+    .select("id, brand_name, icp_description, entity_facts")
     .eq("tenant_id", session.tenantId)
     .order("created_at", { ascending: true });
 
-  const brands = (brandsQuery.data ?? []) as { id: string; brand_name: string }[];
+  const brands = (brandsQuery.data ?? []) as {
+    id: string;
+    brand_name: string;
+    icp_description?: string | null;
+    entity_facts?: { claim: string }[];
+  }[];
 
   if (brands.length === 0) {
     redirect("/onboarding");
@@ -57,8 +62,8 @@ export default async function NewStudioRunPage({
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <PageHeader
-        title="Novo ativo"
-        description="Escolha o formato, diga o objetivo e a oferta. O estúdio seleciona o ângulo por Thompson Sampling e devolve o conteúdo validado para você aprovar."
+        title="O que vamos publicar?"
+        description="Escolha seu objetivo da semana ou clique em uma sugestão pronta. O estúdio cria o texto, verifica as regras do CONAR e entrega as imagens no tamanho certo."
       />
       <NewRunForm
         brands={brands}

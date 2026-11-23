@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { resumeStudioRun, runBelongsToTenant } from "@/lib/agent/runner";
-import { requireSessionContext } from "@/lib/supabase/server";
+import { purgeStudioThread, readStudioRun, resumeStudioRun, runBelongsToTenant } from "@/lib/agent/runner";
+import { requireSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getServerEnv } from "@/lib/env";
 import { createLogger } from "@/lib/logger";
 
 /**
@@ -47,6 +49,8 @@ export async function decideStudioRunAction(formData: FormData): Promise<void> {
     redirect(`/studio/${threadId}?erro=${encodeURIComponent("Este rascunho não pertence à sua conta.")}`);
   }
 
+  const snapshotBefore = !approved ? await readStudioRun(threadId).catch(() => null) : null;
+
   let run;
   try {
     run = await resumeStudioRun({
@@ -64,6 +68,25 @@ export async function decideStudioRunAction(formData: FormData): Promise<void> {
     redirect(`/studio/${threadId}?erro=${encodeURIComponent(message.slice(0, 240))}`);
   }
 
+  // Em rejeição, limpa os arquivos órfãos do rascunho no Storage e o checkpoint
+  // para não acumular lixo nem reter dados descartados (LGPD + limite Storage).
+  if (!approved) {
+    const pathsToClean = snapshotBefore?.view.visualPaths ?? run.view.visualPaths ?? [];
+    if (pathsToClean.length > 0) {
+      try {
+        const admin = createSupabaseAdminClient();
+        const bucket = getServerEnv().SUPABASE_STORAGE_BUCKET;
+        await admin.storage.from(bucket).remove(pathsToClean);
+      } catch (cleanupError) {
+        log.warn("Falha ao limpar visuais de rascunho rejeitado", {
+          threadId,
+          message: cleanupError instanceof Error ? cleanupError.message : "erro",
+        });
+      }
+    }
+    await purgeStudioThread(threadId).catch(() => undefined);
+  }
+
   log.info("Decisão registrada", {
     threadId,
     approved,
@@ -78,6 +101,34 @@ export async function decideStudioRunAction(formData: FormData): Promise<void> {
   redirect(
     approved && run.view.assetId
       ? `/studio/${threadId}?aprovado=1`
-      : `/studio/${threadId}?rejeitado=1`,
+      : `/campaigns?rejeitado=1`,
   );
+}
+
+const markExportedSchema = z.object({
+  assetId: z.string().uuid(),
+  threadId: z.string().optional(),
+});
+
+export async function markAssetPostedAction(formData: FormData): Promise<void> {
+  const session = await requireSessionContext();
+  const parsed = markExportedSchema.safeParse({
+    assetId: formData.get("assetId"),
+    threadId: formData.get("threadId") || undefined,
+  });
+
+  if (!parsed.success) return;
+
+  const supabase = await createSupabaseServerClient();
+  await supabase
+    .from("campaigns_and_assets")
+    .update({ status: "exported" })
+    .eq("id", parsed.data.assetId)
+    .eq("tenant_id", session.tenantId);
+
+  if (parsed.data.threadId) {
+    revalidatePath(`/studio/${parsed.data.threadId}`);
+  }
+  revalidatePath("/campaigns");
+  revalidatePath("/app");
 }

@@ -6,9 +6,9 @@ import { BarChart3, FileStack, LayoutDashboard, Settings, Sparkles } from "lucid
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/app", label: "Visão geral", icon: LayoutDashboard },
-  { href: "/campaigns", label: "Campanhas", icon: FileStack },
-  { href: "/telemetry", label: "Telemetria", icon: BarChart3 },
+  { href: "/app", label: "Início", icon: LayoutDashboard },
+  { href: "/campaigns", label: "Meus conteúdos", icon: FileStack },
+  { href: "/telemetry", label: "Resultados", icon: BarChart3 },
   { href: "/settings/brand", label: "Configurações", icon: Settings },
 ] as const;
 
@@ -50,7 +50,7 @@ export function NewAssetLink({ className }: { className?: string }) {
       )}
     >
       <Sparkles className="size-4" aria-hidden="true" />
-      Novo ativo
+      Criar conteúdo
     </Link>
   );
 }

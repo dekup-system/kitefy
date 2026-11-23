@@ -27,7 +27,7 @@ export function getPgPool(): Pool {
 
   const pool = new Pool({
     connectionString: env.SUPABASE_DB_URL,
-    max: 5,
+    max: 3,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
     ssl: isLocal ? undefined : { rejectUnauthorized: false },

@@ -4,6 +4,7 @@ import sharp from "sharp";
 import type { ReactElement } from "react";
 
 import type { CarouselSlide, VisualTokens } from "@/types/domain";
+import { assertSafePublicUrl } from "@/lib/crawl/site";
 
 import { getSatoriFonts } from "./fonts";
 import {
@@ -176,26 +177,34 @@ function decodeDataUrl(rawUrl: string): Buffer {
 }
 
 async function downloadImage(rawUrl: string): Promise<Buffer> {
-  let parsed: URL;
-  try {
-    parsed = new URL(rawUrl);
-  } catch {
-    throw new Error("URL de imagem inválida.");
+  let current = assertSafePublicUrl(rawUrl);
+  let response: Response | null = null;
+
+  for (let hop = 0; hop <= 5; hop += 1) {
+    const candidate = await fetch(current, {
+      method: "GET",
+      redirect: "manual",
+      signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS),
+      headers: { accept: "image/*" },
+    });
+
+    if (candidate.status >= 300 && candidate.status < 400) {
+      const location = candidate.headers.get("location");
+      if (!location) {
+        response = candidate;
+        break;
+      }
+      current = assertSafePublicUrl(new URL(location, current).toString());
+      continue;
+    }
+
+    response = candidate;
+    break;
   }
 
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error(`protocolo não suportado (${parsed.protocol}).`);
+  if (!response) {
+    throw new Error("limite de redirecionamentos excedido.");
   }
-  if (parsed.hostname.length === 0) {
-    throw new Error("URL de imagem sem host.");
-  }
-
-  const response = await fetch(parsed, {
-    method: "GET",
-    redirect: "follow",
-    signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS),
-    headers: { accept: "image/*" },
-  });
 
   if (!response.ok) {
     throw new Error(`download falhou com HTTP ${response.status}.`);

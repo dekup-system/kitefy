@@ -19,7 +19,7 @@ import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/se
 import { formatDateTimeBR, formatPercent } from "@/lib/utils";
 import type { BanditArmStatRow, PerformanceTelemetryRow } from "@/types/domain";
 
-export const metadata: Metadata = { title: "Telemetria" };
+export const metadata: Metadata = { title: "Resultados" };
 
 export default async function TelemetryPage() {
   const session = await getSessionContext();
@@ -74,8 +74,8 @@ export default async function TelemetryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Telemetria orgânica"
-        description="Cada registro alimenta o Thompson Sampling: o estúdio passa a priorizar os ângulos que retêm atenção na sua marca."
+        title="Resultados dos seus posts"
+        description="Cada resultado registrado ensina o estúdio a priorizar os estilos de abertura que mais prendem a atenção do seu público."
       />
 
       {brandOptions.length === 0 ? (

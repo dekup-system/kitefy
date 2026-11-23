@@ -93,9 +93,65 @@ export async function addTelemetryAction(
 
   return {
     notice: distilled
-      ? `Telemetria registrada. Bandit atualizado (${distilled.success ? "sucesso" : "falha"}${distilled.reindexed ? ", ativo reindexado" : ""}).`
-      : "Telemetria registrada.",
+      ? `Resultado registrado! O estúdio atualizou o estilo da sua marca (${distilled.success ? "padrão campeão salvo" : "ajuste aplicado"}).`
+      : "Resultado registrado.",
   };
+}
+
+const quickFeedbackSchema = z.object({
+  assetId: z.string().uuid(),
+  brandId: z.string().uuid(),
+  rating: z.enum(["great", "average", "weak"]),
+  threadId: z.string().optional(),
+});
+
+/**
+ * Feedback de resultado em 1 clique para pequenos empreendedores:
+ * - "great" (🔥 Bombou) -> hook_rate 0.45 (sucesso no bandit + reindexa como winning_post)
+ * - "average" (👍 Na média) -> hook_rate 0.35 (sucesso leve)
+ * - "weak" (👎 Fraco) -> hook_rate 0.15 (incrementa beta para explorar outros ângulos)
+ */
+export async function recordQuickFeedbackAction(formData: FormData): Promise<void> {
+  const session = await requireSessionContext();
+  const supabase = await createSupabaseServerClient();
+
+  const parsed = quickFeedbackSchema.safeParse({
+    assetId: formData.get("assetId"),
+    brandId: formData.get("brandId"),
+    rating: formData.get("rating"),
+    threadId: formData.get("threadId") || undefined,
+  });
+
+  if (!parsed.success) return;
+
+  const metricsByRating = {
+    great: { impressions: 1000, views3s: 450, saves: 35, hookRate: 0.45 },
+    average: { impressions: 1000, views3s: 350, saves: 12, hookRate: 0.35 },
+    weak: { impressions: 1000, views3s: 150, saves: 2, hookRate: 0.15 },
+  } as const;
+
+  const metrics = metricsByRating[parsed.data.rating];
+
+  await supabase.from("performance_telemetry").insert({
+    tenant_id: session.tenantId,
+    brand_id: parsed.data.brandId,
+    asset_id: parsed.data.assetId,
+    channel_label: `feedback_${parsed.data.rating}`,
+    impressions: metrics.impressions,
+    views_3s: metrics.views3s,
+    saves_or_clicks: metrics.saves,
+    ai_citations_count: 0,
+    source_mode: "manual",
+  });
+
+  await distillFor(parsed.data.assetId, session.tenantId, parsed.data.brandId, metrics.hookRate);
+
+  if (parsed.data.threadId) {
+    revalidatePath(`/studio/${parsed.data.threadId}`);
+  }
+  revalidatePath("/campaigns");
+  revalidatePath("/telemetry");
+  revalidatePath("/app");
 }
 
 export async function importTelemetryCsvAction(

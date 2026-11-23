@@ -41,6 +41,8 @@ export interface GenerateAssetInput
   node: string;
   selectedArm: { angle_type: AngleType; framework: Framework };
   explorationArms: { angle_type: AngleType; framework: Framework }[];
+  /** Apontamentos do guardrail da tentativa anterior para orientar a regeneração. */
+  complianceFeedback?: string[];
 }
 
 export interface GenerateAssetResult {
@@ -185,7 +187,7 @@ export async function generateAssetContent(input: GenerateAssetInput): Promise<G
     serpInsights: input.serpInsights ?? null,
   };
 
-  const previousErrors: string[] = [];
+  const previousErrors: string[] = [...(input.complianceFeedback ?? [])];
   let lastError: Error | null = null;
   const usageEntries: TokenUsageEntry[] = [];
 
@@ -264,6 +266,9 @@ export async function generateAssetContent(input: GenerateAssetInput): Promise<G
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       previousErrors.length = 0;
+      if (input.complianceFeedback && input.complianceFeedback.length > 0) {
+        previousErrors.push(...input.complianceFeedback);
+      }
       previousErrors.push(
         ...lastError.message
           .replace(/^Payload inválido para \w+: /, "")

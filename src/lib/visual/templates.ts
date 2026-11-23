@@ -283,10 +283,12 @@ interface FooterOptions {
   width: number;
   color: string;
   page?: string;
+  hasAiImagery?: boolean;
 }
 
 function footerElement(options: FooterOptions): ReactElement {
-  const brand = truncateChars(options.brandName.toUpperCase(), 42) || "MARCA";
+  const brand = truncateChars(options.brandName.toUpperCase(), 38) || "MARCA";
+  const label = options.hasAiImagery ? `${brand} · ILUSTRAÇÃO IA` : brand;
 
   return box(
     {
@@ -320,7 +322,7 @@ function footerElement(options: FooterOptions): ReactElement {
           letterSpacing: 2,
           color: options.color,
         },
-        brand,
+        label,
       ),
       options.page
         ? box(
@@ -419,6 +421,7 @@ function imageSlide(
         width,
         color: options.footerColor ?? chrome.tokens.mutedOnBackground,
         page: showPage && chrome.total > 0 ? `${chrome.index}/${chrome.total}` : undefined,
+        hasAiImagery: true,
       }),
     ),
   );

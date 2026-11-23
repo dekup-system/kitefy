@@ -26,9 +26,9 @@ const brandInputSchema = z.object({
   input: z
     .string()
     .trim()
-    .min(4, "Cole a URL do seu site ou descreva o produto em uma frase.")
+    .min(4, "Cole a URL do seu site ou descreva o seu negócio em uma frase.")
     .max(600),
-  templateId: z.enum(["saude", "ecommerce", "b2b"]).optional(),
+  templateId: z.enum(["saude", "beleza", "ecommerce", "gastronomia", "servicos", "b2b"]).optional(),
 });
 
 export async function createBrandFromOnboardingAction(
@@ -83,9 +83,8 @@ export async function createBrandFromOnboardingAction(
   const site = draft.site_analysis;
   const siteSummary =
     site && site.pages_read > 0
-      ? `Li ${site.pages_read} página(s) do site` +
-        (site.topics.length > 0 ? ` e identifiquei ${site.topics.length} tópico(s)` : "") +
-        (site.json_ld_types.length > 0 ? ` (dados estruturados: ${site.json_ld_types.slice(0, 3).join(", ")})` : "") +
+      ? `Analisei ${site.pages_read} página(s) do seu site` +
+        (site.topics.length > 0 ? ` e encontrei ${site.topics.length} tema(s) do seu negócio` : "") +
         ". "
       : "";
 
@@ -93,10 +92,12 @@ export async function createBrandFromOnboardingAction(
     brandId: inserted.data.id,
     notice:
       draft.needs_review.length > 0
-        ? `${siteSummary}Marca criada. A revisar: ${draft.needs_review.join(" ")}`
-        : `${siteSummary}Marca criada com sucesso.`,
+        ? `${siteSummary}Marca configurada! Dica: ${draft.needs_review[0]}`
+        : `${siteSummary}Marca configurada com sucesso.`,
   };
 }
+
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 const brandUpdateSchema = z.object({
   brandId: z.string().uuid(),
@@ -104,6 +105,10 @@ const brandUpdateSchema = z.object({
   websiteUrl: z.string().trim().url().optional().or(z.literal("")),
   icpDescription: z.string().trim().max(1200).optional(),
   tone: z.string().trim().max(2000).optional(),
+  primaryColor: z.string().trim().regex(HEX_COLOR).optional().or(z.literal("")),
+  backgroundColor: z.string().trim().regex(HEX_COLOR).optional().or(z.literal("")),
+  accentColor: z.string().trim().regex(HEX_COLOR).optional().or(z.literal("")),
+  factsText: z.string().trim().max(3000).optional(),
 });
 
 export async function updateBrandAction(
@@ -119,6 +124,10 @@ export async function updateBrandAction(
     websiteUrl: formData.get("websiteUrl") ?? "",
     icpDescription: formData.get("icpDescription") ?? undefined,
     tone: formData.get("tone") ?? undefined,
+    primaryColor: formData.get("primaryColor") ?? "",
+    backgroundColor: formData.get("backgroundColor") ?? "",
+    accentColor: formData.get("accentColor") ?? "",
+    factsText: formData.get("factsText") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -133,10 +142,38 @@ export async function updateBrandAction(
 
   const existing = await supabase
     .from("brand_profiles")
-    .select("tone_of_voice")
+    .select("tone_of_voice, visual_tokens, entity_facts")
     .eq("id", parsed.data.brandId)
     .eq("tenant_id", session.tenantId)
-    .maybeSingle<{ tone_of_voice: Record<string, unknown> }>();
+    .maybeSingle<{
+      tone_of_voice: Record<string, unknown>;
+      visual_tokens: Record<string, unknown>;
+      entity_facts: { claim: string; source_url?: string }[];
+    }>();
+
+  const nextVisualTokens: Record<string, unknown> = {
+    ...(existing.data?.visual_tokens ?? {}),
+    ...(parsed.data.primaryColor ? { primary: parsed.data.primaryColor } : {}),
+    ...(parsed.data.backgroundColor ? { background: parsed.data.backgroundColor } : {}),
+    ...(parsed.data.accentColor ? { accent: parsed.data.accentColor } : {}),
+  };
+
+  let nextEntityFacts = existing.data?.entity_facts ?? [];
+  if (parsed.data.factsText !== undefined) {
+    nextEntityFacts = parsed.data.factsText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length >= 4)
+      .slice(0, 8)
+      .map((line) => {
+        const [claimPart, urlPart] = line.split("|").map((s) => s.trim());
+        const validUrl = urlPart && /^https?:\/\//i.test(urlPart) ? urlPart : undefined;
+        return {
+          claim: (claimPart || line).slice(0, 220),
+          ...(validUrl ? { source_url: validUrl } : {}),
+        };
+      });
+  }
 
   const update = await supabase
     .from("brand_profiles")
@@ -148,6 +185,8 @@ export async function updateBrandAction(
         ...(existing.data?.tone_of_voice ?? {}),
         ...(descriptors.length > 0 ? { descriptors } : {}),
       },
+      visual_tokens: nextVisualTokens,
+      entity_facts: nextEntityFacts,
     })
     .eq("id", parsed.data.brandId)
     .eq("tenant_id", session.tenantId);
@@ -157,8 +196,9 @@ export async function updateBrandAction(
   }
 
   revalidatePath("/settings/brand");
+  revalidatePath("/studio/new");
   revalidatePath("/app");
-  return { notice: "Marca atualizada." };
+  return { notice: "Marca, cores e diferenciais atualizados com sucesso." };
 }
 
 export async function startFirstAssetAction(formData: FormData): Promise<void> {
