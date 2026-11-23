@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Textarea } from "@/components/ui/textarea";
 import type { CompetitorAnalysis } from "@/lib/competitors/analyze";
+import type { SerpCompetitorAnalysis } from "@/lib/competitors/serp-analysis";
 
 /**
  * Comparação de concorrentes: o usuário informa até 3 sites e recebe o que eles
@@ -18,6 +20,41 @@ export function CompetitorForm({ brandName }: { brandName: string }) {
   const [result, setResult] = useState<CompetitorAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [themesText, setThemesText] = useState("");
+  const [serpResult, setSerpResult] = useState<SerpCompetitorAnalysis | null>(null);
+  const [serpLoading, setSerpLoading] = useState(false);
+
+  async function submitThemes() {
+    setError(null);
+    setSerpResult(null);
+    setSerpLoading(true);
+    try {
+      const themes = themesText
+        .split(/\r?\n|,/)
+        .map((theme) => theme.trim())
+        .filter((theme) => theme.length >= 4)
+        .slice(0, 4);
+
+      const response = await fetch("/api/competitors/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ themes }),
+      });
+      const payload = (await response.json()) as {
+        serpAnalysis?: SerpCompetitorAnalysis;
+        error?: string;
+      };
+      if (!response.ok || !payload.serpAnalysis) {
+        setError(payload.error ?? "Não foi possível consultar a busca agora.");
+        return;
+      }
+      setSerpResult(payload.serpAnalysis);
+    } catch {
+      setError("Falha de rede ao consultar a busca.");
+    } finally {
+      setSerpLoading(false);
+    }
+  }
 
   const filled = urls.filter((url) => url.trim().length > 3);
 
@@ -49,6 +86,100 @@ export function CompetitorForm({ brandName }: { brandName: string }) {
 
   return (
     <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Por tema (busca do Google no Brasil)</CardTitle>
+          <CardDescription>
+            Escreva de 1 a 4 temas do seu negócio. Mostramos quem aparece na busca, as perguntas
+            reais do público e os assuntos que os resultados deixam de fora.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Field htmlFor="themes" label="Temas" hint="Um por linha. Ex.: check-up preventivo, exames de rotina">
+            <Textarea
+              id="themes"
+              value={themesText}
+              onChange={(event) => setThemesText(event.target.value)}
+              rows={3}
+              maxLength={600}
+              placeholder={"check-up preventivo\nexames de rotina"}
+            />
+          </Field>
+          <Button
+            onClick={submitThemes}
+            disabled={serpLoading || themesText.trim().length < 4}
+            variant="outline"
+          >
+            {serpLoading ? "Consultando o Google…" : "Analisar por tema"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {serpResult ? (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Quem aparece na busca</CardTitle>
+              <CardDescription>Sites que cobrem mais de um dos seus temas.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {serpResult.domains.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum domínio recorrente.</p>
+              ) : (
+                serpResult.domains.map((domain) => (
+                  <p key={domain.domain} className="text-sm">
+                    <span className="font-medium">{domain.domain}</span>{" "}
+                    <span className="text-muted-foreground">
+                      · {domain.themes} tema(s)
+                    </span>
+                  </p>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Perguntas reais do público</CardTitle>
+              <CardDescription>Ótimas para virar FAQ e conteúdo de resposta rápida.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {serpResult.questions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  O Google não mostrou perguntas para estes temas hoje.
+                </p>
+              ) : (
+                serpResult.questions.map((question) => (
+                  <p key={question} className="text-sm">
+                    · {question}
+                  </p>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Assuntos pouco cobertos</CardTitle>
+              <CardDescription>
+                Aparecem na busca, mas os resultados tratam de forma superficial.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {serpResult.gaps.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma lacuna evidente.</p>
+              ) : (
+                serpResult.gaps.map((gap) => (
+                  <p key={gap} className="text-sm">
+                    · {gap}
+                  </p>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Sites concorrentes</CardTitle>
