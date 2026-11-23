@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import {
   ArrowRight,
@@ -611,9 +612,24 @@ export default function KitefyLandingPage() {
             </nav>
           </div>
 
-          <div className="mt-10 flex flex-col gap-2 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
-            <p>© {new Date().getFullYear()} Kitefy. Conteúdo sujeito a revisão humana antes da publicação.</p>
-            <p>Sem OAuth social · Sem avatar ou clonagem de voz · LGPD por desenho</p>
+          <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
+            <p>© {new Date().getFullYear()} Kitefy.</p>
+            <p className="flex items-center gap-2">
+              <span>
+                desenvolvido por{" "}
+                <span className="font-medium text-white/80">M3D Multidev</span>
+              </span>
+              {/* O logo tem fundo escuro: no rodapé navy ele fica em um chip claro. */}
+              <span className="inline-flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-[6px] bg-white p-0.5">
+                <Image
+                  src="/m3d-multidev.png"
+                  alt="M3D Multidev"
+                  width={24}
+                  height={24}
+                  className="size-6 rounded-[4px] object-contain"
+                />
+              </span>
+            </p>
           </div>
         </div>
       </footer>
