@@ -198,7 +198,7 @@ export default function KitefyLandingPage() {
                 id="hero-title"
                 className="mt-5 text-balance text-[2.5rem] font-semibold leading-[1.06] tracking-[-0.03em] text-brand-navy sm:text-[3.25rem] lg:text-[3.75rem]"
               >
-                Conteúdo orgânico com padrão de marca, entregue em dias.
+                Pare de publicar no impulso. Publique com padrão.
               </h1>
 
               <p className="mt-5 max-w-xl text-pretty text-[1.0625rem] leading-relaxed text-brand-navy-soft">
