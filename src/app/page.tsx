@@ -614,22 +614,30 @@ export default function KitefyLandingPage() {
 
           <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
             <p>todos os direitos reservados © {new Date().getFullYear()} Kitefy.</p>
-            <p className="flex items-center gap-2">
+            <a
+              href="https://www.m3dmultidev.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-2 transition-colors hover:text-white/80"
+              aria-label="Site da M3D Multidev (abre em nova aba)"
+            >
               <span>
                 desenvolvido por{" "}
-                <span className="font-medium text-white/80">M3D Multidev</span>
+                <span className="font-medium text-white/80 underline-offset-4 group-hover:text-brand-signal group-hover:underline">
+                  M3D Multidev
+                </span>
               </span>
               {/* O logo tem fundo escuro: no rodapé navy ele fica em um chip claro. */}
-              <span className="inline-flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-[6px] bg-white p-0.5">
+              <span className="inline-flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-[6px] bg-white p-0.5 transition-transform group-hover:scale-105">
                 <Image
                   src="/m3d-multidev.png"
-                  alt="M3D Multidev"
+                  alt="Logo M3D Multidev"
                   width={24}
                   height={24}
                   className="size-6 rounded-[4px] object-contain"
                 />
               </span>
-            </p>
+            </a>
           </div>
         </div>
       </footer>
