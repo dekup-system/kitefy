@@ -22,14 +22,19 @@ export interface ReminderResult {
   failed: number;
 }
 
+const LOGO_URL = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.kitefy.com.br"}/brand/kitefy-logo.png`;
+
 function reminderHtml(brandName: string, tenantName: string): string {
   return `<!doctype html>
-<html lang="pt-BR"><body style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#181331;line-height:1.6">
+<html lang="pt-BR"><body style="margin:0;background:#F8F8FA;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#181331;line-height:1.6">
+  <div style="max-width:520px;margin:0 auto;padding:32px 24px;background:#FFFFFF">
+  <img src="${LOGO_URL}" alt="Kitefy" width="160" style="display:block;margin-bottom:28px" />
   <p>Olá,</p>
   <p>A marca <strong>${tenantName}</strong> não publica um conteúdo novo há uma semana.</p>
   <p>Seu próximo post está a três cliques: escolha o objetivo, aprove o texto e baixe as imagens prontas.</p>
   <p><a href="${SITE_URL}/studio/new" style="display:inline-block;background:#FD3E01;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Criar conteúdo agora</a></p>
   <p style="color:#54506A;font-size:13px">${brandName ? `Conteúdo com o padrão de ${brandName}. ` : ""}Você recebe este e-mail por ter uma conta na Kitefy. Para não receber mais lembretes, responda com "descadastrar".</p>
+  </div>
 </body></html>`;
 }
 
