@@ -102,7 +102,15 @@ function isTopicCandidate(input: string): boolean {
   if (/^[\s$€R\d]/.test(clean)) return false;
   if (JUNK_TOPIC.test(clean)) return false;
   // Frase de marketing (pergunta, CTA, ponto final) não é assunto.
-  if (/[?!]$/.test(input.trim())) return false;
+  if (/[?!]/.test(input)) return false;
+  // CTA imperativo não é assunto ("Create your account", "Comece agora").
+  if (
+    /^(create|join|get|start|try|book|buy|sign|learn|discover|explore|download|watch|read|see|check|request|schedule|contact|subscribe|follow|crie|comece|começar|assine|baixe|conheça|agende|solicite|fale|inscreva|garanta|aproveite)\b/i.test(
+      clean,
+    )
+  ) {
+    return false;
+  }
   const words = clean.split(/\s+/).length;
   return words >= 2 && words <= 9;
 }
@@ -194,12 +202,12 @@ export async function analyzeCompetitors(
   }
 
   const [brandCrawl, ...competitorCrawls] = await Promise.all([
-    crawlBrandSite(input.brandUrl, { budgetMs, maxPages: 2 }).catch((error: unknown) => {
+    crawlBrandSite(input.brandUrl, { budgetMs, maxPages: 3 }).catch((error: unknown) => {
       warnings.push(`Site da marca: ${error instanceof Error ? error.message : "falha na leitura"}`);
       return null;
     }),
     ...urls.map((url) =>
-      crawlBrandSite(url, { budgetMs, maxPages: 2 }).catch((error: unknown) => {
+      crawlBrandSite(url, { budgetMs, maxPages: 3 }).catch((error: unknown) => {
         warnings.push(`${url}: ${error instanceof Error ? error.message : "falha na leitura"}`);
         return null;
       }),

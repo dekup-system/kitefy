@@ -22,7 +22,7 @@ const TOTAL_BUDGET_MS = 20_000;
 const USER_AGENT = "KitefyBot/1.0 (+https://kitefy.vercel.app/bot)";
 
 /** Palavras que indicam páginas úteis para entender a oferta. */
-const PRIORITY_HINTS = [
+const STRONG_HINTS = [
   "sobre",
   "quem-somos",
   "quem somos",
@@ -37,6 +37,9 @@ const PRIORITY_HINTS = [
   "preços",
   "como-funciona",
 ];
+
+/** Páginas de conteúdo: boas para descobrir assuntos, menos que a oferta. */
+const CONTENT_HINTS = ["blog", "artigos", "conteudo", "conteúdo", "faq", "duvidas", "dúvidas", "perguntas", "guias"];
 
 export interface CrawlPage {
   url: string;
@@ -427,7 +430,9 @@ export function pickInternalLinks(
           return null;
         }
         if (/^\/(privacidade|privacy|termos|terms|legal|cookies|lgpd)(\/|$)/.test(path)) return null;
-        const score = PRIORITY_HINTS.reduce((acc, hint) => (path.includes(hint) ? acc + 1 : acc), 0);
+        const strong = STRONG_HINTS.filter((hint) => path.includes(hint)).length;
+        const content = CONTENT_HINTS.filter((hint) => path.includes(hint)).length;
+        const score = strong * 2 + content;
         return { url: url.toString(), score, path };
       } catch {
         return null;
