@@ -19,7 +19,7 @@ const MAX_BYTES = 1_500_000;
 const PAGE_TIMEOUT_MS = 8_000;
 const TOTAL_BUDGET_MS = 20_000;
 
-const USER_AGENT = "KitefyBot/1.0 (+https://kitefy.vercel.app/bot)";
+const USER_AGENT = "KitefyBot/1.0 (+https://kitefy.com.br/bot)";
 
 /** Palavras que indicam páginas úteis para entender a oferta. */
 const STRONG_HINTS = [
