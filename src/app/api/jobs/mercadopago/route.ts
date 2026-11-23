@@ -11,6 +11,12 @@ import {
 } from "@/lib/billing/subscription-sync";
 import { constantTimeEquals } from "@/lib/billing/webhook-signature";
 import {
+  chargePeriod,
+  fetchAuthorizedPayment,
+  isSettledRecurringCharge,
+} from "@/lib/billing/authorized-payment";
+import { grantPlanCredits, pgCreditStore } from "@/lib/billing/credit-grants";
+import {
   ackWebhookJob,
   nackWebhookJob,
   readWebhookJobs,
@@ -84,11 +90,14 @@ async function isEventProcessed(eventId: string): Promise<boolean> {
   return Boolean(rows[0]?.processed_at);
 }
 
-function classifyTopic(topic: string | null): "payment" | "preapproval" | "other" {
+function classifyTopic(
+  topic: string | null,
+): "payment" | "preapproval" | "authorized_payment" | "other" {
   const normalized = (topic ?? "").trim().toLowerCase();
 
   if (normalized === "payment" || normalized.startsWith("payment.")) return "payment";
   if (normalized.startsWith("subscription_preapproval")) return "preapproval";
+  if (normalized.startsWith("subscription_authorized_payment")) return "authorized_payment";
 
   // `subscription_authorized_payment` (cobrança recorrente) e merchant_order não
   // são creditados aqui: o SDK não expõe o recurso authorized_payment para
@@ -177,6 +186,79 @@ async function handlePreapprovalJob(dataId: string, eventId: string): Promise<Jo
   return { eventId, outcome: "subscription_synced" };
 }
 
+async function handleAuthorizedPaymentJob(dataId: string, eventId: string): Promise<JobResult> {
+  const env = getServerEnv();
+  if (!env.MP_ACCESS_TOKEN) {
+    return { eventId, outcome: "skipped", reason: "mp_not_configured" };
+  }
+
+  const charge = await fetchAuthorizedPayment(dataId, env.MP_ACCESS_TOKEN);
+
+  if (!isSettledRecurringCharge(charge)) {
+    await markEventProcessed(eventId);
+    log.info("Cobranca recorrente ainda nao aprovada: sem credito", {
+      eventId,
+      chargeId: charge.id,
+      status: charge.status,
+      paymentStatus: charge.paymentStatus,
+    });
+    return { eventId, outcome: "skipped", reason: "charge_not_settled" };
+  }
+
+  if (!charge.preapprovalId) {
+    await markEventProcessed(eventId);
+    return { eventId, outcome: "skipped", reason: "reference_missing" };
+  }
+
+  const subscription = await query<{ tenant_id: string; plan_tier: string }>(
+    "select tenant_id, plan_tier from public.mp_subscriptions where mp_preapproval_id = $1 limit 1",
+    [charge.preapprovalId],
+  );
+
+  const tenantId = subscription[0]?.tenant_id;
+  const planTier = subscription[0]?.plan_tier;
+  if (!tenantId || !planTier) {
+    await markEventProcessed(eventId);
+    log.warn("Cobranca de assinatura sem tenant conhecido: evento arquivado", {
+      eventId,
+      preapprovalId: charge.preapprovalId,
+    });
+    return { eventId, outcome: "skipped", reason: "subscription_unknown" };
+  }
+
+  // Uma concessao por cobranca: reentrega do mesmo evento nao duplica credito.
+  const referenceId = `subscription_payment:${charge.id}`;
+  const existing = await pgCreditStore.query<{ id: string }>(
+    "select id from public.credit_ledger where tenant_id = $1 and reference_id = $2 limit 1",
+    [tenantId, referenceId],
+  );
+
+  if (existing.length === 0) {
+    await grantPlanCredits(
+      tenantId,
+      planTier as Parameters<typeof grantPlanCredits>[1],
+      "subscription_renewal",
+      referenceId,
+      pgCreditStore,
+    );
+  }
+
+  await markEventProcessed(eventId);
+  log.info("Renovacao creditada", {
+    eventId,
+    chargeId: charge.id,
+    tenantId,
+    period: chargePeriod(charge),
+    duplicate: existing.length > 0,
+  });
+
+  return {
+    eventId,
+    outcome: existing.length > 0 ? "skipped" : "credited",
+    ...(existing.length > 0 ? { reason: "already_credited" } : {}),
+  };
+}
+
 async function processJob(job: QueuedJob<MpWebhookJobPayload>): Promise<JobResult> {
   const parsed = jobPayloadSchema.safeParse(job.payload);
 
@@ -208,7 +290,9 @@ async function processJob(job: QueuedJob<MpWebhookJobPayload>): Promise<JobResul
     const result =
       kind === "payment"
         ? await handlePaymentJob(payload.dataId, payload.eventId)
-        : await handlePreapprovalJob(payload.dataId, payload.eventId);
+        : kind === "authorized_payment"
+          ? await handleAuthorizedPaymentJob(payload.dataId, payload.eventId)
+          : await handlePreapprovalJob(payload.dataId, payload.eventId);
 
     await ackWebhookJob(job);
     return result;
