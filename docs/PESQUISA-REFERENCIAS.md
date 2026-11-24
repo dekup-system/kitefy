@@ -1,0 +1,16 @@
+# Pesquisa de Referências e Princípios Aplicados — Kitefy
+
+**Data:** 24/11/2026
+
+| # | Fonte | Princípio extraído | Como foi aplicado (ou descartado) na Kitefy |
+|---|---|---|---|
+| 1 | **Nielsen Norman Group — 10 Heurísticas de Usabilidade** (`nngroup.com`) | *Match between system and real world* (#2) e *Visibility of system status* (#1): nunca expor vocabulário interno de engenharia; sempre mostrar progresso e estado real | Removidos `tenant`, `X-Idempotency-Key`, `HMAC-SHA256` e `alpha/beta/pulls` da UI; adicionado medidor de créditos e pipeline de status no Dashboard |
+| 2 | **Refactoring UI** (`refactoringui.com`) | Profundidade por contraste de superfícies (canvas levemente pigmentado + cards brancos + bordas sutis) e hierarquia por peso/tamanho, não tudo no mesmo plano branco | Canvas ajustado para `#F2F2F7`, inset `#EAEAF2`, cards `#FFFFFF` com borda `#DDDCE8` e sidebar Navy `#181331` trazendo contraste estrutural |
+| 3 | **Stripe Dashboard** (padrão de produto) | Clareza financeira, números tabulares (`tabular-nums`), separação limpa entre navegação principal, área de ação e configurações de cobrança | Aplicado no medidor de créditos, cards de plano/billing e na separação clara entre Produção, Inteligência e Conta |
+| 4 | **Linear** (padrão de produto) | Navegação agrupada por intenção, atalho `Ctrl K` consistente, alta densidade sem ruído visual e ações contextuais rápidas | Sidebar agrupada por intenção + `CommandMenu` sincronizado com o glossário canônico |
+| 5 | **Baymard Institute** (`baymard.com`) | Transparência de cobrança e remoção de contradições no momento da decisão reduzem abandono no checkout | Removida promessa contraditória de Pix Automático em `/pricing` e `/termos`; reforçada garantia de débito só após aprovação |
+| 6 | **WCAG 2.2 Quick Reference** (`w3.org/WAI/WCAG22`) | Contraste ≥ 4,5:1 em texto normal, ≥ 3:1 em bordas de controle, foco visível e alvos de toque ≥ 44px no mobile | Preservados os contrastes medidos do manual `KITEFY-BRAND.md`, texto claro AAA sobre sidebar Navy `#181331` e `MobileBottomNav` com alvos ≥ 44px |
+| 7 | **Material Design 3** (`m3.material.io`) | Hierarquia de superfícies (surface / container / elevated) e estados completos (`hover`, `focus`, `active`, `disabled`, `loading`, `error`) | Criados tokens `--surface-inset` e `--shadow-elevated` em `globals.css` e estados consistentes nos cards interativos |
+| 8 | **ProductLed** (`productled.com`) | *Time-to-First-Value (TTFV)*: o dashboard deve apontar a próxima melhor ação para levar o usuário ao primeiro resultado rápido | Criada a faixa **Próxima Melhor Ação** no topo do `/app` e o **Score de Completude da Marca** |
+| 9 | **Google Search Central — Helpful Content & Structured Data** (`developers.google.com/search`) | Dados estruturados coerentes com o preço e conteúdo visível na página (sem divergências de `Offer`) | Corrigido `AggregateOffer` no JSON-LD de `src/app/layout.tsx` para refletir exatamente os valores reais de `PLANS` (`R$ 49,90` a `R$ 269,90`) |
+| 10 | **Profound / Otterly — Visibilidade em IA (GEO)** (`profound.com`, `otterly.ai`) | Conteúdo citável depende de estrutura clara, fatos verificáveis com fonte e schema validado | Exposto no **Content Score (0–100)** em `/studio/[threadId]` e no checklist de fatos com fonte na Completude da Marca |
