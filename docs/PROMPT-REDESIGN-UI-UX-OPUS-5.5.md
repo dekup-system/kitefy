@@ -84,20 +84,64 @@ Também capture o estado atual (desktop 1440, mobile 390/430, tema claro/escuro)
 
 ---
 
-## 3. Regras que não podem ser quebradas
+## 3. Regras padrão — podem ser questionadas, não ignoradas
 
-- **Marca:** preserve a identidade. Navy `#181331`, laranja sinal `#FD3E01`, canvas `#F8F8FA`, superfície branca, proporção 60/30/10. O laranja é sinal de ação, não cor de parágrafo ou fundo de seção longa. Não troque a paleta, não “modernize” o logo, não invente outra marca.
+Estas regras são o **default** do produto, não uma camisa de força. Você **pode e deve** apontar quando uma delas está custando valor ao usuário ou à percepção do produto. O que você **não pode** é quebrá-las silenciosamente, contorná-las na UI ou implementar uma mudança sem aprovação explícita do dono.
+
+A hierarquia é:
+
+1. **Regras duras** (segurança, legal, billing): só mudam com decisão explícita do dono + avaliação de risco. Nunca as viole para “melhorar o design”.
+2. **Decisões de produto, marca e comerciais**: podem ser questionadas com evidência e propostas; se aprovadas, viram uma nova regra documentada.
+3. **Decisões técnicas**: podem ser desafiadas com trade-offs de bundle, performance, manutenção e prazo.
+
+### 3.1 Regras atuais
+
+- **Marca:** preserve a identidade. Navy `#181331`, laranja sinal `#FD3E01`, canvas `#F8F8FA`, superfície branca, proporção 60/30/10. O laranja é sinal de ação, não cor de parágrafo ou fundo de seção longa. Não troque a paleta, não “modernize” o logo, não invente outra marca — **a menos que** proponha uma evolução de identidade justificada e aprovada (ver 3.2).
 - **“Muito branco” não significa “virar dark mode”.** O problema é falta de ritmo, hierarquia, profundidade, textura, imagens, dados e contraste entre superfícies. Resolva com composição e sistema, mantendo a identidade clara.
 - **Acessibilidade:** WCAG 2.2 AA no mínimo. Texto normal ≥ 4,5:1; texto grande pode usar o laranja conforme o manual. Foco visível, labels associados, alvos de toque ≥ 44px no mobile, `prefers-reduced-motion`, navegação por teclado.
-- **Produto só para o Brasil**, pt-BR fixo. Não introduza inglês na interface.
-- **Sem OAuth social, sem publicação em redes, sem avatar digital, sem TTS, sem clonagem de voz.** Não proponha nada que viole isso.
+- **Produto só para o Brasil**, pt-BR fixo. Não introduza inglês na interface. Expansão de mercado é decisão de negócio: pode ser proposta, não implementada.
+- **Sem OAuth social, sem publicação em redes, sem avatar digital, sem TTS, sem clonagem de voz.** Não implemente nada que viole isso. Se acreditar que a restrição limita a proposta de valor, apresente a proposta com evidência e impacto — sem alterar o produto antes da aprovação.
 - **Créditos:** débito só depois de aprovação humana; estorno em falha. Não altere essa semântica.
 - **RLS e multi-tenant:** `tenant_id` nunca vem do cliente; não enfraqueça policies, testes de isolamento ou o papel do admin (`app_metadata.is_admin`).
 - **Billing:** não altere valores, planos, cupons, checkout ou semântica de assinatura para “melhorar a UI”. Ajustes de billing exigem plano separado.
 - **SEO recém-entregue:** preserve `src/app/sitemap.ts`, `src/app/robots.ts`, JSON-LD, canonical/OG e as rotas públicas liberadas em `src/proxy.ts`.
 - **Segredos:** nunca leia, imprima, copie ou commite `.env.local`; nunca faça deploy/push em produção sem autorização explícita. Use preview/local.
-- **Dependências:** evite novas libs pesadas. Se precisar de gráficos/animação, justifique bundle, licença e alternativa com SVG/CSS. Prefira o que já existe.
+- **Dependências:** evite novas libs pesadas. Se precisar de gráficos/animação, justifique bundle, licença e alternativa com SVG/CSS. Prefira o que já existe — mas você pode propor uma lib se o ganho justificar o custo.
 - **Sem dados falsos:** não invente métricas, depoimentos, logos de clientes, números de mercado ou citações. Se um recurso depende de dados que não existem, marque como roadmap e diga qual dado é necessário.
+
+### 3.2 Como propor mudança de uma restrição
+
+Se uma restrição estiver bloqueando valor, não a ignore: produza uma **proposta de revisão** curta, com:
+
+| Campo | O que responder |
+| --- | --- |
+| Regra atual | Qual regra está sendo questionada |
+| Por que ela existe | Motivo original (marca, legal, segurança, foco, custo) |
+| Evidência | Dados, pesquisa, suporte, benchmark, teste com usuário — não “eu acho” |
+| Proposta | O que mudaria, concretamente |
+| Alternativa dentro da regra | O que dá para fazer sem mudá-la (sempre apresente) |
+| Impacto | Produto, receita, marca, legal/LGPD, segurança, engenharia, suporte |
+| Risco e reversibilidade | O que pode dar errado; dá para voltar atrás? |
+| Recomendação | Fazer agora, testar em piloto ou não fazer |
+| Decisão necessária | Quem aprova e o que muda no HANDOFF/contrato |
+
+Limite a **3–5 propostas** por rodada, ordenadas por impacto. Não transforme a revisão em uma lista de desejos.
+
+### 3.3 Regra de ouro: sugerir não é implementar
+
+- **Pode sugerir:** mudar a paleta para uma v2, reconsiderar “sem publicação social”, avaliar TTS/avatar, expandir para LATAM, trocar o modelo de planos, adicionar uma integração paga, usar uma lib nova, rever a semântica de créditos.
+- **Não pode fazer sozinho:** qualquer coisa que viole segurança/RLS/LGPD, quebre billing, remova uma feature, mude contrato/preço, publique em produção ou altere a marca sem aprovação.
+- Se a proposta for **aprovada**: registre a decisão em `docs/HANDOFF.md` (ou doc equivalente), atualize o prompt/regras e implemente em **commit separado**. Se for **rejeitada**: documente o motivo e siga a regra atual sem ressentimento.
+- Antes de propor mudar uma regra, **esgote as alternativas dentro dela**. “A restrição impede um design bom” só é argumento depois de mostrar o que foi tentado.
+
+### 3.4 Exemplos de propostas legítimas (para calibrar)
+
+- **“Sem publicação em redes”**: propor um piloto de exportação/publicação via CMS (WordPress/Webflow) ou agendamento nativo, com escopo, custo e implicações de OAuth; não implementar sem aprovação.
+- **“Sem avatar/TTS/voz”**: propor narração opcional com aviso de conteúdo sintético e consentimento, se pesquisa mostrar demanda; manter o default desligado.
+- **“Só Brasil/pt-BR”**: propor um teste de internacionalização (EN/ES) com dados de demanda e custo de suporte; não traduzir a UI inteira por conta própria.
+- **“Paleta 60/30/10”**: propor uma evolução de identidade (ex.: novas tintas de apoio) com contraste medido e aprovação; não substituir o navy/laranja.
+- **“Sem libs pesadas”**: propor uma lib de gráficos/animação com bundle, licença, alternativa SVG e orçamento de performance; medir antes/depois.
+- **“Planos Essencial/Pro/Agência” vs. Start/Lift/Flow**: é uma decisão comercial; proponha o canon e o mapeamento, mas não renomeie contrato/preço sem aprovação.
 
 ### Anti-padrões visuais (proibidos)
 
@@ -159,6 +203,30 @@ Entregue antes/depois de pelo menos 12 trechos.
 ### 4.5 Perguntas de negócio (máximo 3)
 
 Só pergunte o que realmente bloqueia: por exemplo, canonização dos nomes dos planos, apetite para novos recursos com backend, ou permissão de deploy. Se não houver bloqueio, decida e registre a decisão.
+
+### 4.6 Revisão das restrições (máximo 3–5 propostas)
+
+As regras da seção 3 são o default, mas podem estar custando valor. Nesta etapa, avalie **com evidência** se alguma delas merece revisão. Não é uma lista de desejos: é um instrumento de decisão.
+
+Para cada proposta, use a tabela da seção 3.2 e classifique a restrição:
+
+| Categoria | Exemplos | Como tratar |
+| --- | --- | --- |
+| **Dura (segurança/legal/billing)** | RLS, isolamento de tenant, segredos, LGPD, ledger de créditos, sem dados falsos | Só propor com avaliação de risco e aprovação explícita; nunca contornar na UI |
+| **Produto/estratégia** | sem OAuth social/publicação, sem TTS/avatar/voz, só Brasil/pt-BR, sem integração CMS | Propor piloto com escopo, custo, impacto e alternativa atual |
+| **Marca/visual** | paleta 60/30/10, logo, tom editorial, dark mode | Propor evolução com contraste medido e aprovação; não substituir silenciosamente |
+| **Comercial** | nomes dos planos, preço, cupom, contrato, trial | Propor canon/mapeamento; não alterar contrato/preço sem o dono |
+| **Técnica** | libs, backend, dependências, arquitetura | Propor com bundle, manutenção, prazo e alternativa |
+
+Regras:
+
+- **Sempre apresente a alternativa dentro da regra atual** antes de pedir a mudança.
+- Ordene por impacto × evidência × reversibilidade.
+- Se não houver evidência forte, diga explicitamente: “as restrições atuais estão adequadas; não recomendo mudar”.
+- Se o dono aprovar, registre a decisão em `docs/HANDOFF.md`, atualize este briefing/regras e implemente em commit separado.
+- Se o dono rejeitar, registre o motivo e siga a regra atual sem “driblar” na interface.
+
+Exemplos de perguntas que valem a pena: “o produto perde distribuição por não publicar?”, “o preço/planos comunicam valor?”, “a identidade clara é percebida como premium ou como inacabada?”, “faz sentido oferecer narração/avatar com transparência?”, “vale integrar CMS antes de redes sociais?”. Exemplos que **não** valem: “posso ignorar RLS para simplificar a tela?” ou “posso inventar métricas para parecer maior?”.
 
 ---
 
@@ -381,7 +449,7 @@ Entregue `docs/PESQUISA-REFERENCIAS.md` com 8–12 fontes, o princípio extraíd
 
 ## 11. Entregáveis
 
-1. `docs/REDESIGN-AUDIT.md` — diagnóstico, top 10, evidências, screenshots.
+1. `docs/REDESIGN-AUDIT.md` — diagnóstico, top 10, evidências, screenshots e a revisão das restrições (seção 4.6).
 2. `docs/REDESIGN-DIRECTION.md` — direção escolhida, tokens, componentes, IA/navegação.
 3. `docs/FEATURES-ROADMAP.md` — 12+ ideias, 3–5 escolhidas, esforço/impacto/risco/dados.
 4. `docs/COPY-GUIDE.md` — glossário, regras, antes/depois, decisão de nomes.
@@ -395,7 +463,8 @@ Entregue `docs/PESQUISA-REFERENCIAS.md` com 8–12 fontes, o princípio extraíd
 ## 12. Autonomia, pausas e escopo
 
 - **Não peça aprovação para cada tela.** Decida, implemente, documente.
-- **Pare e pergunte** apenas se: (a) for necessário escolher o nome comercial canônico dos planos e isso mudar contrato/preço; (b) a mudança exigir deploy de produção; (c) for remover uma feature; (d) exigir integração paga/nova; (e) houver conflito com uma regra da seção 3.
+- **Pare e pergunte** apenas se: (a) for necessário escolher o nome comercial canônico dos planos e isso mudar contrato/preço; (b) a mudança exigir deploy de produção; (c) for remover uma feature; (d) exigir integração paga/nova; (e) for **mudar uma restrição da seção 3** — nesse caso, apresente a proposta da seção 3.2 e aguarde decisão; (f) houver conflito com regra dura de segurança/legal/billing.
+- **Mudança de restrição não é bloqueio para começar.** Se a proposta ainda não foi decidida, implemente o máximo possível **dentro da regra atual** e deixe a proposta documentada. Não use a restrição como desculpa para entregar uma tela pobre.
 - Se o escopo não couber na sessão, entregue **P0 completo e polido** (shell + dashboard + estúdio + biblioteca + billing/pricing + copy), e um roadmap claro para P1/P2. Não deixe metade de uma tela.
 - Se encontrar um bug de produto no caminho (ex.: texto de Pix removido, plano inconsistente), corrija se for barato e documente; se for estrutural, registre no roadmap.
 - Não reescreva backend por estética. O foco é elevar a experiência com o que existe.
@@ -410,7 +479,8 @@ Comece com:
 4. mapa de navegação antes/depois;
 5. shortlist de 3–5 recursos com impacto/esforço/dados;
 6. decisão de nomenclatura e plano de copy;
-7. plano de commits/etapas.
+7. **revisão das restrições** (3–5 propostas, no máximo, cada uma com alternativa dentro da regra atual e recomendação);
+8. plano de commits/etapas.
 
 Depois disso, **siga implementando** o P0, a menos que uma das perguntas da seção 12 esteja bloqueando. Entregue progresso verificável, não um manifesto.
 
