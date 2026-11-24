@@ -29,7 +29,8 @@ import { buildContentMarkdown } from "@/lib/export/pack";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
 import { serializeJsonLd } from "@/lib/geo/jsonld";
 import { CREDIT_COSTS } from "@/lib/pricing";
-import type { AngleType, CampaignAssetRow, ContentPayload, HookVariantRow } from "@/types/domain";
+import { buildPublishChecklist, computeContentScore } from "@/lib/ui/workspace-insights";
+import type { AngleType, AssetType, CampaignAssetRow, ContentPayload, HookVariantRow } from "@/types/domain";
 
 export const metadata: Metadata = { title: "Estúdio" };
 export const maxDuration = 300;
@@ -199,16 +200,26 @@ export default async function StudioPage({
 
   const readyCaption = extractReadyCaption(draft);
   const jsonLdText = asset?.json_ld ? serializeJsonLd(asset.json_ld) : null;
+  const resolvedAssetType = (run?.view.assetType ?? asset?.asset_type ?? "short_script_kit") as AssetType;
+  const contentScore = computeContentScore({
+    payload: draft,
+    hookCount: hooks.length,
+    visualCount: signedUrls.length,
+    compliancePassed: compliance ? compliance.approved : true,
+    complianceIssuesCount: compliance ? compliance.violations.length : 0,
+    hasJsonLd: Boolean(jsonLdText),
+  });
+  const publishChecklist = buildPublishChecklist(resolvedAssetType);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
+    <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <Link
           href="/campaigns"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Meus conteúdos
+          Voltar para a biblioteca
         </Link>
       </div>
 
@@ -251,38 +262,91 @@ export default async function StudioPage({
         }
       />
 
-      {approved && asset ? (
+      {/* Content Score determinístico (0–100) + Checklist de publicação por formato */}
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Como publicar (3 passos)</CardTitle>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <ShieldCheck className="size-4 text-brand-signal" aria-hidden="true" />
+                Qualidade do conteúdo (Content Score)
+              </CardTitle>
+              <Badge
+                variant={
+                  contentScore.tier === "excelente"
+                    ? "success"
+                    : contentScore.tier === "bom"
+                      ? "secondary"
+                      : "warning"
+                }
+                className="font-mono"
+              >
+                {contentScore.score}/100
+              </Badge>
+            </div>
+            <CardDescription>
+              Avaliação automática de ganchos, conformidade da marca, estrutura e entregáveis.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div
+              className="h-2 w-full overflow-hidden rounded-full bg-surface-inset"
+              role="progressbar"
+              aria-valuenow={contentScore.score}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Content Score: ${contentScore.score} de 100`}
+            >
+              <div
+                className={
+                  contentScore.tier === "excelente"
+                    ? "h-full rounded-full bg-success"
+                    : contentScore.tier === "bom"
+                      ? "h-full rounded-full bg-brand-navy"
+                      : "h-full rounded-full bg-brand-signal"
+                }
+                style={{ width: `${contentScore.score}%` }}
+              />
+            </div>
+            <ul className="space-y-2 text-xs">
+              {contentScore.checks.map((check) => (
+                <li key={check.label} className="flex items-start gap-2">
+                  {check.passed ? (
+                    <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-success" aria-hidden="true" />
+                  ) : (
+                    <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden="true" />
+                  )}
+                  <span>
+                    <strong className="text-foreground">{check.label}:</strong>{" "}
+                    <span className="text-muted-foreground">{check.detail}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Checklist de exportação e publicação</CardTitle>
+            <CardDescription>
+              Passos recomendados para publicar este formato com máximo aproveitamento.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <ol className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
-              <li className="flex gap-2">
-                <span className="font-mono text-xs font-semibold text-foreground">1</span>
-                <span>
-                  <strong className="text-foreground">Baixe o pacote.</strong> Ele traz as imagens
-                  numeradas e a legenda num arquivo só.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="font-mono text-xs font-semibold text-foreground">2</span>
-                <span>
-                  <strong className="text-foreground">Copie a legenda</strong> no card abaixo (já vem
-                  com hashtags e dentro do limite).
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="font-mono text-xs font-semibold text-foreground">3</span>
-                <span>
-                  <strong className="text-foreground">Poste e marque</strong> em “Marcar como já
-                  postado” — é assim que o estilo vencedor é aprendido.
-                </span>
-              </li>
+            <ol className="space-y-2 text-xs text-muted-foreground">
+              {publishChecklist.map((step, idx) => (
+                <li key={step} className="flex items-start gap-2">
+                  <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-surface-inset font-mono text-[10px] font-semibold text-foreground">
+                    {idx + 1}
+                  </span>
+                  <span className="leading-relaxed">{step}</span>
+                </li>
+              ))}
             </ol>
           </CardContent>
         </Card>
-      ) : null}
+      </div>
 
       {query.aprovado ? (
         <Alert variant="success">

@@ -44,6 +44,7 @@ const OBJECTIVE_PRESETS = [
 const ASSET_OPTIONS: {
   type: AssetType;
   intent: string;
+  eta: string;
   label: string;
   description: string;
   icon: typeof FileText;
@@ -51,43 +52,49 @@ const ASSET_OPTIONS: {
   {
     type: "typo_carousel",
     intent: "Explicar e gerar salvamentos",
-    label: "Carrossel para Instagram (7–10 imagens)",
-    description: "Slides 1080×1350 prontos com as cores da sua marca + legenda com hashtags.",
+    eta: "~35s",
+    label: "Carrossel Instagram (7–10 slides)",
+    description: "Slides prontos nas cores da marca + legenda e hashtags.",
     icon: Layers,
   },
   {
     type: "short_script_kit",
-    intent: "Atrair seguidores com vídeo curto",
-    label: "Roteiro de Reels / TikTok (30–60s)",
-    description: "3 opções de abertura + texto fácil para você gravar no celular + legenda.",
+    intent: "Atrair seguidores com vídeo",
+    eta: "~25s",
+    label: "Roteiro Reels / TikTok (30–60s)",
+    description: "3 ganchos A/B + guia de cena para gravação humana + legenda.",
     icon: Type,
   },
   {
     type: "single_creative",
     intent: "Aviso rápido ou oferta direta",
-    label: "Post único para Feed (1 imagem + legenda)",
-    description: "1 imagem 1080×1350 diagramada com chamada direta e legenda pronta.",
+    eta: "~25s",
+    label: "Post único para Feed",
+    description: "1 arte diagramada com chamada direta e legenda pronta.",
     icon: Sparkles,
   },
   {
     type: "hybrid_carousel",
-    intent: "Carrossel com espaço para imagem",
+    intent: "Carrossel com ilustração IA",
+    eta: "~50s",
     label: "Carrossel ilustrado (7–10 slides)",
-    description: "Slides nas cores da marca com faixa para ilustração e selo de transparência.",
+    description: "Slides nas cores da marca com faixa de imagem e transparência.",
     icon: ImageIcon,
   },
   {
     type: "geo_article",
     intent: "Aparecer no Google e em IAs",
-    label: "Artigo completo para Blog / Site",
-    description: "1.500–2.500 palavras com perguntas frequentes e dados para buscadores.",
+    eta: "~65s",
+    label: "Artigo GEO para Blog / Site",
+    description: "1.500–2.500 palavras, FAQ e JSON-LD Schema.org validado.",
     icon: FileText,
   },
   {
     type: "lp_copy",
-    intent: "Vender um serviço ou produto",
-    label: "Texto de Página de Vendas (Landing Page)",
-    description: "Título principal, problema, solução, provas, perguntas frequentes e botão.",
+    intent: "Vender serviço ou produto",
+    eta: "~45s",
+    label: "Texto de Página de Vendas",
+    description: "Hero, problema, solução, provas, FAQ e chamada para ação.",
     icon: FileText,
   },
 ];
@@ -237,7 +244,7 @@ export function NewRunForm({
                     {option.label}
                   </span>
                   <Badge variant="outline" className="font-mono text-[11px]">
-                    {CREDIT_COSTS[option.type]} cr
+                    {CREDIT_COSTS[option.type]} cr · {option.eta}
                   </Badge>
                 </span>
                 <span className="text-xs text-muted-foreground">{option.description}</span>
@@ -359,11 +366,20 @@ export function NewRunForm({
         </p>
       ) : null}
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted-foreground">
-          Você só usa <span className="font-mono font-medium text-foreground">{cost}</span> crédito{cost > 1 ? "s" : ""} se aprovar o resultado · seu saldo:{" "}
-          <span className="font-mono">{creditBalance}</span>
-        </p>
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface-inset/50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-0.5 text-xs">
+          <p className="font-medium text-foreground">
+            Débito de <span className="font-mono">{cost}</span> crédito{cost > 1 ? "s" : ""} só após aprovação
+          </p>
+          <p className="text-muted-foreground">
+            Saldo atual: <span className="font-mono text-foreground">{creditBalance} cr</span>
+            {!insufficient ? (
+              <>
+                {" "}· após aprovar: <span className="font-mono text-foreground">{creditBalance - cost} cr</span>
+              </>
+            ) : null}
+          </p>
+        </div>
         <Button onClick={submit} disabled={!canSubmit} size="lg">
           {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Sparkles className="size-4" aria-hidden="true" />}
           {pending ? "Criando seu conteúdo…" : "Criar conteúdo agora"}
