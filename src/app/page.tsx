@@ -21,13 +21,17 @@ import { KITEFY_PACKAGES } from "@/lib/marketing/packages";
 import { CREDIT_COSTS } from "@/lib/pricing";
 
 export const metadata: Metadata = {
-  title: "Kitefy — pacotes ágeis de marketing orgânico",
+  title: "Kitefy — Estúdio de Marketing Orgânico, Carrosséis, Roteiros e Artigos GEO com IA",
   description:
-    "Roteiros, carrosséis e artigos GEO entregues em dias, com padrão de marca e aprendizado por telemetria. Escolha um pacote, aprove e exporte. Sem OAuth social, sem avatar, sem fidelidade.",
+    "Roteiros com 3 ganchos A/B, carrosséis prontos e artigos GEO entregues com padrão de marca e aprendizado por telemetria. Escolha um pacote, aprove e exporte. Sem OAuth social, sem avatar, sem fidelidade.",
+  alternates: {
+    canonical: "https://www.kitefy.com.br/",
+  },
   openGraph: {
-    title: "Kitefy — pacotes ágeis de marketing orgânico",
+    title: "Kitefy — Estúdio de Marketing Orgânico, Carrosséis, Roteiros e Artigos GEO",
     description:
       "Conteúdo orgânico com padrão de marca e prova em dado. Pacotes Start, Lift e Flow.",
+    url: "https://www.kitefy.com.br",
     locale: "pt_BR",
     type: "website",
   },
@@ -145,9 +149,23 @@ const FAQ = [
   },
 ];
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ.map(({ q, a }) => ({
+    "@type": "Question",
+    name: q,
+    acceptedAnswer: { "@type": "Answer", text: a },
+  })),
+};
+
 export default function KitefyLandingPage() {
   return (
     <div data-surface="kitefy-light" className="min-h-dvh bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       {/* ---------------- Header (60% claro) ---------------- */}
       <header className="sticky top-0 z-30 border-b border-brand-border bg-brand-canvas/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">

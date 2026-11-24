@@ -2,8 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidade",
-  description: "Como a Kitefy trata dados pessoais, com base na LGPD.",
+  title: "Política de Privacidade (LGPD)",
+  description:
+    "Como a Kitefy trata e protege dados pessoais e de marca em conformidade com a LGPD, sem OAuth social e sem retenção para treino de modelos.",
+  alternates: {
+    canonical: "https://www.kitefy.com.br/privacidade",
+  },
 };
 
 const SECTIONS = [

@@ -3,7 +3,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Termos de Uso",
-  description: "Condições de uso dos pacotes de marketing orgânico da Kitefy.",
+  description:
+    "Condições de uso dos pacotes de marketing digital orgânico e geração de conteúdo GEO da Kitefy.",
+  alternates: {
+    canonical: "https://www.kitefy.com.br/termos",
+  },
 };
 
 const SECTIONS = [

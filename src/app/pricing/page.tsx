@@ -7,9 +7,20 @@ import { KITEFY_PACKAGES } from "@/lib/marketing/packages";
 import { CREDIT_COSTS, formatBRL, PLANS } from "@/lib/pricing";
 
 export const metadata: Metadata = {
-  title: "Pacotes e créditos",
+  title: "Pacotes e créditos — Start, Lift e Flow",
   description:
-    "Pacotes Kitefy Start, Lift e Flow com créditos transparentes e cobrança em BRL via Pix Automático ou cartão.",
+    "Pacotes Kitefy Start, Lift e Flow para marketing orgânico e artigos GEO com créditos transparentes, aprovação humana antes do débito e cobrança em BRL.",
+  alternates: {
+    canonical: "https://www.kitefy.com.br/pricing",
+  },
+  openGraph: {
+    title: "Pacotes e créditos — Kitefy Start, Lift e Flow",
+    description:
+      "Preço claro e crédito transparente: o débito só acontece após a sua aprovação do ativo.",
+    url: "https://www.kitefy.com.br/pricing",
+    locale: "pt_BR",
+    type: "website",
+  },
 };
 
 const ASSET_LABEL: Record<string, string> = {

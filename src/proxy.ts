@@ -7,19 +7,31 @@ import { createServerClient } from "@supabase/ssr";
  * Nenhuma decisão de autorização de dados acontece aqui — isso é RLS no banco.
  */
 
-const PUBLIC_PATHS = ["/", "/login", "/auth/callback", "/auth/error", "/pricing", "/privacidade", "/termos"];
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/reset",
+  "/auth/callback",
+  "/auth/error",
+  "/pricing",
+  "/privacidade",
+  "/termos",
+  "/robots.txt",
+  "/sitemap.xml",
+];
 const AUTH_ENTRY = "/login";
 const DEFAULT_APP = "/app";
 
 function isPublic(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;
+  if (/^\/google[a-f0-9]+\.html$/i.test(pathname)) return true;
   // Webhooks (HMAC) e worker (x-worker-secret) se autenticam sozinhos.
-    return (
-      pathname.startsWith("/api/webhooks/") ||
-      pathname.startsWith("/api/jobs/") ||
-      pathname.startsWith("/_next/") ||
-      pathname === "/favicon.ico"
-    );
+  return (
+    pathname.startsWith("/api/webhooks/") ||
+    pathname.startsWith("/api/jobs/") ||
+    pathname.startsWith("/_next/") ||
+    pathname === "/favicon.ico"
+  );
 }
 
 export default async function proxy(request: NextRequest) {
@@ -84,9 +96,9 @@ export default async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Roda em tudo, exceto assets estáticos e imagens otimizadas.
+     * Roda em tudo, exceto assets estáticos, imagens otimizadas e arquivos de SEO/verificação.
      * Rotas de webhook também são excluídas do guard de sessão (mas validadas por HMAC).
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots\\.txt|sitemap\\.xml|google[a-f0-9]+\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
   ],
 };
