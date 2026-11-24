@@ -3,15 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BarChart3,
+  CreditCard,
   FileStack,
   Globe,
   LayoutDashboard,
+  Palette,
   Plus,
+  Radar,
   Search,
-  Settings,
   ShieldAlert,
   ShieldCheck,
+  TrendingUp,
   UserRound,
 } from "lucide-react";
 import {
@@ -26,26 +28,32 @@ import {
 } from "@/components/ui/command";
 
 /**
- * Busca global Cmd+K / Ctrl+K.
- * Atalho registrado no documento, funciona em qualquer página autenticada.
+ * Busca global Cmd+K / Ctrl+K com vocabulário sincronizado ao glossário canônico.
  */
 
 const DESTINATIONS = [
-  { href: "/app", label: "Visão geral", icon: LayoutDashboard },
-  { href: "/campaigns", label: "Campanhas", icon: FileStack },
-  { href: "/telemetry", label: "Telemetria", icon: BarChart3 },
-  { href: "/google", label: "Pacote Google", icon: Globe },
-  { href: "/settings/account", label: "Minha conta", icon: UserRound },
-  { href: "/settings/brand", label: "Marca e voz", icon: Settings },
-  { href: "/settings/privacy", label: "Privacidade e LGPD", icon: ShieldCheck },
+  { href: "/app", label: "Início", keywords: "visao geral dashboard", icon: LayoutDashboard },
+  { href: "/campaigns", label: "Biblioteca", keywords: "conteudos ativos campanhas", icon: FileStack },
+  { href: "/competitors", label: "Concorrentes", keywords: "serp analise mercado", icon: Radar },
+  { href: "/telemetry", label: "Resultados", keywords: "telemetria metricas ganchos", icon: TrendingUp },
+  { href: "/google", label: "Pacote Google", keywords: "seo sitemap robots search console", icon: Globe },
+  { href: "/settings/brand", label: "Marca e voz", keywords: "logo identidade fatos", icon: Palette },
+  { href: "/settings/billing", label: "Plano e créditos", keywords: "assinatura pacote upgrade", icon: CreditCard },
+  { href: "/settings/account", label: "Minha conta", keywords: "cadastro email senha", icon: UserRound },
+  { href: "/settings/privacy", label: "Privacidade e LGPD", keywords: "exportar excluir dados", icon: ShieldCheck },
 ];
 
-const ADMIN_DESTINATION = { href: "/admin", label: "Administração", icon: ShieldAlert } as const;
+const ADMIN_DESTINATION = {
+  href: "/admin",
+  label: "Administração",
+  keywords: "admin contas cupons receita",
+  icon: ShieldAlert,
+} as const;
 
 export function CommandMenu({ isAdmin = false }: { isAdmin?: boolean }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const destinations = isAdmin ? [ADMIN_DESTINATION, ...DESTINATIONS] : DESTINATIONS;
+  const destinations = isAdmin ? [...DESTINATIONS, ADMIN_DESTINATION] : DESTINATIONS;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -73,7 +81,7 @@ export function CommandMenu({ isAdmin = false }: { isAdmin?: boolean }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Abrir busca global (Ctrl K)"
-        className="inline-flex h-8 items-center gap-2 rounded-md border border-border bg-background px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        className="inline-flex h-8 items-center gap-2 rounded-lg border border-border bg-card px-2.5 text-xs text-muted-foreground transition-colors hover:border-foreground/25 hover:text-foreground"
       >
         <Search className="size-3.5" aria-hidden="true" />
         <span className="hidden sm:inline">Buscar</span>
@@ -83,20 +91,24 @@ export function CommandMenu({ isAdmin = false }: { isAdmin?: boolean }) {
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Ir para, criar ativo, buscar campanha…" />
+        <CommandInput placeholder="Ir para tela, criar conteúdo ou buscar…" />
         <CommandList>
-          <CommandEmpty>Nada encontrado. Tente &quot;campanhas&quot; ou &quot;telemetria&quot;.</CommandEmpty>
-          <CommandGroup heading="Ações">
-            <CommandItem value="novo ativo criar" onSelect={() => go("/studio/new")}>
+          <CommandEmpty>Nada encontrado. Tente &quot;biblioteca&quot;, &quot;marca&quot; ou &quot;resultados&quot;.</CommandEmpty>
+          <CommandGroup heading="Ações rápidas">
+            <CommandItem value="criar conteudo novo post carrossel roteiro" onSelect={() => go("/studio/new")}>
               <Plus className="size-4" aria-hidden="true" />
-              Criar novo ativo
+              Criar conteúdo
               <CommandShortcut>N</CommandShortcut>
             </CommandItem>
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Navegar">
             {destinations.map((item) => (
-              <CommandItem key={item.href} value={`${item.label} ${item.href}`} onSelect={() => go(item.href)}>
+              <CommandItem
+                key={item.href}
+                value={`${item.label} ${item.keywords} ${item.href}`}
+                onSelect={() => go(item.href)}
+              >
                 <item.icon className="size-4" aria-hidden="true" />
                 {item.label}
               </CommandItem>

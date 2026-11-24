@@ -1,30 +1,50 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Sparkles } from "lucide-react";
-import { AppSidebar, NewAssetLink } from "@/components/app/app-sidebar";
+import { Palette, Sparkles } from "lucide-react";
+import {
+  AppSidebar,
+  MobileBottomNav,
+  NewAssetLink,
+  TopbarSectionTitle,
+} from "@/components/app/app-sidebar";
 import { CommandMenu } from "@/components/app/command-menu";
 import { UserMenu } from "@/components/app/user-menu";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Badge } from "@/components/ui/badge";
+import { KitefyLogo } from "@/components/brand/kitefy-logo";
 import { KitefyLogoThemeAware } from "@/components/brand/kitefy-logo-theme-aware";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
 import { PLANS } from "@/lib/pricing";
 
+const PACKAGE_DISPLAY_BY_TIER: Record<keyof typeof PLANS, string> = {
+  essential: "Kitefy Start",
+  pro: "Kitefy Lift",
+  agency: "Kitefy Flow",
+};
+
 /**
- * Shell da aplicação autenticada.
- * Densidade informacional alta, navegação por teclado (Cmd/Ctrl+K) e créditos
- * sempre visíveis — sem sidebar de marketing.
+ * Shell da aplicação autenticada (Direção: Editorial de Dados).
+ * - Sidebar Navy #181331 como âncora da marca (proporção 60/30/10 no app).
+ * - Topbar com título contextual, chip de marca ativa, créditos e busca Ctrl+K.
+ * - Mobile com MobileBottomNav dedicado de 4 itens (alvos ≥ 44px).
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSessionContext();
   if (!session) redirect("/login");
 
   const supabase = await createSupabaseServerClient();
-  const tenantQuery = await supabase
-    .from("tenants")
-    .select("name, slug, plan_tier, credit_balance")
-    .eq("id", session.tenantId)
-    .single<{ name: string; slug: string; plan_tier: keyof typeof PLANS; credit_balance: number }>();
+  const [tenantQuery, brandsQuery] = await Promise.all([
+    supabase
+      .from("tenants")
+      .select("name, slug, plan_tier, credit_balance")
+      .eq("id", session.tenantId)
+      .single<{ name: string; slug: string; plan_tier: keyof typeof PLANS; credit_balance: number }>(),
+    supabase
+      .from("brand_profiles")
+      .select("id, brand_name")
+      .eq("tenant_id", session.tenantId)
+      .order("created_at", { ascending: true })
+      .limit(10),
+  ]);
 
   const tenant = tenantQuery.data ?? {
     name: "Minha conta",
@@ -34,56 +54,108 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   };
 
   const plan = PLANS[tenant.plan_tier];
+  const packageName = PACKAGE_DISPLAY_BY_TIER[tenant.plan_tier] ?? plan.name;
+  const brands = (brandsQuery.data ?? []) as { id: string; brand_name: string }[];
+  const primaryBrand = brands[0] ?? null;
+
+  const creditPct = Math.min(
+    100,
+    Math.max(0, Math.round((tenant.credit_balance / Math.max(1, plan.monthlyCredits)) * 100)),
+  );
+  const lowCredits = tenant.credit_balance <= Math.max(5, Math.round(plan.monthlyCredits * 0.15));
 
   return (
-    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[232px_1fr]">
-      <aside className="hidden flex-col gap-6 border-r border-border bg-sidebar p-4 lg:flex">
-        <div className="flex items-center justify-between gap-2">
-          <Link href="/app" aria-label="Kitefy — visão geral">
-            <KitefyLogoThemeAware height={32} />
+    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[248px_1fr]">
+      <aside className="hidden flex-col gap-5 border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground lg:flex">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <Link href="/app" aria-label="Kitefy — início">
+            <KitefyLogo variant="onDark" height={30} />
           </Link>
-          <ThemeToggle />
         </div>
 
         <NewAssetLink />
-        <AppSidebar isAdmin={session.isPlatformAdmin} />
+        <div className="flex-1 overflow-y-auto scrollbar-thin">
+          <AppSidebar isAdmin={session.isPlatformAdmin} />
+        </div>
 
-        <div className="mt-auto space-y-3">
-          <div className="rounded-lg border border-border bg-card p-3">
+        <div className="mt-auto space-y-3 border-t border-sidebar-border pt-4">
+          <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/45 p-3">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Créditos</span>
-              <Badge variant="outline" className="font-mono">
+              <span className="text-xs font-medium text-sidebar-muted">Saldo de créditos</span>
+              <span className="font-mono text-sm font-semibold tabular-nums text-white">
                 {tenant.credit_balance}
-              </Badge>
+              </span>
             </div>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Plano {plan.name} · {plan.monthlyCredits}/mês
-            </p>
-            <Link
-              href="/settings/billing"
-              className="mt-2 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-4"
+            <div
+              className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10"
+              role="progressbar"
+              aria-valuenow={creditPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Saldo de créditos: ${tenant.credit_balance} de ${plan.monthlyCredits}`}
             >
-              <Sparkles className="size-3" aria-hidden="true" />
-              Gerenciar plano
-            </Link>
+              <div
+                className={lowCredits ? "h-full rounded-full bg-brand-signal" : "h-full rounded-full bg-white/85"}
+                style={{ width: `${creditPct}%` }}
+              />
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-sidebar-muted">
+              <span className="truncate">
+                {packageName} · {plan.monthlyCredits}/mês
+              </span>
+              <Link
+                href="/settings/billing"
+                className="shrink-0 font-medium text-white underline-offset-4 hover:underline"
+              >
+                Plano
+              </Link>
+            </div>
           </div>
-          <UserMenu accountName={tenant.name} isAdmin={session.isPlatformAdmin} />
+
+          <UserMenu
+            accountName={tenant.name}
+            isAdmin={session.isPlatformAdmin}
+            variant="sidebar"
+          />
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur lg:px-8">
-          <Link href="/app" aria-label="Kitefy — visão geral" className="inline-flex lg:hidden">
-            <KitefyLogoThemeAware height={30} />
+      <div className="flex min-w-0 flex-col bg-background">
+        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-card/90 px-4 backdrop-blur lg:px-8">
+          <Link href="/app" aria-label="Kitefy — início" className="inline-flex lg:hidden">
+            <KitefyLogoThemeAware height={28} />
           </Link>
+
+          <TopbarSectionTitle />
+
           <div className="ml-auto flex items-center gap-2">
-            <span className="hidden items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground sm:inline-flex">
-              <span className="font-mono">{tenant.credit_balance}</span> créditos
-            </span>
+            {primaryBrand ? (
+              <Link
+                href={`/settings/brand?brand=${primaryBrand.id}`}
+                className="hidden items-center gap-1.5 rounded-lg border border-border bg-surface-inset/70 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:border-foreground/25 md:inline-flex"
+                title="Gerenciar perfil da marca"
+              >
+                <Palette className="size-3.5 text-brand-signal" aria-hidden="true" />
+                <span className="max-w-[10rem] truncate">{primaryBrand.brand_name}</span>
+                {brands.length > 1 ? (
+                  <span className="rounded bg-card px-1 font-mono text-[10px] text-muted-foreground">
+                    +{brands.length - 1}
+                  </span>
+                ) : null}
+              </Link>
+            ) : null}
+
+            <Link
+              href="/settings/billing"
+              className="hidden items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground/25 hover:text-foreground sm:inline-flex"
+            >
+              <Sparkles className="size-3 text-brand-signal" aria-hidden="true" />
+              <span className="font-mono font-medium text-foreground">{tenant.credit_balance}</span>
+              <span>cr</span>
+            </Link>
+
             <CommandMenu isAdmin={session.isPlatformAdmin} />
-            <div className="lg:hidden">
-              <ThemeToggle />
-            </div>
+            <ThemeToggle />
             <div className="lg:hidden">
               <UserMenu accountName={tenant.name} isAdmin={session.isPlatformAdmin} />
             </div>
@@ -92,12 +164,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
         <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">{children}</main>
 
-        <nav
-          aria-label="Navegação inferior"
-          className="sticky bottom-0 flex items-center justify-around border-t border-border bg-background/95 px-2 py-1.5 backdrop-blur lg:hidden"
-        >
-          <AppSidebar isAdmin={session.isPlatformAdmin} />
-        </nav>
+        <MobileBottomNav />
       </div>
     </div>
   );
