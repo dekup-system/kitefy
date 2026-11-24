@@ -74,9 +74,33 @@ export default async function TelemetryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Resultados dos seus posts"
-        description="Cada resultado registrado ensina o estúdio a priorizar os estilos de abertura que mais prendem a atenção do seu público."
+        title="Resultados dos seus posts (Telemetria)"
+        description="Informe os números reais das suas publicações para o estúdio aprender quais aberturas mais prendem a atenção do seu público — sem conectar nem pedir senha das suas redes sociais."
       />
+
+      <div className="grid gap-3 rounded-xl border border-border bg-muted/30 p-4 text-xs leading-relaxed sm:grid-cols-3">
+        <div className="space-y-1">
+          <p className="font-semibold text-foreground">1. Registro manual (qualquer rede)</p>
+          <p className="text-muted-foreground">
+            Abra as métricas no app da sua rede (Instagram Insights, TikTok, LinkedIn ou YouTube) e
+            digite impressões, visualizações nos 3 primeiros segundos e salvamentos/cliques abaixo.
+          </p>
+        </div>
+        <div className="space-y-1">
+          <p className="font-semibold text-foreground">2. Planilha CSV (vários posts de uma vez)</p>
+          <p className="text-muted-foreground">
+            CSV é um arquivo de tabela simples (tipo Excel/Google Planilhas) que você exporta do Meta
+            Business Suite, TikTok Analytics ou YouTube Studio e sobe aqui em lote.
+          </p>
+        </div>
+        <div className="space-y-1">
+          <p className="font-semibold text-foreground">3. Google Analytics 4 (automático)</p>
+          <p className="text-muted-foreground">
+            Para artigos e páginas do seu site, os pacotes Lift e Flow recebem métricas
+            automaticamente via webhook <code className="font-mono">/api/webhooks/ga4</code>.
+          </p>
+        </div>
+      </div>
 
       {brandOptions.length === 0 ? (
         <EmptyState

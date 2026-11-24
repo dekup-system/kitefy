@@ -68,10 +68,15 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warn
   exported: "secondary",
 };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ brand?: string }>;
+}) {
   const session = await getSessionContext();
   if (!session) redirect("/login");
 
+  const params = await searchParams;
   const supabase = await createSupabaseServerClient();
 
   const [tenant, brands, assets, telemetry] = await Promise.all([
@@ -127,8 +132,14 @@ export default async function DashboardPage() {
       : null;
   const citations = telemetryRows.reduce((total, row) => total + Number(row.ai_citations_count), 0);
 
-  const primaryBrand = brandRows[0];
+  const primaryBrand =
+    (params.brand ? brandRows.find((brand) => brand.id === params.brand) : undefined) ?? brandRows[0];
   const completeness = primaryBrand ? computeBrandCompleteness(primaryBrand) : null;
+  const brandScores = brandRows.map((brand) => ({
+    id: brand.id,
+    brand_name: brand.brand_name,
+    score: computeBrandCompleteness(brand).score,
+  }));
   const weeklyIdeas = primaryBrand
     ? buildWeeklyIdeas({
         brand_name: primaryBrand.brand_name,
@@ -451,19 +462,36 @@ export default async function DashboardPage() {
                     ))}
                   </ul>
 
-                  {brandRows.length > 1 ? (
+                  {brandScores.length > 1 ? (
                     <div className="border-t border-border pt-3">
-                      <p className="mb-1.5 text-xs font-medium text-muted-foreground">Suas marcas</p>
+                      <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                        Alternar saúde por marca
+                      </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {brandRows.map((brand) => (
-                          <Link
-                            key={brand.id}
-                            href={`/settings/brand?brand=${brand.id}`}
-                            className="rounded-md border border-border bg-surface-inset/50 px-2 py-1 text-xs font-medium hover:border-foreground/30"
-                          >
-                            {brand.brand_name}
-                          </Link>
-                        ))}
+                        {brandScores.map((brand) => {
+                          const isSelected = brand.id === primaryBrand?.id;
+                          return (
+                            <Link
+                              key={brand.id}
+                              href={`/app?brand=${brand.id}`}
+                              aria-current={isSelected ? "page" : undefined}
+                              className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-colors ${
+                                isSelected
+                                  ? "border-brand-navy bg-brand-navy text-white"
+                                  : "border-border bg-surface-inset/50 text-foreground hover:border-foreground/30"
+                              }`}
+                            >
+                              <span>{brand.brand_name}</span>
+                              <span
+                                className={`font-mono text-[10px] ${
+                                  isSelected ? "text-white/80" : "text-muted-foreground"
+                                }`}
+                              >
+                                {brand.score}%
+                              </span>
+                            </Link>
+                          );
+                        })}
                       </div>
                     </div>
                   ) : null}
