@@ -44,7 +44,7 @@ describe("resolvePlanChange", () => {
 
     expect(decision.kind).toBe("upgrade");
     expect(decision.requiresCancellation).toBe(true);
-    expect(decision.label).toContain("Agência Escala");
+    expect(decision.label).toContain("Kitefy Flow");
   });
 
   it("downgrade com assinatura ativa também exige cancelamento", () => {

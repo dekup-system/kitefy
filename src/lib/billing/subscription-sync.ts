@@ -216,11 +216,17 @@ export function parseTenantFromExternalReference(
   return { tenantId, planHint, couponCode };
 }
 
+const LEGACY_PLAN_REASON_ALIASES: Record<PlanTier, string[]> = {
+  essential: ["essencial"],
+  pro: ["crescimento pro"],
+  agency: ["agencia escala"],
+};
+
 /**
  * Descobre o plano da assinatura, em ordem de confiança:
  *  1. `external_reference` composto (`tenantId:planTier`);
  *  2. valor recorrente idêntico ao preço de um plano (fonte única: `PLANS`);
- *  3. nome do plano no campo `reason` (ex.: "Kitefy - Pacote Crescimento Pro").
+ *  3. nome do plano no campo `reason` (ex.: "Kitefy - Pacote Kitefy Lift" ou nomes legados).
  */
 export function derivePlanTier(
   preapproval: MpPreapprovalSnapshot,
@@ -237,7 +243,11 @@ export function derivePlanTier(
 
   const reason = typeof preapproval.reason === "string" ? normalizeText(preapproval.reason) : "";
   if (reason.length > 0) {
-    const byName = PLAN_ORDER.find((tier) => reason.includes(normalizeText(PLANS[tier].name)));
+    const byName = PLAN_ORDER.find(
+      (tier) =>
+        reason.includes(normalizeText(PLANS[tier].name)) ||
+        LEGACY_PLAN_REASON_ALIASES[tier].some((alias) => reason.includes(alias)),
+    );
     if (byName) return byName;
   }
 

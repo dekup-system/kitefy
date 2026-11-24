@@ -21,7 +21,7 @@ export interface PlanDefinition {
 export const PLANS: Record<PlanTier, PlanDefinition> = {
   essential: {
     tier: "essential",
-    name: "Essencial",
+    name: "Kitefy Start",
     tagline: "Para validar o orgânico com previsibilidade.",
     priceCents: 4990,
     monthlyCredits: 120,
@@ -36,7 +36,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   },
   pro: {
     tier: "pro",
-    name: "Crescimento Pro",
+    name: "Kitefy Lift",
     tagline: "Para quem publica toda semana e mede tudo.",
     priceCents: 11990,
     monthlyCredits: 360,
@@ -51,7 +51,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   },
   agency: {
     tier: "agency",
-    name: "Agência Escala",
+    name: "Kitefy Flow",
     tagline: "Para operar vários clientes sem perder padrão.",
     priceCents: 26990,
     monthlyCredits: 1000,
