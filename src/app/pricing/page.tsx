@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, Check, QrCode } from "lucide-react";
+import { ArrowLeft, Check, ShieldCheck } from "lucide-react";
 import { KitefyLogo } from "@/components/brand/kitefy-logo";
 import { PackageCard } from "@/components/marketing/package-card";
 import { KITEFY_PACKAGES } from "@/lib/marketing/packages";
@@ -109,13 +109,13 @@ export default function PricingPage() {
         <section aria-labelledby="pagamento-title" className="mt-12">
           <div className="rounded-xl border border-brand-border bg-brand-subtle p-6 sm:p-8">
             <h2 id="pagamento-title" className="flex items-center gap-2 text-lg font-semibold text-brand-navy">
-              <QrCode className="size-5" aria-hidden="true" />
-              Pix Automático é a forma recomendada
+              <ShieldCheck className="size-5" aria-hidden="true" />
+              Assinatura mensal simples em reais pelo Mercado Pago
             </h2>
             <p className="mt-2 max-w-2xl text-pretty text-sm leading-relaxed text-brand-navy-soft">
-              Menor taxa, renovação sem atrito e nenhuma cobrança na janela noturna (20h–06h), que
-              costuma ser bloqueada em contas pessoa física. Você autoriza o mandato uma única vez no
-              app do banco; as renovações seguintes acontecem entre 08h e 18h (BRT).
+              Você escolhe o pacote, autoriza pelo Mercado Pago e recebe os créditos assim que o
+              pagamento é confirmado. Sem taxa de setup, sem fidelidade e com renovação automática em
+              horário comercial (08h–18h BRT).
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -129,9 +129,9 @@ export default function PricingPage() {
 
             <ul className="mt-5 space-y-1.5 text-sm text-brand-navy-soft">
               {[
-                "Cartão recorrente também disponível, com tokenização no navegador (Payment Brick).",
-                "Idempotência em toda criação de cobrança: nenhuma duplicidade em retentativa.",
-                "Webhook validado por assinatura HMAC antes de creditar qualquer valor.",
+                "Checkout oficial do Mercado Pago: seus dados de pagamento nunca passam pela Kitefy.",
+                "Proteção automática contra cobrança duplicada.",
+                "Créditos liberados assim que o pagamento é confirmado; falha técnica gera estorno automático.",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2">
                   <Check className="mt-0.5 size-4 shrink-0 text-brand-navy" aria-hidden="true" />

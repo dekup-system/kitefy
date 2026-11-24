@@ -15,6 +15,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
 import { nextDaytimeBillingWindow } from "@/lib/billing/subscription-sync";
 import { PLANS, PLAN_ORDER, formatBRL } from "@/lib/pricing";
+import { packageDisplayName } from "@/lib/ui/workspace-insights";
 import { formatDateBR, formatDateTimeBR } from "@/lib/utils";
 import type { PaymentMethod, PlanTier } from "@/types/domain";
 
@@ -86,7 +87,7 @@ export default async function AccountPage() {
 
   const plans: PlanSummary[] = PLAN_ORDER.map((tier) => ({
     tier,
-    name: PLANS[tier].name,
+    name: packageDisplayName(tier),
     tagline: PLANS[tier].tagline,
     priceLabel: formatBRL(PLANS[tier].priceCents),
     monthlyCredits: PLANS[tier].monthlyCredits,
@@ -94,18 +95,19 @@ export default async function AccountPage() {
   }));
 
   const isOwner = session.role === "owner";
+  const currentPackageName = packageDisplayName(effectiveTier);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeader
         title="Minha conta"
-        description="Pacote atual, renovação e upgrade, além dos dados cadastrais e do acesso."
+        description="Seu pacote, créditos, renovação e dados de acesso."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Pacote atual"
-          value={plan.name}
+          value={currentPackageName}
           hint={`${plan.monthlyCredits} créditos/mês · ${formatBRL(plan.priceCents)}`}
           icon={<Sparkles className="size-4" aria-hidden="true" />}
         />

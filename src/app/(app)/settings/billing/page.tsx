@@ -9,6 +9,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerEnv } from "@/lib/env";
 import { PLANS, PLAN_ORDER, formatBRL } from "@/lib/pricing";
+import { packageDisplayName } from "@/lib/ui/workspace-insights";
 import { nextDaytimeBillingWindow } from "@/lib/billing/subscription-sync";
 import { subscribeToPlanAction } from "@/lib/billing/actions";
 import { Button } from "@/components/ui/button";
@@ -38,8 +39,8 @@ export default async function BillingPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeader
-        title="Plano e cobrança"
-        description="Assinatura mensal em BRL pelo Mercado Pago. Você escolhe a conta no checkout e os créditos entram na aprovação."
+        title="Plano e créditos"
+        description="Acompanhe seu saldo, compare pacotes e gerencie sua assinatura mensal em reais."
         actions={
           <Button asChild variant="outline" size="sm">
             <Link href="/settings/account">Minha conta</Link>
@@ -49,8 +50,8 @@ export default async function BillingPage() {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard
-          label="Plano atual"
-          value={currentPlan.name}
+          label="Pacote atual"
+          value={packageDisplayName(session.planTier)}
           hint={
             hasActiveSubscription
               ? `${currentPlan.monthlyCredits} créditos/mês`
@@ -100,17 +101,35 @@ export default async function BillingPage() {
       <div className="grid gap-4 md:grid-cols-3">
         {PLAN_ORDER.map((tier) => {
           const plan = PLANS[tier];
+          const pkgName = packageDisplayName(tier);
           const isCurrent = tier === session.planTier && hasActiveSubscription;
           return (
-            <Card key={tier} className={isCurrent ? "border-foreground/30" : undefined}>
+            <Card
+              key={tier}
+              className={
+                isCurrent
+                  ? "border-foreground/40"
+                  : tier === "pro"
+                    ? "border-brand-signal/50"
+                    : undefined
+              }
+            >
               <CardHeader>
                 <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-base">{plan.name}</CardTitle>
-                  {isCurrent ? <Badge variant="secondary">Atual</Badge> : null}
-                  {tier === "agency" ? <Badge variant="outline">Escala</Badge> : null}
+                  <CardTitle className="text-base">{pkgName}</CardTitle>
+                  {isCurrent ? (
+                    <Badge variant="secondary">Atual</Badge>
+                  ) : tier === "pro" ? (
+                    <Badge variant="warning">Mais escolhido</Badge>
+                  ) : tier === "agency" ? (
+                    <Badge variant="outline">Escala</Badge>
+                  ) : null}
                 </div>
                 <CardDescription>{plan.tagline}</CardDescription>
-                <p className="pt-1 font-mono text-lg font-medium">{formatBRL(plan.priceCents)}</p>
+                <p className="pt-1 font-mono text-lg font-medium">
+                  {formatBRL(plan.priceCents)}
+                  <span className="ml-1 font-sans text-xs font-normal text-muted-foreground">/mês</span>
+                </p>
               </CardHeader>
               <CardContent className="space-y-3">
                 <ul className="space-y-1.5 text-sm text-muted-foreground">
@@ -124,7 +143,7 @@ export default async function BillingPage() {
 
                 {isCurrent ? (
                   <p className="text-xs text-muted-foreground">
-                    Você já está neste plano. Créditos são renovados na cobrança aprovada.
+                    Você já está neste pacote. Os créditos renovam a cada pagamento aprovado.
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -135,25 +154,14 @@ export default async function BillingPage() {
                         className="w-full"
                         variant={tier === "essential" ? "outline" : "default"}
                       >
-                        Assinar {plan.name}
+                        Assinar {pkgName}
                       </Button>
                     </form>
                     <p className="text-xs text-muted-foreground">
-                      Você paga no Mercado Pago com a conta que preferir — ou cria uma na hora.
+                      Checkout oficial do Mercado Pago em reais. Sem fidelidade.
                     </p>
                   </div>
                 )}
-
-                {tier === "pro" ? (
-                  <p className="text-xs text-muted-foreground">
-                    Inclui importação CSV e webhook GA4 de telemetria.
-                  </p>
-                ) : null}
-                {tier === "agency" ? (
-                  <p className="text-xs text-muted-foreground">
-                    Inclui links externos de aprovação com senha e expiração opcionais.
-                  </p>
-                ) : null}
               </CardContent>
             </Card>
           );
@@ -163,23 +171,18 @@ export default async function BillingPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm">
-            <ShieldCheck className="size-4" aria-hidden="true" />
-            Como a cobrança funciona
+            <ShieldCheck className="size-4 text-brand-signal" aria-hidden="true" />
+            Pagamento transparente e protegido
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>
-            Cada criação de pagamento usa <code className="font-mono">X-Idempotency-Key</code> (UUID
-            v4) para impedir cobrança duplicada em retentativa.
+            Pagamentos processados pelo Mercado Pago com proteção automática contra cobrança
+            duplicada. Os créditos entram na sua conta assim que a confirmação é recebida.
           </p>
           <p>
-            O webhook valida <code className="font-mono">x-signature</code> com HMAC-SHA256 em tempo
-            constante, responde 200 imediatamente e processa em fila. Status do pagamento é sempre
-            confirmado na API do Mercado Pago antes de creditar.
-          </p>
-          <p>
-            Cobranças recorrentes são agendadas entre 08h e 18h (BRT) para evitar o bloqueio de
-            limite noturno (20h–06h) em contas pessoa física.
+            Renovações recorrentes acontecem em horário comercial (08h–18h BRT) para evitar
+            bloqueios de limite noturno em contas pessoa física.
           </p>
         </CardContent>
       </Card>

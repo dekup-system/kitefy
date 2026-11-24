@@ -95,9 +95,8 @@ export default async function TelemetryPage() {
           <TabsContent value="registrar">
             <TelemetryForms brands={brandOptions} assets={assetOptions} />
             <p className="mt-3 text-xs text-muted-foreground">
-              Webhook GA4 disponível para o plano Pro e Agência: envie eventos para{" "}
-              <code className="font-mono">/api/webhooks/ga4</code> com o header de segredo do seu
-              tenant.
+              Integração GA4 disponível nos pacotes Lift e Flow via{" "}
+              <code className="font-mono">/api/webhooks/ga4</code> usando a chave da sua conta.
             </p>
           </TabsContent>
 
@@ -149,27 +148,25 @@ export default async function TelemetryPage() {
           <TabsContent value="aprendizado">
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Braços do bandit</CardTitle>
+                <CardTitle className="text-sm">Estilos de abertura vencedores</CardTitle>
                 <CardDescription>
-                  alpha e beta são os parâmetros Beta da amostragem. pulls é quantas vezes o braço foi
-                  usado em produção.
+                  O estúdio mede quais abordagens geram mais retenção no seu público e prioriza as
+                  vencedoras nas próximas gerações.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {armRows.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    Nenhum braço atualizado ainda. O primeiro ajuste ocorre quando você vincula
-                    telemetria a um ativo.
+                    Nenhum estilo calibrado ainda. O aprendizado começa assim que você registra o
+                    primeiro resultado de um conteúdo publicado.
                   </p>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Braço</TableHead>
-                        <TableHead className="text-right">alpha</TableHead>
-                        <TableHead className="text-right">beta</TableHead>
-                        <TableHead className="text-right">pulls</TableHead>
-                        <TableHead className="text-right">média</TableHead>
+                        <TableHead>Estilo de abertura</TableHead>
+                        <TableHead className="text-right">Usos</TableHead>
+                        <TableHead className="text-right">Taxa de sucesso</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -179,10 +176,8 @@ export default async function TelemetryPage() {
                         return (
                           <TableRow key={arm.arm_key}>
                             <TableCell className="font-mono text-xs">{arm.arm_key}</TableCell>
-                            <TableCell className="text-right font-mono text-xs">{alpha.toFixed(2)}</TableCell>
-                            <TableCell className="text-right font-mono text-xs">{beta.toFixed(2)}</TableCell>
                             <TableCell className="text-right font-mono text-xs">{arm.pulls}</TableCell>
-                            <TableCell className="text-right font-mono text-xs">
+                            <TableCell className="text-right font-mono text-xs font-medium">
                               {formatPercent(alpha / (alpha + beta))}
                             </TableCell>
                           </TableRow>

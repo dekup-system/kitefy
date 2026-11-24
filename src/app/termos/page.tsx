@@ -25,7 +25,7 @@ const SECTIONS = [
   },
   {
     title: "4. Assinatura e pagamento",
-    body: "A cobrança é feita em BRL pelo Mercado Pago, por cartão recorrente ou Pix Automático. A renovação é automática até o cancelamento, que pode ser solicitado a qualquer momento e passa a valer no fim do ciclo vigente.",
+    body: "A cobrança é feita em BRL pelo Mercado Pago, em assinatura mensal recorrente. A renovação é automática até o cancelamento, que pode ser solicitado a qualquer momento e passa a valer no fim do ciclo vigente.",
   },
   {
     title: "5. Responsabilidade editorial",
