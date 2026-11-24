@@ -61,7 +61,7 @@ export async function createPlanCheckout(input: PlanCheckoutInput): Promise<Plan
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      reason: couponCode ? `Kitefy ${plan.name} (cupom ${couponCode})` : `Kitefy ${plan.name}`,
+      reason: couponCode ? `${plan.name} (cupom ${couponCode})` : plan.name,
       external_reference: externalReference,
       back_url: `${input.appUrl}/settings/billing?mp=retorno`,
       auto_recurring: {

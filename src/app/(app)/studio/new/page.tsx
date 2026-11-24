@@ -28,18 +28,39 @@ export default async function NewStudioRunPage({
   const params = await searchParams;
   const supabase = await createSupabaseServerClient();
 
-  const brandsQuery = await supabase
-    .from("brand_profiles")
-    .select("id, brand_name, icp_description, entity_facts")
-    .eq("tenant_id", session.tenantId)
-    .order("created_at", { ascending: true });
+  const [brandsQuery, chunksQuery] = await Promise.all([
+    supabase
+      .from("brand_profiles")
+      .select("id, brand_name, icp_description, entity_facts")
+      .eq("tenant_id", session.tenantId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("knowledge_chunks")
+      .select("brand_id, content")
+      .eq("tenant_id", session.tenantId)
+      .eq("source_type", "brand_doc")
+      .order("created_at", { ascending: false })
+      .limit(24),
+  ]);
 
-  const brands = (brandsQuery.data ?? []) as {
+  const highlightsByBrand = new Map<string, string[]>();
+  for (const row of (chunksQuery.data ?? []) as { brand_id: string; content: string }[]) {
+    const list = highlightsByBrand.get(row.brand_id) ?? [];
+    if (list.length < 4 && row.content.trim().length > 16) {
+      list.push(row.content.trim());
+      highlightsByBrand.set(row.brand_id, list);
+    }
+  }
+
+  const brands = ((brandsQuery.data ?? []) as {
     id: string;
     brand_name: string;
     icp_description?: string | null;
     entity_facts?: { claim: string }[];
-  }[];
+  }[]).map((brand) => ({
+    ...brand,
+    knowledge_highlights: highlightsByBrand.get(brand.id) ?? [],
+  }));
 
   if (brands.length === 0) {
     redirect("/onboarding");

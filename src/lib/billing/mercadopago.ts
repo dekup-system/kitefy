@@ -234,7 +234,7 @@ function notificationUrl(): string {
 }
 
 function planDescription(planTier: PlanTier): string {
-  return `Kitefy - Pacote ${PLANS[planTier].name}`;
+  return `Assinatura ${PLANS[planTier].name}`;
 }
 
 /** Centavos → número decimal em BRL (ex.: 4990 → 49.9). */

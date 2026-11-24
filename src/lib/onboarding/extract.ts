@@ -403,48 +403,91 @@ export function firstAssetSuggestion(niche: string): {
 }
 
 /**
- * Gera 3 ideias práticas ("O que postar esta semana") de forma 100% determinística
- * a partir do nome, público e fatos cadastrados na marca (custo US$ 0 de LLM).
+ * Gera até 6 ideias práticas e personalizadas de campanha a partir do estudo da
+ * marca (ICP, diferenciais/fatos cadastrados e trechos extraídos do site),
+ * cruzando formatos de topo, meio e fundo de funil (custo US$ 0 de LLM).
  */
 export function buildWeeklyIdeas(brand: {
   brand_name: string;
   icp_description?: string | null;
   entity_facts?: { claim: string }[];
+  knowledge_highlights?: string[];
 }): {
   id: string;
   badge: string;
   title: string;
-  assetType: "typo_carousel" | "short_script_kit" | "single_creative";
+  assetType: "typo_carousel" | "short_script_kit" | "single_creative" | "hybrid_carousel" | "geo_article" | "lp_copy";
   objective: string;
   productInput: string;
 }[] {
-  const firstFact = brand.entity_facts?.[0]?.claim?.slice(0, 120) || `atendimento e diferencial da ${brand.brand_name}`;
-  const secondFact = brand.entity_facts?.[1]?.claim?.slice(0, 120) || `serviço principal da ${brand.brand_name}`;
+  const cleanSnippet = (value: string | null | undefined, maxLen = 110): string | null => {
+    if (!value) return null;
+    const compact = value.replace(/\s+/g, " ").trim();
+    if (compact.length < 8) return null;
+    return compact.length > maxLen ? `${compact.slice(0, maxLen - 1).trimEnd()}…` : compact;
+  };
+
+  const facts = (brand.entity_facts ?? [])
+    .map((f) => cleanSnippet(f.claim, 120))
+    .filter((f): f is string => Boolean(f));
+  const highlights = (brand.knowledge_highlights ?? [])
+    .map((h) => cleanSnippet(h, 120))
+    .filter((h): h is string => Boolean(h));
+
+  const icp = cleanSnippet(brand.icp_description, 95);
+  const icpLabel = icp ?? `clientes ideais da ${brand.brand_name}`;
+  const fact1 = facts[0] ?? highlights[0] ?? `principal diferencial da ${brand.brand_name}`;
+  const fact2 = facts[1] ?? highlights[1] ?? fact1;
+  const fact3 = facts[2] ?? highlights[2] ?? `diagnóstico ou atendimento consultivo da ${brand.brand_name}`;
 
   return [
     {
-      id: "mito-verdade",
-      badge: "Para gerar salvamentos · Carrossel (7–10 imagens)",
-      title: "Derrubar o erro mais comum do seu cliente",
+      id: "erro-icp-carrossel",
+      badge: "Topo de funil · Carrossel (1 cr)",
+      title: `O erro silencioso que trava ${icp ? "seu público" : brand.brand_name}`,
       assetType: "typo_carousel",
-      objective: `Explicar os erros mais comuns que o público comete e como resolver com segurança`,
-      productInput: firstFact,
+      objective: `Expor o erro mais caro que ${icpLabel} cometem antes de conhecer ${brand.brand_name} e mostrar o passo a passo prático para corrigir`,
+      productInput: fact1,
     },
     {
-      id: "duvida-rapida",
-      badge: "Para atrair seguidores · Roteiro de Reels (45s)",
-      title: "Responder a pergunta nº 1 do balcão / WhatsApp",
+      id: "duvida-whatsapp-reels",
+      badge: "Alcance orgânico · Reels 45s (1 cr)",
+      title: `Objeção nº 1 de quem pesquisa ${brand.brand_name}`,
       assetType: "short_script_kit",
-      objective: `Responder de forma direta a principal dúvida de quem procura ${brand.brand_name}`,
-      productInput: secondFact,
+      objective: `Responder em 45 segundos, com fala natural e exemplos reais, a principal dúvida que ${icpLabel} têm antes de fechar`,
+      productInput: fact2,
     },
     {
-      id: "oferta-direta",
-      badge: "Para chamar no WhatsApp · Post único de Feed",
-      title: "Apresentar seu diferencial com convite direto",
+      id: "oferta-direta-feed",
+      badge: "Fundo de funil · Post único (2 cr)",
+      title: `Convite direto destacando ${fact1.slice(0, 42)}${fact1.length > 42 ? "…" : ""}`,
       assetType: "single_creative",
-      objective: `Destacar por que escolher ${brand.brand_name} economiza tempo e traz segurança`,
-      productInput: firstFact,
+      objective: `Apresentar com clareza o ganho concreto de contratar ${brand.brand_name} para ${icpLabel}, quebrando ceticismo e chamando para ação direta`,
+      productInput: fact1,
+    },
+    {
+      id: "bastidores-metodo-hibrido",
+      badge: "Autoridade visual · Carrossel ilustrado (3 cr)",
+      title: `Como funciona na prática o método da ${brand.brand_name}`,
+      assetType: "hybrid_carousel",
+      objective: `Mostrar em 7 a 10 slides o mecanismo prático e os critérios de qualidade que diferenciam ${brand.brand_name} das opções genéricas`,
+      productInput: fact3,
+    },
+    {
+      id: "guia-google-geo",
+      badge: "Google & IAs · Artigo GEO (5 cr)",
+      title: `Guia definitivo de decisão para ${icp ? "seu cliente ideal" : brand.brand_name}`,
+      assetType: "geo_article",
+      objective: `Responder de forma estruturada e citável (E-E-A-T/GEO) como ${icpLabel} devem avaliar e escolher a melhor solução do segmento`,
+      productInput: fact2,
+    },
+    {
+      id: "pagina-conversao-lp",
+      badge: "Conversão · Página de vendas (3 cr)",
+      title: `Copy completa de oferta para ${brand.brand_name}`,
+      assetType: "lp_copy",
+      objective: `Estruturar página de vendas focada em ${icpLabel}, conectando dor real, mecanismo exclusivo, provas verificáveis e FAQ de objeções`,
+      productInput: fact1,
     },
   ];
 }

@@ -52,14 +52,29 @@ async function loadBrandLogoDataUrl(logoPath: string | undefined): Promise<strin
     const supabase = createSupabaseAdminClient();
     const bucket = getServerEnv().SUPABASE_STORAGE_BUCKET;
     const { data, error } = await supabase.storage.from(bucket).download(logoPath);
-    if (error || !data) return null;
+    if (error || !data) {
+      log.warn("Logomarca não encontrada no Storage ao renderizar ativo", {
+        logoPath,
+        error: error?.message,
+      });
+      return null;
+    }
     const raw = Buffer.from(await data.arrayBuffer());
+    // Dimensões fixas (132x40) com fundo transparente: o Satori exige width e
+    // height explícitos em <img> para não colapsar a largura para 0px.
     const resized = await sharp(raw, { failOn: "error" })
-      .resize(160, 48, { fit: "inside", withoutEnlargement: true })
+      .resize(132, 40, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
       .png({ compressionLevel: 9 })
       .toBuffer();
     return `data:image/png;base64,${resized.toString("base64")}`;
-  } catch {
+  } catch (err) {
+    log.warn("Falha ao processar logomarca para renderização", {
+      logoPath,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return null;
   }
 }

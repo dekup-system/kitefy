@@ -164,14 +164,17 @@ describe("Sistema de créditos atômico", () => {
     expect(totalRunCreditCost("geo_article", true)).toBe(5);
   });
 
-  it("buildWeeklyIdeas gera 3 pautas determinísticas sem chamadas externas", () => {
+  it("buildWeeklyIdeas gera 6 pautas determinísticas sem chamadas externas", () => {
     const ideas = buildWeeklyIdeas({
       brand_name: "Clínica Aurora",
       entity_facts: [{ claim: "Atendimento preventivo em três etapas" }],
     });
-    expect(ideas).toHaveLength(3);
+    expect(ideas).toHaveLength(6);
     expect(ideas[0]?.assetType).toBe("typo_carousel");
     expect(ideas[1]?.assetType).toBe("short_script_kit");
     expect(ideas[2]?.assetType).toBe("single_creative");
+    expect(ideas[3]?.assetType).toBe("hybrid_carousel");
+    expect(ideas[4]?.assetType).toBe("geo_article");
+    expect(ideas[5]?.assetType).toBe("lp_copy");
   });
 });

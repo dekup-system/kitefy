@@ -19,6 +19,7 @@ interface BrandOption {
   brand_name: string;
   icp_description?: string | null;
   entity_facts?: { claim: string }[];
+  knowledge_highlights?: string[];
 }
 
 /** Atalhos para quem não sabe escrever o briefing: preenchem o objetivo. */
@@ -195,12 +196,17 @@ export function NewRunForm({
       ) : null}
 
       {weeklyIdeas.length > 0 ? (
-        <div className="space-y-2.5 rounded-xl border border-border bg-muted/30 p-4">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            <Lightbulb className="size-3.5 text-foreground" aria-hidden="true" />
-            Sem ideia hoje? Clique em uma sugestão pronta para {currentBrand?.brand_name}:
+        <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <Lightbulb className="size-3.5 text-foreground" aria-hidden="true" />
+              Sugestões geradas a partir do estudo de {currentBrand?.brand_name}:
+            </div>
+            <span className="text-[11px] text-muted-foreground">
+              Baseadas no ICP, diferenciais e páginas lidas do site
+            </span>
           </div>
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             {weeklyIdeas.map((idea) => (
               <button
                 key={idea.id}
@@ -210,10 +216,13 @@ export function NewRunForm({
                   setObjective(idea.objective);
                   setProduct(idea.productInput);
                 }}
-                className="flex flex-col justify-between gap-1.5 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-foreground/40 hover:bg-accent/50"
+                className="flex flex-col justify-between gap-2 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-foreground/40 hover:bg-accent/50"
               >
                 <span className="text-[11px] font-medium text-muted-foreground">{idea.badge}</span>
                 <span className="text-xs font-semibold leading-snug text-foreground">{idea.title}</span>
+                <span className="line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+                  {idea.objective}
+                </span>
               </button>
             ))}
           </div>

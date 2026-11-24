@@ -69,6 +69,7 @@ export async function saveVerificationTokenAction(
 
   revalidatePath("/google");
   revalidatePath("/settings/brand");
+  revalidatePath("/app");
 
   return {
     notice: token.token

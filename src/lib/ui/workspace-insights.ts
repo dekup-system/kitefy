@@ -20,7 +20,15 @@ export interface BrandCompletenessInput {
   brand_name: string;
   website_url?: string | null;
   icp_description?: string | null;
-  tone_of_voice?: { formality?: string; energy?: string; avoid?: string[] } | null;
+  tone_of_voice?: {
+    archetype?: string;
+    descriptors?: string[];
+    avoid?: string[];
+    reading_level?: string;
+    exemplars?: string[];
+    formality?: string;
+    energy?: string;
+  } | null;
   visual_tokens?: { logo_path?: string; primary?: string; accent?: string } | null;
   entity_facts?: { claim: string; source_url?: string | null }[] | null;
   google_verification_token?: string | null;
@@ -72,7 +80,15 @@ export function computeBrandCompleteness(brand: BrandCompletenessInput): BrandCo
     {
       key: "voice",
       label: "Tom de voz configurado",
-      done: Boolean(brand.tone_of_voice?.formality || brand.tone_of_voice?.energy),
+      done: Boolean(
+        brand.tone_of_voice?.archetype?.trim() ||
+          (brand.tone_of_voice?.descriptors && brand.tone_of_voice.descriptors.length > 0) ||
+          (brand.tone_of_voice?.avoid && brand.tone_of_voice.avoid.length > 0) ||
+          brand.tone_of_voice?.reading_level?.trim() ||
+          (brand.tone_of_voice?.exemplars && brand.tone_of_voice.exemplars.length > 0) ||
+          brand.tone_of_voice?.formality ||
+          brand.tone_of_voice?.energy,
+      ),
       href: brandHref,
       weight: 15,
     },

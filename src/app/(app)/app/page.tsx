@@ -134,7 +134,7 @@ export default async function DashboardPage() {
         brand_name: primaryBrand.brand_name,
         icp_description: primaryBrand.icp_description,
         entity_facts: primaryBrand.entity_facts ?? undefined,
-      })
+      }).slice(0, 3)
     : [];
 
   const nextAction = resolveNextBestAction({
