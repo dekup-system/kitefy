@@ -65,6 +65,8 @@ export interface RenderCarouselInput {
   output?: RenderOutput;
   /** 1-100 (padrão 92). Só tem efeito em `output: "jpeg"`. */
   quality?: number;
+  /** Logomarca real da marca embutida como data URL PNG (opcional). */
+  brandLogoDataUrl?: string | null;
 }
 
 export interface RenderSingleCreativeInput {
@@ -81,6 +83,8 @@ export interface RenderSingleCreativeInput {
   imageUrl?: string | null;
   /** Sinaliza que o conteúdo foi planejado com imagem de IA. */
   hasAiImagery?: boolean;
+  /** Logomarca real da marca embutida como data URL PNG (opcional). */
+  brandLogoDataUrl?: string | null;
 }
 
 const DEFAULT_JPEG_QUALITY = 92;
@@ -382,6 +386,7 @@ export async function renderCarousel(input: RenderCarouselInput): Promise<Render
       width: dimensions.width,
       height: dimensions.height,
       imageDataUrl,
+      brandLogoDataUrl: input.brandLogoDataUrl ?? null,
     };
 
     const element = renderSlideTemplate(resolvedLayout, templateInput);
@@ -444,6 +449,7 @@ export async function renderSingleCreative(input: RenderSingleCreativeInput): Pr
     width: dimensions.width,
     height: dimensions.height,
     imageDataUrl,
+    brandLogoDataUrl: input.brandLogoDataUrl ?? null,
   };
 
   const asset = await produceAsset({

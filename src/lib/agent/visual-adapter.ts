@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import type { AssetType, BrandContext, ContentPayload, VisualTokens } from "@/types/domain";
 import type { RenderFormat } from "@/lib/visual/render";
 import { createLogger } from "@/lib/logger";
@@ -45,6 +46,24 @@ function needsVisual(assetType: AssetType): boolean {
   );
 }
 
+async function loadBrandLogoDataUrl(logoPath: string | undefined): Promise<string | null> {
+  if (!logoPath || !logoPath.trim()) return null;
+  try {
+    const supabase = createSupabaseAdminClient();
+    const bucket = getServerEnv().SUPABASE_STORAGE_BUCKET;
+    const { data, error } = await supabase.storage.from(bucket).download(logoPath);
+    if (error || !data) return null;
+    const raw = Buffer.from(await data.arrayBuffer());
+    const resized = await sharp(raw, { failOn: "error" })
+      .resize(160, 48, { fit: "inside", withoutEnlargement: true })
+      .png({ compressionLevel: 9 })
+      .toBuffer();
+    return `data:image/png;base64,${resized.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<RenderVisualResult> {
   if (!needsVisual(input.assetType)) {
     return { paths: [], hasAiImagery: false, warnings: [] };
@@ -53,6 +72,7 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
   const tokens: VisualTokens = input.brand.visual_tokens ?? {};
   const warnings: string[] = [];
   const format: RenderFormat = input.format ?? "4:5";
+  const brandLogoDataUrl = await loadBrandLogoDataUrl(tokens.logo_path);
 
   let assets: RenderedAsset[] = [];
   let hasAiImagery = false;
@@ -71,6 +91,7 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
       output: "png",
       imageUrl: null,
       hasAiImagery,
+      brandLogoDataUrl,
     });
     assets = [...rendered.assets];
     warnings.push(...rendered.warnings);
@@ -82,6 +103,7 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
       tokens,
       format,
       output: "png",
+      brandLogoDataUrl,
     });
     assets = [...rendered.assets];
     warnings.push(...rendered.warnings);
