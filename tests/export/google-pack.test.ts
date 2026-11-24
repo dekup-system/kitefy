@@ -223,4 +223,14 @@ describe("buildGooglePack", () => {
       }),
     ).toThrow(/Token do Search Console inválido/);
   });
+
+  it("inclui arquivo HTML de verificação no ZIP quando o usuário informa google*.html", () => {
+    const file = buildGooglePack({
+      brand: { name: "Clínica Aurora", websiteUrl: "https://aurora.com.br" },
+      verificationToken: "google-site-verification: google5dda2a5b17e98494.html",
+      generatedAt: GENERATED_AT,
+    });
+
+    expect(file.buffer.includes(Buffer.from("google5dda2a5b17e98494.html"))).toBe(true);
+  });
 });

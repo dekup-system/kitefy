@@ -49,22 +49,38 @@ export interface BuildGooglePackInput {
 }
 
 const TOKEN_PATTERN = /^[A-Za-z0-9._-]{1,200}$/;
+const HTML_VERIFICATION_FILE_PATTERN = /^google[a-z0-9]{8,40}\.html$/i;
 
 export type VerificationTokenParse =
   | { ok: true; token: string | null }
   | { ok: false; error: string };
 
+/** Identifica se o valor salvo é o nome do arquivo HTML do Search Console (ex.: google5dda...html). */
+export function isHtmlVerificationFile(token: string | null | undefined): boolean {
+  return typeof token === "string" && HTML_VERIFICATION_FILE_PATTERN.test(token.trim());
+}
+
 /**
- * Normaliza o token do Search Console. Aceita:
- *  - o token puro (`abcDEF123...`);
- *  - `google-site-verification=abc...`;
- *  - a meta tag inteira colada (`<meta name="google-site-verification" content="..." />`).
+ * Normaliza a verificação do Search Console. Aceita os 4 formatos reais do Google:
+ *  - arquivo HTML (`google5dda2a5b17e98494.html`) ou conteúdo (`google-site-verification: google5dda...html`);
+ *  - a meta tag inteira colada (`<meta name="google-site-verification" content="..." />`);
+ *  - registro TXT (`google-site-verification=abc...`);
+ *  - o token puro (`abcDEF123...`).
  */
 export function parseVerificationToken(raw: string | null | undefined): VerificationTokenParse {
   if (raw === null || raw === undefined) return { ok: true, token: null };
 
   let value = String(raw).trim();
   if (value.length === 0) return { ok: true, token: null };
+
+  const htmlFileMatch = /google-site-verification\s*:\s*(google[a-z0-9]{8,40}\.html)/i.exec(value);
+  if (htmlFileMatch?.[1]) {
+    return { ok: true, token: htmlFileMatch[1].trim() };
+  }
+
+  if (HTML_VERIFICATION_FILE_PATTERN.test(value)) {
+    return { ok: true, token: value };
+  }
 
   const metaMatch = /content\s*=\s*["']([^"']+)["']/i.exec(value);
   if (metaMatch?.[1]) {
@@ -77,7 +93,7 @@ export function parseVerificationToken(raw: string | null | undefined): Verifica
     return {
       ok: false,
       error:
-        "Token do Search Console inválido. Cole apenas o valor de content= (letras, números, ponto, hífen ou sublinhado).",
+        "Token do Search Console inválido. Cole o nome do arquivo HTML (ex.: google5dda….html), a tag <meta … /> inteira ou o código de verificação.",
     };
   }
 
@@ -360,7 +376,7 @@ export function buildIndexHtml(input: {
   <meta name="twitter:title" content="${escapeHtml(name)}" />
   <meta name="twitter:description" content="${escapeHtml(description)}" />
   <meta name="twitter:image" content="${escapeHtml(logoUrl)}" />${
-    token?.token
+    token?.token && !isHtmlVerificationFile(token.token)
       ? `\n  <meta name="google-site-verification" content="${escapeHtml(token.token)}" />`
       : ""
   }
@@ -470,6 +486,14 @@ export function buildGooglePack(input: BuildGooglePackInput): ExportFile {
     { name: "robots.txt", data: Buffer.from(robots, "utf8"), compress: true },
     { name: "LEIA-ME.txt", data: Buffer.from(readme, "utf8"), compress: true },
   ];
+
+  if (tokenResult.token && isHtmlVerificationFile(tokenResult.token)) {
+    entries.push({
+      name: tokenResult.token,
+      data: Buffer.from(`google-site-verification: ${tokenResult.token}\n`, "utf8"),
+      compress: true,
+    });
+  }
 
   return {
     fileName: `pacote-google-${safeFileStem(brandName, "marca")}.zip`,

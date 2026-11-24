@@ -30,8 +30,8 @@ export function GoogleTokenForm({
       <input type="hidden" name="brandId" value={brandId} />
       <Field
         htmlFor="gscToken"
-        label="Token do Search Console"
-        hint={'Pode colar o token ou a meta tag <meta name="google-site-verification" … /> inteira.'}
+        label="Arquivo HTML ou tag de verificação (opcional)"
+        hint="Aceita o nome do arquivo (ex.: google5dda….html), a tag <meta … /> inteira ou o código google-site-verification=…"
       >
         <Input
           id="gscToken"
@@ -40,7 +40,7 @@ export function GoogleTokenForm({
           maxLength={500}
           autoComplete="off"
           spellCheck={false}
-          placeholder="ex.: AbC123…"
+          placeholder="ex.: google5dda2a5b17e98494.html ou <meta name=… />"
           disabled={pending}
         />
       </Field>

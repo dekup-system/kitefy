@@ -250,24 +250,43 @@ export default async function GooglePackPage({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-sm">
                     <SearchCheck className="size-4" aria-hidden="true" />
-                    Verificação do Google
+                    Verificação do Google Search Console
                   </CardTitle>
                   <CardDescription>
-                    Opcional. O token entra como <code className="font-mono">google-site-verification</code>{" "}
-                    no index.html gerado.
+                    Opcional. Se seu domínio já foi verificado via DNS no Search Console, você pode
+                    deixar em branco e apenas baixar o ZIP.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   {selected ? (
                     <GoogleTokenForm
                       brandId={selected.id}
                       token={selected.google_verification_token}
                     />
                   ) : null}
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    No Search Console: Configurações → Verificação de propriedade → tag HTML. Cole aqui
-                    o valor de <code className="font-mono">content</code> ou a tag inteira.
-                  </p>
+                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground">
+                    <p className="font-semibold text-foreground">Onde encontrar no Search Console:</p>
+                    <ol className="list-decimal space-y-1.5 pl-4">
+                      <li>
+                        Ao adicionar sua propriedade, escolha{" "}
+                        <strong className="text-foreground">Prefixo do URL</strong> (ex.:{" "}
+                        <code className="font-mono">https://www.seusite.com.br</code>).{" "}
+                        <em>(A opção &ldquo;Domínio&rdquo; só mostra registro TXT DNS.)</em>
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Opção mais fácil (Arquivo HTML):</strong>{" "}
+                        copie apenas o nome do arquivo sugerido pelo Google (ex.:{" "}
+                        <code className="font-mono">google5dda….html</code>) e cole acima — o Kitefy
+                        já inclui esse arquivo pronto dentro do ZIP.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Alternativa (Tag HTML):</strong> abra{" "}
+                        <em>Outros métodos de verificação → Tag HTML</em> e cole a tag{" "}
+                        <code className="font-mono">&lt;meta … /&gt;</code> inteira — ela entra
+                        automaticamente no <code className="font-mono">index.html</code>.
+                      </li>
+                    </ol>
+                  </div>
                 </CardContent>
               </Card>
 
