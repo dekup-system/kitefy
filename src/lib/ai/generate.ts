@@ -185,6 +185,7 @@ export async function generateAssetContent(input: GenerateAssetInput): Promise<G
     selectedArm: input.selectedArm,
     explorationArms: input.explorationArms,
     serpInsights: input.serpInsights ?? null,
+    brand: input.brand,
   };
 
   const previousErrors: string[] = [...(input.complianceFeedback ?? [])];
