@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { BrandForm } from "./brand-form";
 import { BrandCreateForm } from "./brand-create-form";
 import { BrandLogoForm } from "./brand-logo-form";
+import { BrandDeleteForm } from "./brand-delete-form";
 import { AudienceStudyCard } from "./audience-study-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,19 +99,20 @@ export default async function BrandSettingsPage({
           {selected ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Perfil da marca</CardTitle>
+                <CardTitle className="text-sm">Perfil da marca · {selected.brand_name}</CardTitle>
                 <CardDescription>
                   {brands.length} de {plan.maxBrands} marca(s) do plano {plan.name}.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <BrandLogoForm
+                  key={`logo-${selected.id}`}
                   brandId={selected.id}
                   brandName={selected.brand_name}
                   logoUrl={logoUrl}
                   hasLogo={Boolean(logoPath)}
                 />
-                <BrandForm brand={selected} />
+                <BrandForm key={`form-${selected.id}`} brand={selected} />
 
                 <div className="border-t border-border pt-4">
                   <p className="text-sm font-medium">Pacote Google</p>
@@ -122,11 +124,19 @@ export default async function BrandSettingsPage({
                     <Link href={`/google?brand=${selected.id}`}>Abrir Pacote Google</Link>
                   </Button>
                 </div>
+
+                <div className="border-t border-border pt-4">
+                  <BrandDeleteForm
+                    key={`delete-${selected.id}`}
+                    brandId={selected.id}
+                    brandName={selected.brand_name}
+                  />
+                </div>
               </CardContent>
             </Card>
           ) : null}
 
-          {selected ? <AudienceStudyCard brand={selected} /> : null}
+          {selected ? <AudienceStudyCard key={`audience-${selected.id}`} brand={selected} /> : null}
 
           <Card>
             <CardHeader>

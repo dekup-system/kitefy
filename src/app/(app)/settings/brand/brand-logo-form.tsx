@@ -72,10 +72,10 @@ export function BrandLogoForm({
 
         <div className="min-w-0 flex-1 space-y-3">
           <div>
-            <p className="text-sm font-medium">Logomarca da marca</p>
+            <p className="text-sm font-medium">Logomarca de {brandName}</p>
             <p className="text-xs text-muted-foreground">
-              PNG, JPEG ou WebP até 2 MB. A imagem é otimizada para 1024px e fica em Storage
-              privado — aparece no painel por URL assinada.
+              PNG, JPEG ou WebP até 2 MB. A imagem é otimizada para 1024px e salva exclusivamente para{" "}
+              <strong className="text-foreground">{brandName}</strong> no Storage privado.
             </p>
           </div>
 

@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseServerClient, requireSessionContext } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getServerEnv } from "@/lib/env";
+import { extractBrandDraft } from "@/lib/onboarding/extract";
 import { PLANS } from "@/lib/pricing";
 import { createLogger } from "@/lib/logger";
 import { MAX_BRAND_LOGO_BYTES, validateBrandLogo } from "./logo";
@@ -99,16 +102,36 @@ export async function createBrandAction(
     };
   }
 
+  // Extrai automaticamente contexto inicial (site, ICP, tom de voz, cores e fatos)
+  // sempre que o usuário informa um site ou descrição ao criar nova marca.
+  let extractedIcp: string | null = parsed.data.icpDescription || null;
+  let extractedTone: Record<string, unknown> = {};
+  let extractedTokens: Record<string, unknown> = {};
+  let extractedFacts: { claim: string; source_url?: string }[] = [];
+
+  try {
+    const seedInput = parsed.data.websiteUrl || parsed.data.icpDescription || parsed.data.brandName;
+    const draft = await extractBrandDraft(seedInput);
+    extractedIcp = parsed.data.icpDescription || draft.icp_description || null;
+    extractedTone = (draft.tone_of_voice ?? {}) as Record<string, unknown>;
+    extractedTokens = (draft.visual_tokens ?? {}) as Record<string, unknown>;
+    extractedFacts = Array.isArray(draft.entity_facts) ? draft.entity_facts : [];
+  } catch (err) {
+    log.warn("Falha ao extrair dados automáticos da nova marca; seguindo com cadastro básico", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
+
   const inserted = await supabase
     .from("brand_profiles")
     .insert({
       tenant_id: session.tenantId,
       brand_name: parsed.data.brandName,
       website_url: parsed.data.websiteUrl || null,
-      icp_description: parsed.data.icpDescription || null,
-      tone_of_voice: {},
-      visual_tokens: {},
-      entity_facts: [],
+      icp_description: extractedIcp,
+      tone_of_voice: extractedTone,
+      visual_tokens: extractedTokens,
+      entity_facts: extractedFacts,
     })
     .select("id")
     .single<{ id: string }>();
@@ -119,11 +142,14 @@ export async function createBrandAction(
   }
 
   revalidatePath("/settings/brand");
+  revalidatePath("/studio/new");
   revalidatePath("/app");
 
   return {
     brandId: inserted.data.id,
-    notice: "Marca criada. Você já pode editar o tom de voz e enviar a logomarca.",
+    notice: parsed.data.websiteUrl
+      ? "Marca criada e preenchida automaticamente com os dados lidos do site! Confira abaixo."
+      : "Marca criada com perfil inicial preenchido. Você já pode ajustar os detalhes e enviar a logomarca.",
   };
 }
 
@@ -280,4 +306,100 @@ export async function removeBrandLogoAction(
   revalidatePath("/settings/brand");
   revalidatePath("/app");
   return { notice: "Logomarca removida." };
+}
+
+export interface BrandDeleteState {
+  error?: string;
+  deleted?: boolean;
+}
+
+/**
+ * Exclui definitivamente uma marca e TODO o histórico vinculado:
+ *  - campaigns_and_assets + hook_variants (ON DELETE CASCADE)
+ *  - knowledge_chunks, performance_telemetry, bandit_arm_stats (ON DELETE CASCADE)
+ *  - logomarca e imagens renderizadas no Storage privado (best-effort)
+ */
+export async function deleteBrandAction(
+  _prev: BrandDeleteState,
+  formData: FormData,
+): Promise<BrandDeleteState> {
+  const session = await requireSessionContext();
+
+  if (!isEditor(session.role)) {
+    return { error: "Seu perfil não tem permissão para excluir marcas." };
+  }
+
+  const parsedBrand = brandIdSchema.safeParse(formData.get("brandId"));
+  if (!parsedBrand.success) {
+    return { error: "Marca inválida." };
+  }
+
+  const brandId = parsedBrand.data;
+  const supabase = await createSupabaseServerClient();
+
+  const [brandQuery, assetsQuery] = await Promise.all([
+    supabase
+      .from("brand_profiles")
+      .select("id, visual_tokens")
+      .eq("id", brandId)
+      .eq("tenant_id", session.tenantId)
+      .maybeSingle<{ id: string; visual_tokens: VisualTokens | null }>(),
+    supabase
+      .from("campaigns_and_assets")
+      .select("visual_urls")
+      .eq("brand_id", brandId)
+      .eq("tenant_id", session.tenantId),
+  ]);
+
+  if (brandQuery.error || !brandQuery.data) {
+    return { error: "Marca não encontrada nesta conta." };
+  }
+
+  const storagePathsToDelete: string[] = [];
+  const logoPath = brandQuery.data.visual_tokens?.logo_path;
+  if (typeof logoPath === "string" && logoPath.trim().length > 0) {
+    storagePathsToDelete.push(logoPath.trim());
+  }
+  for (const row of (assetsQuery.data ?? []) as { visual_urls?: string[] | null }[]) {
+    for (const p of row.visual_urls ?? []) {
+      if (typeof p === "string" && p.trim().length > 0) {
+        storagePathsToDelete.push(p.trim());
+      }
+    }
+  }
+
+  const del = await supabase
+    .from("brand_profiles")
+    .delete()
+    .eq("id", brandId)
+    .eq("tenant_id", session.tenantId);
+
+  if (del.error) {
+    log.error("Falha ao excluir marca", { brandId, message: del.error.message });
+    return { error: `Não foi possível excluir a marca agora: ${del.error.message}` };
+  }
+
+  // Limpeza best-effort no Storage privado (não bloqueia exclusão se o arquivo já não existir).
+  if (storagePathsToDelete.length > 0) {
+    try {
+      const admin = createSupabaseAdminClient();
+      const bucket = getServerEnv().SUPABASE_STORAGE_BUCKET;
+      await admin.storage.from(bucket).remove(storagePathsToDelete);
+    } catch (err) {
+      log.warn("Falha na limpeza de arquivos do Storage após exclusão da marca", {
+        brandId,
+        count: storagePathsToDelete.length,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  revalidatePath("/settings/brand");
+  revalidatePath("/app");
+  revalidatePath("/campaigns");
+  revalidatePath("/studio/new");
+  revalidatePath("/telemetry");
+  revalidatePath("/google");
+
+  return { deleted: true };
 }
