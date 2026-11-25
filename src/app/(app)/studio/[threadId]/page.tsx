@@ -25,7 +25,7 @@ import { readStudioRun, runBelongsToTenant } from "@/lib/agent/runner";
 import { decideStudioRunAction, markAssetPostedAction } from "@/lib/studio/actions";
 import { recordQuickFeedbackAction } from "@/lib/telemetry/actions";
 import { signVisualPaths } from "@/lib/agent/visual-adapter";
-import { buildContentMarkdown } from "@/lib/export/pack";
+import { buildCleanCopyText } from "@/lib/export/pack";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
 import { serializeJsonLd } from "@/lib/geo/jsonld";
 import { CREDIT_COSTS } from "@/lib/pricing";
@@ -189,13 +189,8 @@ export default async function StudioPage({
     CREDIT_COSTS[(run?.view.assetType ?? "short_script_kit") as keyof typeof CREDIT_COSTS] ??
     1;
 
-  const markdown = draft
-    ? buildContentMarkdown(draft, {
-        title: run?.interrupt?.title ?? asset?.title ?? "Conteúdo",
-        brandName,
-        credits,
-        transparency: compliance?.requires_transparency_label ?? asset?.has_ai_imagery,
-      })
+  const cleanCopyText = draft
+    ? buildCleanCopyText(draft, run?.interrupt?.title ?? asset?.title ?? "Conteúdo")
     : "";
 
   const readyCaption = extractReadyCaption(draft);
@@ -655,12 +650,17 @@ export default async function StudioPage({
         </TabsList>
 
         <TabsContent value="conteudo" className="space-y-3">
-          {markdown ? (
+          {cleanCopyText ? (
             <Card>
               <CardHeader className="flex-row items-center justify-between gap-2">
-                <CardTitle className="text-sm">Texto completo do conteúdo</CardTitle>
+                <div>
+                  <CardTitle className="text-sm">Texto pronto para copiar e colar</CardTitle>
+                  <CardDescription className="text-xs">
+                    Formatado em texto limpo, sem símbolos de código ou marcações de IA.
+                  </CardDescription>
+                </div>
                 <div className="flex items-center gap-2">
-                  <CopyButton value={markdown} label="Copiar tudo" size="sm" />
+                  <CopyButton value={cleanCopyText} label="Copiar tudo" size="sm" />
                   {approved && asset ? (
                     <Button asChild variant="outline" size="sm">
                       <a href={`/api/assets/${asset.id}/export?format=html`}>Baixar HTML</a>
@@ -669,9 +669,9 @@ export default async function StudioPage({
                 </div>
               </CardHeader>
               <CardContent>
-                <pre className="scrollbar-thin max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-sans text-sm leading-relaxed">
-                  {markdown}
-                </pre>
+                <div className="scrollbar-thin max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted/40 p-4 font-sans text-sm leading-relaxed text-foreground">
+                  {cleanCopyText}
+                </div>
               </CardContent>
             </Card>
           ) : (

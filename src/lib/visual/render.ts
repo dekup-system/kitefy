@@ -3,7 +3,7 @@ import satori from "satori";
 import sharp from "sharp";
 import type { ReactElement } from "react";
 
-import type { CarouselSlide, VisualTokens } from "@/types/domain";
+import type { CarouselSlide, VisualThemeId, VisualTokens } from "@/types/domain";
 import { assertSafePublicUrl } from "@/lib/crawl/site";
 
 import { getSatoriFonts } from "./fonts";
@@ -62,6 +62,7 @@ export interface RenderCarouselInput {
   tokens: VisualTokens | null;
   brandName: string;
   format: RenderFormat;
+  visualTheme?: VisualThemeId;
   output?: RenderOutput;
   /** 1-100 (padrão 92). Só tem efeito em `output: "jpeg"`. */
   quality?: number;
@@ -77,6 +78,7 @@ export interface RenderSingleCreativeInput {
   tokens: VisualTokens | null;
   brandName: string;
   format: RenderFormat;
+  visualTheme?: VisualThemeId;
   output?: RenderOutput;
   quality?: number;
   /** Imagem opcional (data URL ou http/https) composta como faixa de fundo. */
@@ -387,6 +389,7 @@ export async function renderCarousel(input: RenderCarouselInput): Promise<Render
       height: dimensions.height,
       imageDataUrl,
       brandLogoDataUrl: input.brandLogoDataUrl ?? null,
+      visualTheme: input.visualTheme ?? "editorial_classic",
     };
 
     const element = renderSlideTemplate(resolvedLayout, templateInput);

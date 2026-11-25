@@ -232,13 +232,36 @@ export interface MpWebhookEventRow {
 // JSONB tipado
 // ---------------------------------------------------------------------------
 
+export type AbepClass = "A" | "B1" | "B2" | "C1" | "C2" | "DE" | "misto";
+
+export type VisualThemeId =
+  | "editorial_classic"
+  | "magazine_split"
+  | "dark_impact"
+  | "swiss_minimal";
+
 export interface ToneOfVoice {
   archetype?: string;
   descriptors?: string[];
   avoid?: string[];
   reading_level?: string;
-  /** Exemplos de frases aprovadas pela marca. */
+  /** Exemplos de frases aprovadas pela marca (âncoras few-shot). */
   exemplars?: string[];
+  /** 4 Dimensões de Tom de Voz (Nielsen Norman Group, escala 1 a 10). */
+  formality?: number;
+  humor?: number;
+  irreverence?: number;
+  enthusiasm?: number;
+  /** DNA Estratégico da Marca (Kapferer / Mecanismo Único / Objeções). */
+  uvp?: string;
+  contrarian_thesis?: string;
+  objections?: string[];
+  /** Perfil socioeconômico brasileiro (Critério Brasil ABEP) + Jobs-to-be-Done. */
+  abep_class?: AbepClass;
+  jtbd_functional?: string;
+  jtbd_emotional?: string;
+  /** Preferência de direção de arte para carrosséis/posts ("auto" rotaciona entre os 4 temas). */
+  visual_style_preference?: "auto" | VisualThemeId;
 }
 
 /** Cores em hex e/ou OKLCH (o renderizador aceita ambos). */

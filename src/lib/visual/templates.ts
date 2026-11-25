@@ -1,6 +1,6 @@
 import { createElement, type CSSProperties, type ReactElement, type ReactNode } from "react";
 
-import type { CarouselSlide } from "@/types/domain";
+import type { CarouselSlide, VisualThemeId } from "@/types/domain";
 
 import { SATORI_FONT_FAMILY, SATORI_MONO_FAMILY } from "./fonts";
 import type { ResolvedVisualTokens } from "./tokens";
@@ -45,6 +45,8 @@ export interface SlideTemplateInput {
   imageDataUrl?: string | null;
   /** Logomarca real da marca embutida como data URL PNG (opcional). */
   brandLogoDataUrl?: string | null;
+  /** Tema visual escolhido pelo Orquestrador (4 composições distintas). */
+  visualTheme?: VisualThemeId;
 }
 
 export interface SingleCreativeTemplateInput {
@@ -58,6 +60,7 @@ export interface SingleCreativeTemplateInput {
   height: number;
   imageDataUrl?: string | null;
   brandLogoDataUrl?: string | null;
+  visualTheme?: VisualThemeId;
 }
 
 export type SlideTemplate = (input: SlideTemplateInput) => ReactElement;
@@ -71,6 +74,7 @@ interface SlideChrome {
   height: number;
   imageDataUrl?: string | null;
   brandLogoDataUrl?: string | null;
+  visualTheme?: VisualThemeId;
 }
 
 interface ComposeOptions {
@@ -94,6 +98,7 @@ function chromeFor(input: SlideTemplateInput): SlideChrome {
     height: input.height,
     imageDataUrl: input.imageDataUrl ?? null,
     brandLogoDataUrl: input.brandLogoDataUrl ?? null,
+    visualTheme: input.visualTheme ?? "editorial_classic",
   };
 }
 
@@ -488,6 +493,123 @@ function noImageSlide(chrome: SlideChrome, body: ReactElement, options: ComposeO
   const width = contentWidthFor(chrome.width);
   const showPage = options.showPage !== false;
   const stripeColor = options.topStripeColor ?? chrome.tokens.accent;
+  const theme: VisualThemeId = chrome.visualTheme ?? "editorial_classic";
+
+  const isForcedDark = theme === "dark_impact";
+  const resolvedDark = isForcedDark || Boolean(options.isDarkSurface);
+  const resolvedBg = isForcedDark
+    ? chrome.tokens.primary
+    : options.background ?? chrome.tokens.background;
+  const resolvedFooterColor = isForcedDark
+    ? chrome.tokens.textOnPrimary
+    : options.footerColor ?? chrome.tokens.mutedOnBackground;
+
+  const decorativeLayers: (ReactElement | null)[] =
+    theme === "magazine_split"
+      ? [
+          // Faixa vertical lateral forte (estilo revista editorial)
+          box({
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: 24,
+            height: chrome.height,
+            backgroundColor: stripeColor,
+          }),
+          // Numeração gigante em marca d'água no canto superior direito
+          chrome.index > 0
+            ? box(
+                {
+                  position: "absolute",
+                  top: 36,
+                  right: 52,
+                  display: "flex",
+                  fontFamily: chrome.tokens.fontHeading,
+                  fontSize: 220,
+                  fontWeight: 700,
+                  lineHeight: 0.9,
+                  color: resolvedDark ? "#FFFFFF" : chrome.tokens.primary,
+                  opacity: resolvedDark ? 0.08 : 0.06,
+                },
+                String(chrome.index).padStart(2, "0"),
+              )
+            : null,
+        ]
+      : theme === "dark_impact"
+        ? [
+            // Moldura interna luminosa de alto contraste
+            box({
+              position: "absolute",
+              top: 24,
+              left: 24,
+              width: chrome.width - 48,
+              height: chrome.height - 48,
+              borderRadius: 28,
+              borderWidth: 2,
+              borderStyle: "solid",
+              borderColor: chrome.tokens.accent,
+              opacity: 0.45,
+            }),
+            box({
+              position: "absolute",
+              bottom: -160,
+              left: -120,
+              width: 440,
+              height: 440,
+              borderRadius: 220,
+              backgroundColor: chrome.tokens.accent,
+              opacity: 0.16,
+            }),
+          ]
+        : theme === "swiss_minimal"
+          ? [
+              // Grid arquitetônico suíço: linhas estruturais finas sem blobs
+              box({
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: chrome.width,
+                height: 6,
+                backgroundColor: chrome.tokens.primary,
+              }),
+              box({
+                position: "absolute",
+                top: 44,
+                left: 44,
+                width: 18,
+                height: 18,
+                backgroundColor: chrome.tokens.accent,
+              }),
+              box({
+                position: "absolute",
+                top: 0,
+                left: 52,
+                width: 1,
+                height: chrome.height,
+                backgroundColor: resolvedDark ? "rgba(255,255,255,0.12)" : "rgba(24,19,49,0.08)",
+              }),
+            ]
+          : [
+              // Editorial Clássico: filete superior + círculo geométrico sutil
+              box({
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: chrome.width,
+                height: 10,
+                backgroundColor: stripeColor,
+              }),
+              box({
+                position: "absolute",
+                top: -140,
+                right: -140,
+                width: 420,
+                height: 420,
+                borderRadius: 210,
+                backgroundColor: chrome.tokens.accent,
+                opacity: resolvedDark ? 0.14 : 0.07,
+              }),
+            ];
 
   return box(
     {
@@ -499,30 +621,11 @@ function noImageSlide(chrome: SlideChrome, body: ReactElement, options: ComposeO
       boxSizing: "border-box",
       height: chrome.height,
       padding: SAFE_AREA,
-      backgroundColor: options.background ?? chrome.tokens.background,
+      backgroundColor: resolvedBg,
       overflow: "hidden",
     },
-    // Filete editorial superior de identidade
-    box({
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: chrome.width,
-      height: 10,
-      backgroundColor: stripeColor,
-    }),
-    // Elemento geométrico sutil de profundidade no canto superior direito
-    box({
-      position: "absolute",
-      top: -140,
-      right: -140,
-      width: 420,
-      height: 420,
-      borderRadius: 210,
-      backgroundColor: chrome.tokens.accent,
-      opacity: options.isDarkSurface ? 0.14 : 0.07,
-    }),
-    topBarElement(chrome, options),
+    ...decorativeLayers,
+    topBarElement(chrome, { ...options, isDarkSurface: resolvedDark, footerColor: resolvedFooterColor }),
     box(
       {
         display: "flex",
@@ -537,10 +640,10 @@ function noImageSlide(chrome: SlideChrome, body: ReactElement, options: ComposeO
       brandName: chrome.brandName,
       brandLogoDataUrl: chrome.brandLogoDataUrl,
       width,
-      color: options.footerColor ?? chrome.tokens.mutedOnBackground,
+      color: resolvedFooterColor,
       page: showPage && chrome.total > 0 ? `${chrome.index}/${chrome.total}` : undefined,
       swipeCue: options.swipeCue,
-      isDarkSurface: options.isDarkSurface,
+      isDarkSurface: resolvedDark,
     }),
   );
 }

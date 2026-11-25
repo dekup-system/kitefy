@@ -183,6 +183,170 @@ export function BrandForm({ brand }: { brand: BrandProfileRow }) {
         />
       </Field>
 
+      <div className="space-y-4 rounded-lg border border-border bg-muted/20 p-4">
+        <div>
+          <p className="text-sm font-medium">DNA Estratégico, Persona (ABEP / JTBD) &amp; Tom de Voz</p>
+          <p className="text-xs text-muted-foreground">
+            Dados cruzados automaticamente pelo Agente Orquestrador antes de cada geração para eliminar textos genéricos.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            htmlFor="uvp"
+            label="Mecanismo Único / Proposta de Valor"
+            hint="Como sua marca resolve diferente dos concorrentes?"
+          >
+            <Input
+              id="uvp"
+              name="uvp"
+              defaultValue={brand.tone_of_voice?.uvp ?? ""}
+              maxLength={400}
+              placeholder="Ex.: Protocolo próprio em 3 etapas sem contratos longos"
+            />
+          </Field>
+
+          <Field
+            htmlFor="contrarianThesis"
+            label="Tese Contrária / Mito que você combate"
+            hint="Contra qual prática comum do seu mercado você se posiciona?"
+          >
+            <Input
+              id="contrarianThesis"
+              name="contrarianThesis"
+              defaultValue={brand.tone_of_voice?.contrarian_thesis ?? ""}
+              maxLength={400}
+              placeholder="Ex.: Postar todo dia sem estratégia só queima alcance"
+            />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            htmlFor="abepClass"
+            label="Perfil Econômico do Público (Critério Brasil ABEP)"
+            hint="Calibra argumentos de valor e vocabulário brasileiro."
+          >
+            <select
+              id="abepClass"
+              name="abepClass"
+              defaultValue={brand.tone_of_voice?.abep_class ?? "misto"}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
+            >
+              <option value="misto">Público Amplo / Misto</option>
+              <option value="A">Classe A (Alta Renda / Curadoria &amp; Tempo)</option>
+              <option value="B1">Classe B1 (Média-Alta / Previsibilidade &amp; ROI)</option>
+              <option value="B2">Classe B2 (Média Consolidada / Custo-Benefício)</option>
+              <option value="C1">Classe C1 (Média Emergente / Praticidade Direta)</option>
+              <option value="C2">Classe C2 (Popular Consolidada / Economia Real)</option>
+              <option value="DE">Classes D-E (Essencial &amp; Acessível)</option>
+            </select>
+          </Field>
+
+          <Field
+            htmlFor="visualStylePreference"
+            label="Estilo Visual dos Carrosséis e Posts"
+            hint="No modo Automático, o estúdio varia entre os 4 temas editoriais."
+          >
+            <select
+              id="visualStylePreference"
+              name="visualStylePreference"
+              defaultValue={brand.tone_of_voice?.visual_style_preference ?? "auto"}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
+            >
+              <option value="auto">Automático (alterna entre os 4 estilos editoriais)</option>
+              <option value="editorial_classic">Editorial Clássico (capa escura + cards)</option>
+              <option value="magazine_split">Magazine Split (faixa lateral + número gigante)</option>
+              <option value="dark_impact">Dark Impacto (alto contraste escuro)</option>
+              <option value="swiss_minimal">Minimalista Suíço (grid preciso + respiro)</option>
+            </select>
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field htmlFor="jtbdFunctional" label="Job Funcional (o que o cliente quer resolver)">
+            <Input
+              id="jtbdFunctional"
+              name="jtbdFunctional"
+              defaultValue={brand.tone_of_voice?.jtbd_functional ?? ""}
+              maxLength={300}
+              placeholder="Ex.: Atrair clientes qualificados sem depender de indicação"
+            />
+          </Field>
+          <Field htmlFor="jtbdEmotional" label="Job Emocional (como quer se sentir)">
+            <Input
+              id="jtbdEmotional"
+              name="jtbdEmotional"
+              defaultValue={brand.tone_of_voice?.jtbd_emotional ?? ""}
+              maxLength={300}
+              placeholder="Ex.: Ter previsibilidade de agenda sem medo de desperdiçar verba"
+            />
+          </Field>
+        </div>
+
+        <Field
+          htmlFor="objectionsText"
+          label="Principais objeções dos clientes (1 por linha)"
+          hint="O estúdio antecipa e derruba essas objeções em carrosséis, roteiros e LPs."
+        >
+          <Textarea
+            id="objectionsText"
+            name="objectionsText"
+            defaultValue={(brand.tone_of_voice?.objections ?? []).join("\n")}
+            rows={2}
+            maxLength={1200}
+            placeholder={"Acho caro contratar agora\nJá tentei agência antes e não deu retorno"}
+          />
+        </Field>
+
+        <div className="grid gap-3 pt-1 sm:grid-cols-2">
+          <Field htmlFor="formality" label="Formal (1) ↔ Casual (10)">
+            <input
+              id="formality"
+              name="formality"
+              type="range"
+              min={1}
+              max={10}
+              defaultValue={brand.tone_of_voice?.formality ?? 6}
+              className="w-full accent-brand-navy"
+            />
+          </Field>
+          <Field htmlFor="humor" label="Sério (1) ↔ Bem-humorado (10)">
+            <input
+              id="humor"
+              name="humor"
+              type="range"
+              min={1}
+              max={10}
+              defaultValue={brand.tone_of_voice?.humor ?? 4}
+              className="w-full accent-brand-navy"
+            />
+          </Field>
+          <Field htmlFor="irreverence" label="Diplomático (1) ↔ Provocador (10)">
+            <input
+              id="irreverence"
+              name="irreverence"
+              type="range"
+              min={1}
+              max={10}
+              defaultValue={brand.tone_of_voice?.irreverence ?? 5}
+              className="w-full accent-brand-navy"
+            />
+          </Field>
+          <Field htmlFor="enthusiasm" label="Sóbrio (1) ↔ Vibrante (10)">
+            <input
+              id="enthusiasm"
+              name="enthusiasm"
+              type="range"
+              min={1}
+              max={10}
+              defaultValue={brand.tone_of_voice?.enthusiasm ?? 6}
+              className="w-full accent-brand-navy"
+            />
+          </Field>
+        </div>
+      </div>
+
       {state.error ? (
         <Alert variant="destructive">
           <AlertDescription>{state.error}</AlertDescription>

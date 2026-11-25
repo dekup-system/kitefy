@@ -10,6 +10,7 @@ import type {
 import type { OrganicStudioStateType, OrganicStudioUpdate } from "@/lib/agent/state";
 import { armKey, selectArms } from "@/lib/agent/bandit";
 import { generateAssetContent } from "@/lib/ai/generate";
+import { crossReferenceAdvertisingContext } from "@/lib/ai/marketing-knowledge";
 import { embedOne, toPgVector } from "@/lib/ai/embeddings";
 import { buildRetryFeedback, evaluateCompliance } from "@/lib/agent/compliance-adapter";
 import { renderAndUploadVisuals } from "@/lib/agent/visual-adapter";
@@ -178,6 +179,52 @@ export async function banditSelectorNode(
 }
 
 // ---------------------------------------------------------------------------
+// 3.5. strategyOrchestratorNode — Agente Orquestrador Científico (US$ 0)
+// ---------------------------------------------------------------------------
+
+export async function strategyOrchestratorNode(
+  state: OrganicStudioStateType,
+): Promise<OrganicStudioUpdate> {
+  if (!state.brandContext) throw new Error("brandContextNode não executou antes do orquestrador.");
+  if (!state.selectedArm) throw new Error("banditSelectorNode não executou antes do orquestrador.");
+
+  let recentAssetCount = 0;
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { count } = await supabase
+      .from("campaigns_and_assets")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", state.tenantId)
+      .eq("brand_id", state.brandId);
+    recentAssetCount = count ?? 0;
+  } catch {
+    recentAssetCount = 0;
+  }
+
+  const strategyBrief = crossReferenceAdvertisingContext({
+    assetType: state.assetType,
+    angleType: state.selectedArm.angle_type,
+    framework: state.selectedArm.framework,
+    objective: state.objective,
+    productInput: state.productInput,
+    brand: state.brandContext,
+    recentAssetCount,
+    seed: state.threadId,
+  });
+
+  log.info("Orquestração estratégica concluída", {
+    threadId: state.threadId,
+    visualTheme: strategyBrief.visualTheme,
+    segment: strategyBrief.audienceAnalysis.segment,
+    awarenessStage: strategyBrief.audienceAnalysis.awarenessStage,
+    elmRoute: strategyBrief.audienceAnalysis.elmRoute,
+    colorMood: strategyBrief.colorAnalysis.mood,
+  });
+
+  return { strategyBrief };
+}
+
+// ---------------------------------------------------------------------------
 // 4. contentGeneratorNode — roteia modelo e gera JSON validado
 // ---------------------------------------------------------------------------
 
@@ -281,6 +328,7 @@ export async function visualRenderNode(
       threadId: state.threadId,
       assetType: state.assetType,
       format: state.visualFormat ?? "4:5",
+      visualTheme: state.strategyBrief?.visualTheme,
       payload: state.draftPayload,
       brand: state.brandContext,
     });

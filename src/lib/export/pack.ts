@@ -109,6 +109,86 @@ export function buildContentMarkdown(
   return lines.join("\n");
 }
 
+/**
+ * Formatação limpa e editorial (sem `#`, `**`, `---`, crases nem rodapé técnico)
+ * pronta para copiar e colar direto no Instagram, WhatsApp, LinkedIn ou blog.
+ */
+export function buildCleanCopyText(payload: ContentPayload, title: string): string {
+  const cleanTitle = title.trim();
+  const lines: string[] = cleanTitle ? [cleanTitle, ""] : [];
+
+  switch (payload.kind) {
+    case "short_script_kit": {
+      lines.push("OPÇÕES DE ABERTURA (GANCHOS)", "");
+      payload.hooks.forEach((hook, index) => {
+        lines.push(`${index + 1}. ${hook.hook_text}`);
+      });
+      lines.push("", "ROTEIRO FALADO", "", payload.body.script);
+      lines.push("", "FECHAMENTO E CHAMADA PARA AÇÃO", "", payload.payoff);
+      if (payload.scene_guide.length > 0) {
+        lines.push("", "GUIA DE GRAVAÇÃO");
+        payload.scene_guide.forEach((scene) => {
+          lines.push(`Cena ${scene.scene}: ${scene.visual} | Texto na tela: "${scene.on_screen_text}"`);
+        });
+      }
+      lines.push("", "LEGENDA PRONTA PARA POSTAR", "", payload.caption.seo);
+      if (payload.caption.hashtags.length > 0) {
+        lines.push("", payload.caption.hashtags.join(" "));
+      }
+      break;
+    }
+    case "typo_carousel":
+    case "hybrid_carousel": {
+      payload.slides.forEach((slide) => {
+        lines.push(`Slide ${slide.index + 1} — ${slide.title}`, slide.body, "");
+      });
+      lines.push("LEGENDA PRONTA PARA POSTAR", "", payload.caption.seo);
+      if (payload.caption.hashtags.length > 0) {
+        lines.push("", payload.caption.hashtags.join(" "));
+      }
+      break;
+    }
+    case "single_creative": {
+      lines.push(payload.headline, payload.subheadline, "", payload.body, "", `Chamada para ação: ${payload.cta}`);
+      lines.push("", "LEGENDA PRONTA PARA POSTAR", "", payload.caption.seo);
+      if (payload.caption.hashtags.length > 0) {
+        lines.push("", payload.caption.hashtags.join(" "));
+      }
+      break;
+    }
+    case "lp_copy": {
+      lines.push(payload.hero.eyebrow, payload.hero.headline, payload.hero.subheadline, `Botão: ${payload.hero.cta}`, "");
+      lines.push(payload.problem.title.toUpperCase(), ...payload.problem.bullets.map((b) => `• ${b}`), "");
+      lines.push(payload.solution.title.toUpperCase(), ...payload.solution.bullets.map((b) => `• ${b}`), "");
+      lines.push(payload.proof.title.toUpperCase());
+      payload.proof.items.forEach((item) => lines.push(`• ${item.claim}${item.source ? ` (${item.source})` : ""}`));
+      lines.push("", "PERGUNTAS FREQUENTES");
+      payload.faq.forEach((item) => lines.push("", item.question, item.answer));
+      lines.push("", payload.final_cta.headline, `Botão: ${payload.final_cta.cta}`);
+      break;
+    }
+    case "geo_article": {
+      const geo = payload as GeoArticlePayload;
+      lines.push(geo.meta_description, "");
+      for (const section of geo.sections) {
+        lines.push(section.heading.toUpperCase(), "");
+        for (const block of section.blocks) {
+          lines.push(block.text, "");
+        }
+      }
+      if (geo.faq.length > 0) {
+        lines.push("PERGUNTAS FREQUENTES", "");
+        for (const item of geo.faq) {
+          lines.push(item.question, item.answer, "");
+        }
+      }
+      break;
+    }
+  }
+
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 interface FooterMeta {
   title: string;
   brandName: string;

@@ -9,6 +9,7 @@ import type {
   SerpInsights,
   TokenUsageEntry,
 } from "@/types/domain";
+import type { AdvertisingCrossReference } from "@/lib/ai/marketing-knowledge";
 
 /**
  * Estado do grafo OrganicStudio.
@@ -71,6 +72,9 @@ export const OrganicStudioState = Annotation.Root({
   // --- Bandit ----------------------------------------------------------------
   selectedArm: Annotation<ArmSelection | null>,
   explorationArms: Annotation<ArmSelection[]>,
+
+  // --- Orquestrador Estratégico (cruzamento científico pré-geração) -----------
+  strategyBrief: Annotation<AdvertisingCrossReference | null>,
 
   // --- Geração ---------------------------------------------------------------
   draftPayload: Annotation<ContentPayload | null>,

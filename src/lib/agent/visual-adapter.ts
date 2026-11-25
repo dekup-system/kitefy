@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import type { AssetType, BrandContext, ContentPayload, VisualTokens } from "@/types/domain";
+import type { AssetType, BrandContext, ContentPayload, VisualThemeId, VisualTokens } from "@/types/domain";
 import type { RenderFormat } from "@/lib/visual/render";
 import { createLogger } from "@/lib/logger";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -10,6 +10,7 @@ import {
   uploadRenderedAssets,
   type RenderedAsset,
 } from "@/lib/visual";
+import { generateEditorialImageDataUrl, isLiveImageGenerationEnabled } from "@/lib/visual/image-gen";
 import type { CarouselOutput, SingleCreativeOutput } from "@/lib/ai/content-schemas";
 
 /**
@@ -28,6 +29,8 @@ export interface RenderVisualInput {
   assetType: AssetType;
   /** Formato dos slides: feed (4:5) ou story/reels (9:16). */
   format?: RenderFormat;
+  /** Tema visual escolhido pelo Orquestrador Estratégico (4 estilos distintos). */
+  visualTheme?: VisualThemeId;
   payload: ContentPayload;
   brand: BrandContext;
 }
@@ -94,7 +97,15 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
 
   if (input.assetType === "single_creative") {
     const payload = input.payload as SingleCreativeOutput;
-    hasAiImagery = Boolean(payload.has_ai_imagery);
+    const generatedUrl =
+      payload.image_prompt && isLiveImageGenerationEnabled()
+        ? await generateEditorialImageDataUrl({
+            prompt: payload.image_prompt,
+            aspectRatio: "4:3",
+            brandPrimaryHex: tokens.primary,
+          })
+        : null;
+    hasAiImagery = Boolean(generatedUrl);
     const rendered = await renderSingleCreative({
       headline: payload.headline,
       subheadline: payload.subheadline,
@@ -103,8 +114,9 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
       brandName: input.brand.brand_name,
       tokens,
       format,
+      visualTheme: input.visualTheme,
       output: "png",
-      imageUrl: null,
+      imageUrl: generatedUrl,
       hasAiImagery,
       brandLogoDataUrl,
     });
@@ -112,11 +124,33 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
     warnings.push(...rendered.warnings);
   } else {
     const payload = input.payload as CarouselOutput;
+    let slides = payload.slides;
+
+    // Carrossel híbrido: gera no máximo 2 imagens editoriais (teto de custo)
+    // quando IMAGE_PROVIDER=google_nano_banana está ativo.
+    if (input.assetType === "hybrid_carousel" && isLiveImageGenerationEnabled()) {
+      let generatedCount = 0;
+      slides = await Promise.all(
+        payload.slides.map(async (slide, idx) => {
+          const wantsImage = Boolean(slide.has_ai_imagery) || idx === 0;
+          if (!wantsImage || generatedCount >= 2 || slide.image_url) return slide;
+          generatedCount += 1;
+          const img = await generateEditorialImageDataUrl({
+            prompt: `${slide.title}. ${slide.body}. Editorial visual for ${input.brand.brand_name}`,
+            aspectRatio: "4:3",
+            brandPrimaryHex: tokens.primary,
+          });
+          return img ? { ...slide, image_url: img, has_ai_imagery: true } : slide;
+        }),
+      );
+    }
+
     const rendered = await renderCarousel({
-      slides: payload.slides,
+      slides,
       brandName: input.brand.brand_name,
       tokens,
       format,
+      visualTheme: input.visualTheme,
       output: "png",
       brandLogoDataUrl,
     });

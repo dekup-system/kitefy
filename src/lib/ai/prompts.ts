@@ -2,6 +2,7 @@ import type { AssetType, BrandContext, Framework, SerpInsights, AngleType } from
 import {
   analyzeBrandColorPalette,
   buildAdvertisingSynthesisBlock,
+  buildToneVectorDirective,
 } from "@/lib/ai/marketing-knowledge";
 
 /**
@@ -50,6 +51,7 @@ export function buildBrandContextBlock(brand: BrandContext): string {
     .join("\n\n");
 
   const colorProfile = analyzeBrandColorPalette(brand.visual_tokens);
+  const dnaVector = buildToneVectorDirective(tone);
 
   return [
     `# CONTEXTO DE MARCA — ${BRAND_CONTEXT_VERSION}`,
@@ -58,6 +60,7 @@ export function buildBrandContextBlock(brand: BrandContext): string {
     brand.icp_description ? `Público-alvo (ICP): ${brand.icp_description}` : "Público-alvo (ICP): não informado",
     `Identidade cromática (${colorProfile.mood}): primária ${colorProfile.primaryHex}, acento ${colorProfile.accentHex}, tema ${colorProfile.theme}. ${colorProfile.semanticDirective}`,
     `Tom de voz: ${tone.archetype ?? "consultivo e direto"}; descritores: ${(tone.descriptors ?? []).join(", ") || "claro, prático, confiável"}; evitar: ${(tone.avoid ?? []).join(", ") || "clichês e termos genéricos"}.`,
+    dnaVector ? `DNA Estratégico & Vetor ToV: ${dnaVector}` : "",
     tone.reading_level ? `Nível de leitura: ${tone.reading_level}` : "",
     (tone.exemplars ?? []).length > 0
       ? `Frases aprovadas da marca (espelhe este ritmo e vocabulário):\n${(tone.exemplars ?? []).map((ex) => `- ${ex}`).join("\n")}`

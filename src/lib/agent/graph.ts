@@ -13,6 +13,7 @@ import {
   routeAfterApproval,
   routeAfterCompliance,
   shouldResearch,
+  strategyOrchestratorNode,
   visualRenderNode,
 } from "@/lib/agent/nodes";
 import { getCheckpointer } from "@/lib/agent/checkpointer";
@@ -36,6 +37,7 @@ export function buildStudioGraph(checkpointer?: BaseCheckpointSaver) {
     .addNode("loadBrandContext", brandContextNode)
     .addNode("researchSerp", researchSeoGeoNode)
     .addNode("selectArms", banditSelectorNode)
+    .addNode("orchestrateStrategy", strategyOrchestratorNode)
     .addNode("generateContent", contentGeneratorNode)
     .addNode("checkCompliance", complianceGuardrailNode)
     .addNode("renderVisuals", visualRenderNode)
@@ -48,7 +50,8 @@ export function buildStudioGraph(checkpointer?: BaseCheckpointSaver) {
       bandit: "selectArms",
     })
     .addEdge("researchSerp", "selectArms")
-    .addEdge("selectArms", "generateContent")
+    .addEdge("selectArms", "orchestrateStrategy")
+    .addEdge("orchestrateStrategy", "generateContent")
     .addEdge("generateContent", "checkCompliance")
     .addConditionalEdges("checkCompliance", routeAfterCompliance, {
       renderVisuals: "renderVisuals",

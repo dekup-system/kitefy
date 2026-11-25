@@ -4,10 +4,13 @@ import {
   MARKETING_REFERENCE_LIBRARY,
   analyzeBrandColorPalette,
   buildAdvertisingSynthesisBlock,
+  buildToneVectorDirective,
   classifyAudienceAndAwareness,
   crossReferenceAdvertisingContext,
+  selectVisualTheme,
   type KnowledgePillarId,
 } from "@/lib/ai/marketing-knowledge";
+import { buildCleanCopyText } from "@/lib/export/pack";
 import { buildBrandContextBlock, buildUserPrompt } from "@/lib/ai/prompts";
 import type { BrandContext } from "@/types/domain";
 
@@ -114,13 +117,13 @@ describe("marketing-knowledge library", () => {
       productInput: "Diagnóstico Tributário Atlas",
       brand: SAMPLE_B2B_BRAND,
     });
-    expect(synthesis).toContain("MATRIZ CRUZADA DE REFERÊNCIAS PUBLICITÁRIAS");
+    expect(synthesis).toContain("MATRIZ CIENTÍFICA CRUZADA DE REFERÊNCIAS PUBLICITÁRIAS");
     expect(synthesis).toContain("1. Marketing Digital");
     expect(synthesis).toContain("2. Psicologia das Cores");
-    expect(synthesis).toContain("3. Comunicação Social & Publicidade");
+    expect(synthesis).toContain("3. Comunicação Social");
     expect(synthesis).toContain("4. Design & Diagramação Profissional");
-    expect(synthesis).toContain("5. Público-Alvo & Consumo");
-    expect(synthesis).toContain("6. Linguagem & Persuasão Ética");
+    expect(synthesis).toContain("5. Público-Alvo");
+    expect(synthesis).toContain("6. Linguagem");
 
     const brandBlock = buildBrandContextBlock(SAMPLE_B2B_BRAND);
     expect(brandBlock).toContain("Identidade cromática (fria_confianca)");
@@ -134,7 +137,60 @@ describe("marketing-knowledge library", () => {
       serpInsights: null,
       brand: SAMPLE_B2B_BRAND,
     });
-    expect(userPrompt).toContain("MATRIZ CRUZADA DE REFERÊNCIAS PUBLICITÁRIAS");
+    expect(userPrompt).toContain("MATRIZ CIENTÍFICA CRUZADA DE REFERÊNCIAS PUBLICITÁRIAS");
     expect(userPrompt).toContain("#1D4ED8");
+  });
+
+  it("aplica ELM, STEPPS, Critério Brasil (ABEP), vetor NN/g ToV e rotação de estilos visuais", () => {
+    const vector = buildToneVectorDirective({
+      formality: 3,
+      humor: 2,
+      irreverence: 7,
+      enthusiasm: 5,
+      uvp: "Diagnóstico tributário em 48h",
+      contrarian_thesis: "Pagar imposto sem planejamento é erro de gestão",
+      objections: ["Acho caro trocar de contador"],
+      abep_class: "B1",
+      jtbd_functional: "Reduzir carga tributária com segurança jurídica",
+    });
+
+    expect(vector).toContain("Formalidade 3/10");
+    expect(vector).toContain("Diagnóstico tributário em 48h");
+    expect(vector).toContain("Pagar imposto sem planejamento");
+
+    const themeFixed = selectVisualTheme({ preference: "magazine_split", seed: "abc" });
+    expect(themeFixed).toBe("magazine_split");
+
+    const themesAuto = new Set([
+      selectVisualTheme({ preference: "auto", seed: "thread-1", recentCount: 0 }),
+      selectVisualTheme({ preference: "auto", seed: "thread-2", recentCount: 1 }),
+      selectVisualTheme({ preference: "auto", seed: "thread-3", recentCount: 2 }),
+      selectVisualTheme({ preference: "auto", seed: "thread-4", recentCount: 3 }),
+    ]);
+    expect(themesAuto.size).toBeGreaterThanOrEqual(2);
+  });
+
+  it("buildCleanCopyText gera texto pronto para copiar sem símbolos de Markdown/IA", () => {
+    const clean = buildCleanCopyText(
+      {
+        kind: "typo_carousel",
+        slides: [
+          { index: 0, layout: "cover", title: "Capa direta", body: "Subtítulo claro do nicho." },
+          { index: 1, layout: "cta", title: "Próximo passo", body: "Chame no WhatsApp para avaliar." },
+        ],
+        caption: {
+          seo: "Legenda limpa pronta para o Instagram.",
+          hashtags: ["#marketing", "#gestao"],
+        },
+        design_notes: ["Contraste alto"],
+      },
+      "Carrossel de Teste",
+    );
+
+    expect(clean).toContain("Slide 1 — Capa direta");
+    expect(clean).toContain("Legenda limpa pronta para o Instagram.");
+    expect(clean).not.toContain("##");
+    expect(clean).not.toContain("**");
+    expect(clean).not.toContain("---");
   });
 });

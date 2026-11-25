@@ -1,12 +1,27 @@
-import type { AngleType, AssetType, BrandContext, Framework, VisualTokens } from "@/types/domain";
+import type {
+  AbepClass,
+  AngleType,
+  AssetType,
+  BrandContext,
+  Framework,
+  ToneOfVoice,
+  VisualThemeId,
+  VisualTokens,
+} from "@/types/domain";
 
 /**
- * Biblioteca de Referências Publicitárias & Motor de Cruzamento Pré-Geração.
+ * Biblioteca Científica de Referências Publicitárias & Motor de Cruzamento v2.
  *
- * Reúne os 6 pilares solicitados — com fontes verificadas — e cruza todos eles
- * dinamicamente com o contexto real da marca (paleta de cores, ICP, tom de voz),
- * o tipo de ativo, o objetivo e o ângulo antes de gerar qualquer material
- * publicitário.
+ * Reúne os 6 pilares disciplinares com lastro científico verificável:
+ *  - Prisma de Kapferer & Personalidade de Aaker (Identidade de Marca)
+ *  - ELM (Petty & Cacioppo) + Sistema 1/2 (Kahneman) + 5 Níveis (Eugene Schwartz)
+ *  - STEPPS (Jonah Berger) + Usos e Gratificações (Propagação Orgânica)
+ *  - NN/g (F/Z/Layer-Cake + 4 Dimensões de Tom de Voz) + Gestalt (Design/Diagramação)
+ *  - Jobs-to-be-Done + Critério Brasil (ABEP) + VoC (Público & Consumo Brasileiro)
+ *  - 7 Princípios de Cialdini + CXL Conversion Copywriting + Engenharia de Ganchos
+ *
+ * Executado pelo Agente Orquestrador Estratégico (`strategyOrchestratorNode`)
+ * antes da chamada de LLM — custo extra de API = US$ 0,00.
  */
 
 export type KnowledgePillarId =
@@ -25,60 +40,62 @@ export interface KnowledgeReference {
   sources: { name: string; focus: string }[];
 }
 
-export const MARKETING_LIBRARY_VERSION = "advertising-library-v1";
+export const MARKETING_LIBRARY_VERSION = "advertising-library-v2";
 
 export const MARKETING_REFERENCE_LIBRARY: Record<KnowledgePillarId, KnowledgeReference> = {
   marketing_digital: {
     id: "marketing_digital",
-    title: "Marketing Digital, Disponibilidade Mental e E-E-A-T / GEO",
+    title: "Marketing Digital, Disponibilidade Mental, STEPPS e E-E-A-T / GEO",
     corePrinciples: [
-      "Disponibilidade Mental e Distinctive Brand Assets (Ehrenberg-Bass / Byron Sharp & Jenni Romaniuk): marcas crescem sendo fáceis de lembrar e reconhecer no momento de compra, reforçando ativos distintivos (paleta, assinatura visual, vocabulário próprio) com consistência.",
-      "E-E-A-T e GEO (Google Search Central): conteúdo de alto desempenho demonstra Experiência real, Especialidade, Autoridade e Confiabilidade, respondendo perguntas objetivas logo na primeira frase para ser citável por buscas tradicionais e motores generativos (AI Overviews, ChatGPT, Perplexity).",
-      "Retenção progressiva em funil: cada peça precisa cumprir seu papel exato na jornada — atrair atenção qualificada no topo, educar com critério no meio e reduzir fricção para conversão no fundo.",
+      "Disponibilidade Mental e Distinctive Brand Assets (Ehrenberg-Bass / Byron Sharp & Jenni Romaniuk): marcas crescem sendo fáceis de lembrar e reconhecer no momento de compra, reforçando ativos distintivos (paleta, assinatura visual, vocabulário próprio).",
+      "Propagação Orgânica STEPPS (Jonah Berger — Contagious): peças compartilháveis ativam Moeda Social, Gatilhos de rotina, Emoção de Alta Excitação (admiração, indignação construtiva, surpresa), Valor Prático salvável ou Histórias com a marca embutida.",
+      "E-E-A-T e GEO (Google Search Central): conteúdo citável por buscas e IAs (AI Overviews, ChatGPT, Perplexity) responde dúvidas objetivas logo na 1ª frase com fatos verificáveis.",
     ],
     applicationRules: [
-      "Abertura dos primeiros 3 segundos (ou 125 caracteres da legenda) deve entregar sinal claro de relevância para o ICP, sem rodeios institucionais.",
-      "Em artigos e LPs, responder a dúvida principal diretamente na abertura de cada seção com fatos concretos e critérios verificáveis.",
-      "Reforçar sempre o posicionamento e o ativo distintivo da marca sem parecer genérico de banco de templates.",
+      "Abertura dos primeiros 3 segundos (ou 125 caracteres da legenda) deve ativar o Sistema 1 e entregar sinal claro de relevância para o ICP.",
+      "Incluir ao menos 1 vetor STEPPS explícito (Valor Prático salvável, Moeda Social ou Gatilho cotidiano) alinhado à métrica-alvo do formato.",
+      "Em artigos e LPs, responder a dúvida principal na 1ª frase de cada seção com critérios verificáveis.",
     ],
     sources: [
-      { name: "Ehrenberg-Bass Institute (Byron Sharp & Jenni Romaniuk)", focus: "How Brands Grow & Building Distinctive Brand Assets" },
-      { name: "Google Search Central", focus: "Creating Helpful, Reliable, People-First Content (E-E-A-T)" },
+      { name: "Ehrenberg-Bass Institute (Byron Sharp & Jenni Romaniuk)", focus: "How Brands Grow & Distinctive Brand Assets" },
+      { name: "Jonah Berger (Contagious)", focus: "STEPPS Organic Propagation Framework" },
+      { name: "Google Search Central", focus: "People-First Content & E-E-A-T / GEO" },
     ],
   },
 
   psicologia_cores: {
     id: "psicologia_cores",
-    title: "Psicologia das Cores, Contraste Funcional e Fluência Visual",
+    title: "Psicologia das Cores, Semiótica Visual e Fluência de Processamento",
     corePrinciples: [
-      "Fluência de Processamento (Processing Fluency): peças com alto contraste figura-fundo e paleta coerente reduzem esforço cognitivo, elevando a percepção subconsciente de confiança e qualidade.",
-      "Contraste funcional (WCAG AA >= 4.5:1): legibilidade supera ornamentação; cor de destaque (accent) deve sinalizar apenas o ponto focal (CTA, dado-chave ou quebra de padrão), nunca competir com o texto.",
-      "Regra cromática 60-30-10 e leitura semântica de categoria: 60% superfície dominante de respiro, 30% cor estrutural da marca (primária) e 10% acento estratégico; cores frias reforçam confiança/precisão, cores quentes ativam urgência/energia, neutras/escuras elevam percepção editorial e sofisticação.",
+      "Fluência de Processamento (Processing Fluency) e Semiótica (Peirce/Barthes): alto contraste figura-fundo e códigos visuais coerentes com o posicionamento elevam a percepção subconsciente de confiança e valor.",
+      "Contraste funcional (WCAG AA >= 4.5:1) e Regra 60-30-10: 60% superfície dominante de respiro, 30% cor estrutural da marca e 10% acento exclusivo para foco, dado-chave ou CTA.",
+      "Coerência cromática e direção de arte: cores frias reforçam método e confiança; quentes ativam energia e urgência controlada; neutras/escuras elevam sofisticação editorial.",
     ],
     applicationRules: [
-      "Alinhar a temperatura emocional do texto com a paleta real da marca (ex.: paleta fria/corporativa pede autoridade serena; paleta quente/vibrante sustenta energia direta).",
-      "Em direções de arte e notas de design, especificar contraste figura-fundo alto e uso contido da cor de acento exclusivamente no foco principal ou CTA.",
+      "Alinhar a temperatura emocional do texto com a paleta real da marca e seus códigos semióticos.",
+      "Em prompts de imagem e notas de design, proibir estética genérica de IA (neon artificial, rostos plásticos) e manter contraste figura-fundo nítido.",
     ],
     sources: [
       { name: "Ehrenberg-Bass Institute", focus: "Color as a Distinctive Brand Asset & Category Cues" },
-      { name: "W3C WCAG 2.1", focus: "Contrast Ratio & Visual Readability Standards" },
+      { name: "Semiótica Aplicada (Peirce / Barthes) & W3C WCAG 2.1", focus: "Visual Codes & Contrast Readability" },
     ],
   },
 
   comunicacao_publicidade: {
     id: "comunicacao_publicidade",
-    title: "Comunicação Social aplicada à Publicidade e Níveis de Consciência",
+    title: "Comunicação Social, Prisma de Kapferer, ELM e Níveis de Consciência",
     corePrinciples: [
-      "5 Níveis de Consciência de Mercado (Eugene Schwartz — Breakthrough Advertising): a publicidade não cria desejo do zero, ela canaliza um desejo existente ajustando a abordagem ao estágio exato do público (Inconsciente, Consciente do Problema, Consciente da Solução, Consciente do Produto, Totalmente Consciente).",
-      "Sofisticação de Mercado (Schwartz): em mercados saturados de promessas repetidas, gritar uma promessa maior falha; a persuasão exige nomear um mecanismo único, um critério claro ou uma experiência reconhecível.",
-      "Enquadramento narrativo (Framing): a forma como a situação é moldurada (custo do erro, ganho prático, mito vs. verdade) define se o leitor presta atenção ou ignora.",
+      "5 Níveis de Consciência e Sofisticação de Mercado (Eugene Schwartz — Breakthrough Advertising): canalizar o desejo existente respeitando o estágio exato do leitor; em mercados saturados, destacar o Mecanismo Único em vez de promessas infladas.",
+      "Modelo de Probabilidade de Elaboração — ELM (Petty & Cacioppo): usar Rota Central (lógica, método, evidência) para alta consciência/ticket alto e Rota Periférica (contraste, emoção, identificação rápida) para topo de funil.",
+      "Prisma de Identidade de Marca (Jean-Noël Kapferer): manter coerência entre Cultura, Personalidade, Relação com o cliente e Autoimagem projetada.",
     ],
     applicationRules: [
-      "Nunca vender produto de cara para público Inconsciente ou Consciente do Problema — comece pelo sintoma, tensão cotidiana ou quebra de crença.",
-      "Evitar jargão publicitário saturado e apresentar o mecanismo concreto que diferencia a oferta.",
+      "Nunca vender produto de cara para público Inconsciente ou Consciente do Problema — comece pelo sintoma, tensão real ou tese contrária.",
+      "Conectar o desenvolvimento ao Mecanismo Único (UVP) e à Tese Contrária da marca quando cadastrados.",
     ],
     sources: [
-      { name: "Eugene M. Schwartz (Breakthrough Advertising)", focus: "5 Levels of Market Awareness & Market Sophistication" },
+      { name: "Eugene M. Schwartz (Breakthrough Advertising)", focus: "5 Levels of Market Awareness & Sophistication" },
+      { name: "Petty & Cacioppo (ELM) + Jean-Noël Kapferer", focus: "Elaboration Likelihood Model & Brand Identity Prism" },
     ],
   },
 
@@ -86,59 +103,101 @@ export const MARKETING_REFERENCE_LIBRARY: Record<KnowledgePillarId, KnowledgeRef
     id: "design_diagramacao",
     title: "Design Profissional, Diagramação Editorial, Hierarquia Visual e Gestalt",
     corePrinciples: [
-      "Padrões de Leitura Digital (Nielsen Norman Group): usuários escaneiam em padrão F (blocos de texto), padrão Layer-Cake (títulos e subtítulos destacados) e padrão Z (anúncios e criativos únicos). Colocar as palavras de maior carga semântica no início (front-loading).",
-      "Princípios da Gestalt (Proximidade, Semelhança, Continuidade, Fechamento e Figura-Fundo): elementos relacionados devem ficar agrupados visualmente; hierarquia tipográfica consistente sinaliza importância; figura-fundo nítida garante leitura em menos de 2 segundos.",
-      "Espaço Negativo Ativo (Whitespace) e Grid Editorial: respiro generoso não é vazio desperdiçado — ele isola a mensagem principal, reduz fadiga cognitiva e transmite acabamento profissional.",
+      "Padrões de Leitura Digital (Nielsen Norman Group): padrão F (artigos), Layer-Cake (carrosséis/seções) e padrão Z (anúncios/criativos únicos) com front-loading das palavras fortes.",
+      "Princípios da Gestalt (Proximidade, Semelhança, Continuidade, Fechamento e Figura-Fundo): agrupamento claro e leitura em menos de 2 segundos.",
+      "Espaço Negativo Ativo (Whitespace) e Grid Editorial: respiro generoso isola a mensagem principal e evita aparência amadora.",
     ],
     applicationRules: [
-      "Regra de 1 ideia por bloco/slide: títulos curtos (até 8 palavras) com front-loading e corpo conciso que nunca repete o título.",
-      "Em carrosséis e criativos, garantir progressão visual contínua (Gestalt Continuidade) e respiro suficiente para leitura confortável em tela de celular.",
+      "Regra de 1 ideia central por slide/bloco: títulos de até 8 palavras com front-loading e corpo conciso sem repetir o título.",
+      "Garantir variedade visual entre campanhas alternando composições editoriais sem perder os ativos distintivos da marca.",
     ],
     sources: [
-      { name: "Nielsen Norman Group (NN/g)", focus: "Visual Hierarchy, F-Pattern, Layer-Cake Scanning & Front-Loading" },
-      { name: "Teoria da Gestalt & Estilo Tipográfico Internacional", focus: "Proximity, Similarity, Continuity, Figure-Ground & Editorial Grids" },
+      { name: "Nielsen Norman Group (NN/g)", focus: "Visual Hierarchy, F-Pattern, Layer-Cake & Front-Loading" },
+      { name: "Teoria da Gestalt & Estilo Tipográfico Internacional", focus: "Proximity, Continuity, Figure-Ground & Grids" },
     ],
   },
 
   publico_consumo: {
     id: "publico_consumo",
-    title: "Estudo de Público-Alvo, Comportamento de Consumo e Jobs-to-be-Done",
+    title: "Público-Alvo, Jobs-to-be-Done, Critério Brasil (ABEP) e Voz do Cliente",
     corePrinciples: [
-      "Jobs-to-be-Done (JTBD): clientes não compram apenas características — eles 'contratam' um produto/serviço para realizar um progresso funcional (resolver uma tarefa), emocional (sentir alívio/segurança) e social (como são percebidos).",
-      "Calibragem B2B vs. B2C: decisões B2B pesam risco operacional, previsibilidade, clareza de processo, autoridade técnica e retorno mensurável; decisões B2C pesam benefício imediato, identificação, praticidade e prova social acessível.",
-      "Voz do Cliente (VoC): usar o vocabulário real com que o ICP descreve suas dores e objeções gera identificação instantânea e reduz ceticismo.",
+      "Jobs-to-be-Done (Clayton Christensen / Bob Moesta): conectar a oferta ao progresso Funcional (tarefa), Emocional (alívio/segurança) e Social (percepção pelos pares).",
+      "Critério Brasil (ABEP — Classes A, B1, B2, C1, C2, D-E): calibrar argumentos de valor, percepção de preço e vocabulário econômico à realidade brasileira.",
+      "Voz do Cliente (VoC) & Usos e Gratificações: usar a linguagem exata com que o cliente descreve suas dores e responder à gratificação buscada (utilidade prática, identidade ou pertencimento).",
     ],
     applicationRules: [
-      "Nomear explicitamente o contexto de uso, a objeção silenciosa e o ganho prático que importam para o ICP informado.",
-      "Nunca falar para 'todo mundo': quanto mais específica a cena do cliente ideal, maior a taxa de retenção e resposta.",
+      "Nomear explicitamente o contexto de uso, a objeção silenciosa e o ganho concreto do ICP informado.",
+      "Adaptar o argumento de valor ao poder de compra (ABEP) e ao ciclo de decisão (B2B racional vs. B2C emocional).",
     ],
     sources: [
-      { name: "Jobs-to-be-Done (Clayton Christensen / Bob Moesta)", focus: "Functional, Emotional & Social Buying Progress" },
-      { name: "CXL Institute", focus: "Voice of Customer (VoC) & B2B/B2C Buyer Psychology" },
+      { name: "Jobs-to-be-Done (Christensen / Moesta) & ABEP", focus: "Functional/Emotional Jobs & Critério Brasil" },
+      { name: "CXL Institute & Katz/Blumler", focus: "Voice of Customer & Uses and Gratifications" },
     ],
   },
 
   linguagem_persuasao: {
     id: "linguagem_persuasao",
-    title: "Linguagem Persuasiva, Psicologia da Influência e Copywriting de Conversão",
+    title: "Linguagem Persuasiva, Sistema 1/2 (Kahneman), Cialdini e Engenharia de Ganchos",
     corePrinciples: [
-      "7 Princípios da Persuasão (Robert Cialdini): Reciprocidade (entregar valor útil antes de pedir), Compromisso/Coerência (micro-acordos lógicos), Prova Social (evidência real de pares), Autoridade (critério técnico verificável), Afinidade (empatia e linguagem humana), Escassez (somente real — agenda/estoque verídicos, nunca fabricada) e Unidade (pertencimento compartilhado).",
-      "Conversion Copywriting (CXL): clareza vence criatividade obscura; especificidade concreta vence adjetivos genéricos; mostrar consequência prática vence prometer milagre.",
-      "Ritmo oral e legibilidade em PT-BR: frases curtas alternadas com médias, voz ativa, verbos precisos e zero clichês de IA.",
+      "Sistema 1 vs. Sistema 2 (Daniel Kahneman): o gancho aciona o Sistema 1 (rápido, aversão à perda, contraste, Efeito Zeigarnik); o corpo entrega razão clara para o Sistema 2 justificar a ação.",
+      "7 Princípios de Cialdini + 4 Dimensões de Tom de Voz (NN/g): persuasão ética sem escassez fabricada, calibrada por sliders objetivos (Formalidade, Humor, Irreverência, Entusiasmo).",
+      "Tríade de Gancho Sincronizada (vídeos curtos): alinhar Gancho Visual (cena nos 2s) + Gancho Textual na Tela (5–7 palavras) + Gancho Falado (1ª frase).",
     ],
     applicationRules: [
-      "Aplicar no máximo 2 gatilhos de Cialdini por peça de forma ética e natural, sempre respeitando CONAR/LGPD (proibido inventar escassez, números ou depoimentos).",
-      "Substituir qualquer adjetivo vago ('inovador', 'incrível', 'completo') por evidência concreta ou passo acionável.",
+      "Aplicar no máximo 2 gatilhos éticos de Cialdini por peça, sempre em conformidade com CONAR/LGPD.",
+      "Eliminar 100% de clichês de IA ('no mundo atual', 'alavanque', 'desvende', 'mergulhe fundo') e usar voz ativa natural em PT-BR.",
     ],
     sources: [
-      { name: "Robert B. Cialdini (Influence / Pre-Suasion)", focus: "7 Principles of Ethical Persuasion" },
-      { name: "CXL Institute", focus: "Conversion Copywriting & Clarity-First Messaging" },
+      { name: "Daniel Kahneman (Thinking, Fast and Slow) & Robert Cialdini", focus: "System 1/2, Loss Aversion & 7 Principles" },
+      { name: "Nielsen Norman Group (NN/g) & CXL Institute", focus: "4 Dimensions of Tone of Voice & Conversion Copywriting" },
     ],
   },
 };
 
 // ---------------------------------------------------------------------------
-// Analisadores determinísticos para cruzamento pré-geração
+// Tabela Critério Brasil (ABEP) — Calibragem Econômica Brasileira
+// ---------------------------------------------------------------------------
+
+export const ABEP_PROFILES: Record<AbepClass, { label: string; valueFraming: string }> = {
+  A: {
+    label: "Classe A (Alta Renda)",
+    valueFraming:
+      "Priorize exclusividade, economia de tempo, critério técnico superior, curadoria e atendimento personalizado; nunca apele para desconto barato.",
+  },
+  B1: {
+    label: "Classe B1 (Média-Alta)",
+    valueFraming:
+      "Equilibre sofisticação prática, previsibilidade de entrega, segurança na decisão e retorno claro do investimento.",
+  },
+  B2: {
+    label: "Classe B2 (Média Consolidada)",
+    valueFraming:
+      "Enfatize custo-benefício inteligente, durabilidade, transparência de processo e redução de erros que custam caro.",
+  },
+  C1: {
+    label: "Classe C1 (Média Emergente)",
+    valueFraming:
+      "Priorize clareza direta, resultado prático no dia a dia, facilidade de acesso, condições transparentes e zero elitismo.",
+  },
+  C2: {
+    label: "Classe C2 (Popular Consolidada)",
+    valueFraming:
+      "Foque em utilidade imediata, economia real no orçamento, linguagem super acessível e confiança próxima.",
+  },
+  DE: {
+    label: "Classes D-E (Base Econômica)",
+    valueFraming:
+      "Comunicação direta, acolhedora, sem termos estrangeiros, focada em solução essencial acessível e passo a passo simples.",
+  },
+  misto: {
+    label: "Público Amplo / Misto",
+    valueFraming:
+      "Linguagem clara e acessível que demonstra valor concreto antes de falar de preço, sem jargões técnicos desnecessários.",
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Analisadores determinísticos (Cor, Público/Schwartz/ELM, STEPPS, ToV NN/g)
 // ---------------------------------------------------------------------------
 
 export type ColorMood =
@@ -279,17 +338,21 @@ export type SchwartzStage =
   | "consciente_do_problema"
   | "consciente_da_solucao"
   | "consciente_do_produto";
+export type ElmRoute = "rota_central" | "rota_periferica";
 
 export interface AudienceAndAwarenessAnalysis {
   segment: AudienceSegment;
   awarenessStage: SchwartzStage;
+  elmRoute: ElmRoute;
+  abepClass: AbepClass;
   consumerDirective: string;
   awarenessDirective: string;
+  elmDirective: string;
   persuasionTriggers: string[];
 }
 
 const B2B_PATTERN =
-  /\b(b2b|empresas?|empres[aá]ri|gestor|diretor|ceo|cfo|cto|ag[eê]ncia|consultoria|escrit[oó]rio|cl[ií]nicas?|franquia|saas|ind[uú]stria|comercial|vendas b2b|rh|ti|equipe|time|neg[oó]cio|faturamento|margem|operação|operacao|pme|pmes|aut[oô]nomo|prestador)\b/i;
+  /\b(b2b|empresas?|empres[aá]ri|gestor|diretor|ceo|cfo|cto|ag[eê]ncia|consultoria|escrit[oó]rio|cl[ií]nicas?|franquia|saas|ind[uú]stria|comercial|vendas b2b|rh|ti|equipe|time|neg[oó]cio|faturamento|margem|opera[çc][aã]o|pme|pmes|aut[oô]nomo|prestador)\b/i;
 const B2C_PATTERN =
   /\b(b2c|consumidor|fam[ií]lia|m[aã]es?|pais|jovens|mulheres|homens|pacientes?|alunos?|moradores?|clientes finais|casa|pele|cabelo|fitness|sa[uú]de|beleza|moda|gastronomia|pet|viagem|im[oó]vel|bem-estar)\b/i;
 
@@ -298,16 +361,20 @@ export function classifyAudienceAndAwareness(input: {
   objective: string;
   assetType: AssetType;
   angleType: AngleType;
+  abepClass?: AbepClass;
 }): AudienceAndAwarenessAnalysis {
   const icpText = `${input.icpDescription ?? ""} ${input.objective}`.toLowerCase();
   const hasB2B = B2B_PATTERN.test(icpText);
   const hasB2C = B2C_PATTERN.test(icpText);
 
   const segment: AudienceSegment = hasB2B && !hasB2C ? "b2b" : hasB2C && !hasB2B ? "b2c" : "hibrido";
+  const abepClass: AbepClass = input.abepClass ?? "misto";
 
-  // Estágio de consciência de Eugene Schwartz derivado do formato + ângulo + objetivo
   let awarenessStage: SchwartzStage;
-  if (input.assetType === "lp_copy" || /\b(compr|fech|or[çc]amento|agend|contrat|convers[aã]o|venda direta)\b/i.test(input.objective)) {
+  if (
+    input.assetType === "lp_copy" ||
+    /\b(compr|fech|or[çc]amento|agend|contrat|convers[aã]o|venda direta)\b/i.test(input.objective)
+  ) {
     awarenessStage = "consciente_do_produto";
   } else if (input.assetType === "geo_article" || input.angleType === "outcome_anchored") {
     awarenessStage = "consciente_da_solucao";
@@ -317,57 +384,191 @@ export function classifyAudienceAndAwareness(input: {
     awarenessStage = "consciente_do_problema";
   }
 
-  const consumerDirective =
+  // ELM (Petty & Cacioppo): Rota Central para alta consciência / B2B / artigo / LP; Periférica para descoberta
+  const elmRoute: ElmRoute =
+    awarenessStage === "consciente_da_solucao" ||
+    awarenessStage === "consciente_do_produto" ||
+    input.assetType === "geo_article" ||
+    input.assetType === "lp_copy" ||
     segment === "b2b"
-      ? "Perfil B2B: priorize clareza operacional, redução de risco/desperdício, previsibilidade de processo e critérios objetivos de decisão (JTBD funcional + autoridade técnica)."
+      ? "rota_central"
+      : "rota_periferica";
+
+  const elmDirective =
+    elmRoute === "rota_central"
+      ? "ELM Rota Central (Petty & Cacioppo): conduza pela lógica, critérios objetivos de comparação, mecanismo concreto e evidências verificáveis (Sistema 1 no gancho -> Sistema 2 no argumento)."
+      : "ELM Rota Periférica (Petty & Cacioppo): priorize impacto imediato no Sistema 1, cena cotidiana altamente reconhecível, fluência visual e identificação emocional rápida.";
+
+  const abepNote = ABEP_PROFILES[abepClass];
+  const consumerDirective =
+    (segment === "b2b"
+      ? "Perfil B2B: priorize clareza operacional, redução de risco/desperdício, previsibilidade e critérios objetivos (JTBD funcional + autoridade técnica)."
       : segment === "b2c"
-        ? "Perfil B2C: priorize identificação imediata no cotidiano, alívio concreto de uma dor/desejo, simplicidade de uso e linguagem próxima (JTBD emocional + social)."
-        : "Perfil híbrido: equilibre utilidade prática verificável (como funciona e qual problema resolve) com linguagem humana, próxima e livre de jargão corporativo vazio.";
+        ? "Perfil B2C: priorize identificação imediata no cotidiano, alívio concreto de dor/desejo e simplicidade de uso (JTBD emocional + social)."
+        : "Perfil híbrido: equilibre utilidade prática verificável com linguagem humana livre de jargão corporativo vazio.") +
+    ` Critério Brasil (${abepNote.label}): ${abepNote.valueFraming}`;
 
   const awarenessDirectives: Record<SchwartzStage, string> = {
     inconsciente:
-      "Schwartz Nível 1 (Inconsciente): NÃO comece vendendo produto. Abra com quebra de padrão, sintoma cotidiano reconhecível ou contraste surpreendente para despertar atenção.",
+      "Schwartz Nível 1 (Inconsciente): NÃO comece vendendo produto. Abra com quebra de padrão, sintoma cotidiano ou contraste surpreendente.",
     consciente_do_problema:
-      "Schwartz Nível 2 (Consciente do Problema): nomeie a dor exata com o vocabulário do ICP, mostre o custo oculto de ignorá-la e apresente o caminho prático de correção.",
+      "Schwartz Nível 2 (Consciente do Problema): nomeie a dor exata com o vocabulário real do ICP, mostre o custo oculto e apresente o caminho prático.",
     consciente_da_solucao:
-      "Schwartz Nível 3 (Consciente da Solução): compare critérios de decisão, explique o mecanismo concreto que faz esta abordagem funcionar melhor e construa autoridade.",
+      "Schwartz Nível 3 (Consciente da Solução): compare critérios de decisão e explique o Mecanismo Único que faz esta abordagem funcionar melhor.",
     consciente_do_produto:
-      "Schwartz Nível 4 (Consciente do Produto): derrube objeções reais, torne os entregáveis tangíveis, use apenas provas verificáveis do contexto e feche com CTA sem fricção.",
+      "Schwartz Nível 4 (Consciente do Produto): derrube objeções reais, torne os entregáveis tangíveis, use apenas provas verificáveis e feche com CTA sem fricção.",
   };
 
   const persuasionTriggers =
     segment === "b2b"
       ? [
-          "Autoridade (Cialdini): demonstre método, critério técnico e domínio do nicho sem arrogância.",
+          "Autoridade (Cialdini): demonstre método e critério técnico sem arrogância.",
           "Reciprocidade (Cialdini): entregue um insight ou checklist aplicável hoje antes do CTA.",
         ]
       : [
-          "Afinidade & Unidade (Cialdini): fale na primeira pessoa/conversa direta mostrando que entende a rotina real do público.",
-          "Reciprocidade & Compromisso (Cialdini): entregue clareza imediata e conduza a um próximo passo simples e de baixo atrito.",
+          "Afinidade & Unidade (Cialdini): converse de forma próxima mostrando domínio da rotina real do público.",
+          "Reciprocidade & Compromisso (Cialdini): entregue clareza imediata e proponha um próximo passo de baixo atrito.",
         ];
 
   return {
     segment,
     awarenessStage,
+    elmRoute,
+    abepClass,
     consumerDirective,
     awarenessDirective: awarenessDirectives[awarenessStage],
+    elmDirective,
     persuasionTriggers,
   };
 }
 
-function designDirectiveForAsset(assetType: AssetType): string {
+function cognitiveHookDirective(angleType: AngleType, assetType: AssetType): string {
+  const byAngle: Record<AngleType, string> = {
+    vace_pattern_interrupt:
+      "Mecanismo de Gancho: Efeito Zeigarnik (Open Loop) + Quebra de Padrão — abra uma lacuna de curiosidade específica que o leitor sente urgência em fechar.",
+    contrarian_frame:
+      "Mecanismo de Gancho: Tese Contrária — confronte um conselho popular do nicho com evidência prática clara.",
+    outcome_anchored:
+      "Mecanismo de Gancho: Prova/Resultado Concreto + Especificidade Hiper-Direcionada — filtre o ICP ideal logo na primeira frase mostrando o ganho tangível.",
+    negative_constraint:
+      "Mecanismo de Gancho: Aversão à Perda (Kahneman) — perdas doem 2× mais que ganhos equivalentes; aponte o erro silencioso que faz o público perder tempo ou dinheiro.",
+  };
+
+  const triad =
+    assetType === "short_script_kit"
+      ? " Tríade de Gancho Sincronizada obrigatória nos 2s iniciais: (1) Gancho Visual na direção de cena, (2) Gancho Textual na Tela (5–7 palavras) e (3) Gancho Falado."
+      : "";
+
+  return `${byAngle[angleType]}${triad}`;
+}
+
+function steppsDirective(assetType: AssetType, recentAssetCount = 0): string {
+  const rotation = recentAssetCount % 3;
+  if (assetType === "typo_carousel" || assetType === "hybrid_carousel") {
+    return rotation === 0
+      ? "STEPPS (Jonah Berger): Valor Prático (checklist salvável) + Moeda Social (insight que faz quem compartilha parecer bem-informado)."
+      : rotation === 1
+        ? "STEPPS (Jonah Berger): Emoção de Alta Excitação (indignação construtiva com mito do setor) + Valor Prático acionável."
+        : "STEPPS (Jonah Berger): Histórias (cena real do cotidiano do cliente com a marca integrada) + Gatilhos de rotina.";
+  }
+  if (assetType === "short_script_kit") {
+    return "STEPPS (Jonah Berger): Gatilhos cotidianos + Emoção de Alta Excitação (surpresa/admiração) para maximizar retenção 3s e compartilhamentos.";
+  }
+  if (assetType === "geo_article") {
+    return "STEPPS + GEO: Valor Prático de referência (guia citável) + Moeda Social (critérios claros que profissionais citam e enviam a colegas).";
+  }
+  return "STEPPS (Jonah Berger): Valor Prático imediato + Clareza de decisão para gerar cliques e mensagens qualificadas.";
+}
+
+export function buildToneVectorDirective(tone?: ToneOfVoice): string {
+  if (!tone) return "";
+  const parts: string[] = [];
+
+  if (typeof tone.formality === "number") {
+    parts.push(`Formalidade ${tone.formality}/10 (${tone.formality <= 4 ? "formal/técnico" : tone.formality >= 7 ? "casual/conversacional" : "equilibrado"})`);
+  }
+  if (typeof tone.humor === "number") {
+    parts.push(`Humor ${tone.humor}/10 (${tone.humor <= 3 ? "sério/objetivo" : tone.humor >= 7 ? "leve e bem-humorado" : "pontual"})`);
+  }
+  if (typeof tone.irreverence === "number") {
+    parts.push(`Irreverência ${tone.irreverence}/10 (${tone.irreverence <= 3 ? "diplomático/respeitoso" : tone.irreverence >= 7 ? "provocador/firme" : "assertivo"})`);
+  }
+  if (typeof tone.enthusiasm === "number") {
+    parts.push(`Entusiasmo ${tone.enthusiasm}/10 (${tone.enthusiasm <= 3 ? "sóbrio/pragmático" : tone.enthusiasm >= 7 ? "vibrante/energético" : "confiante"})`);
+  }
+
+  const dna: string[] = [];
+  if (tone.uvp?.trim()) dna.push(`Proposta Única de Valor / Mecanismo Único: ${tone.uvp.trim()}`);
+  if (tone.contrarian_thesis?.trim()) dna.push(`Tese Contrária / Inimigo Comum: ${tone.contrarian_thesis.trim()}`);
+  if (tone.objections && tone.objections.length > 0) {
+    dna.push(`Objeções reais a derrubar: ${tone.objections.slice(0, 4).join("; ")}`);
+  }
+  if (tone.jtbd_functional?.trim() || tone.jtbd_emotional?.trim()) {
+    dna.push(
+      `Jobs-to-be-Done: ${[
+        tone.jtbd_functional?.trim() ? `Funcional: ${tone.jtbd_functional.trim()}` : "",
+        tone.jtbd_emotional?.trim() ? `Emocional: ${tone.jtbd_emotional.trim()}` : "",
+      ]
+        .filter(Boolean)
+        .join(" | ")}`,
+    );
+  }
+
+  return [
+    parts.length > 0 ? `Vetor de Tom de Voz (NN/g): ${parts.join(" · ")}.` : "",
+    dna.length > 0 ? dna.join(" | ") : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+const VISUAL_THEMES: readonly VisualThemeId[] = [
+  "editorial_classic",
+  "magazine_split",
+  "dark_impact",
+  "swiss_minimal",
+];
+
+/**
+ * Seleciona o estilo visual de forma determinística e variada, evitando que
+ * carrosséis consecutivos da mesma marca saiam sempre com o mesmo molde.
+ */
+export function selectVisualTheme(input: {
+  preference?: "auto" | VisualThemeId;
+  seed?: string;
+  recentCount?: number;
+}): VisualThemeId {
+  if (input.preference && input.preference !== "auto" && VISUAL_THEMES.includes(input.preference)) {
+    return input.preference;
+  }
+  const seedStr = `${input.seed ?? ""}-${input.recentCount ?? 0}`;
+  let hash = 0;
+  for (let i = 0; i < seedStr.length; i += 1) {
+    hash = (hash * 31 + seedStr.charCodeAt(i)) >>> 0;
+  }
+  return VISUAL_THEMES[hash % VISUAL_THEMES.length] ?? "editorial_classic";
+}
+
+function designDirectiveForAsset(assetType: AssetType, visualTheme: VisualThemeId): string {
+  const themeLabel: Record<VisualThemeId, string> = {
+    editorial_classic: "Editorial Clássico (capa escura + cards elevados)",
+    magazine_split: "Magazine Split (faixa lateral de impacto + numeração editorial gigante)",
+    dark_impact: "Dark Impacto (alto contraste escuro + acento luminoso)",
+    swiss_minimal: "Minimalista Suíço (grid preciso + linhas editoriais + respiro amplo)",
+  };
+
   switch (assetType) {
     case "typo_carousel":
     case "hybrid_carousel":
-      return "Diagramação NN/g + Gestalt (Carrossel): padrão Layer-Cake + Continuidade entre slides; capa com tensão em até 8 palavras (front-loading), 1 ideia central por slide, espaço negativo ativo e zero repetição entre título e corpo.";
+      return `Diagramação NN/g + Gestalt (Carrossel · Estilo ${themeLabel[visualTheme]}): padrão Layer-Cake + Continuidade entre slides; capa com tensão em até 8 palavras (front-loading), 1 ideia central por slide, espaço negativo ativo e zero repetição entre título e corpo.`;
     case "single_creative":
-      return "Diagramação NN/g + Gestalt (Criativo Único): padrão Z com leitura em menos de 2s; contraste Figura-Fundo elevado, 1 headline forte + 1 subheadline de apoio + 1 CTA isolado por proximidade visual.";
+      return `Diagramação NN/g + Gestalt (Criativo Único · Estilo ${themeLabel[visualTheme]}): padrão Z com leitura em menos de 2s; contraste Figura-Fundo elevado, 1 headline forte + 1 subheadline de apoio + 1 CTA isolado por proximidade visual.`;
     case "short_script_kit":
-      return "Comunicação Audiovisual (Vídeo Curto): gancho falado + texto de tela curto nos 3 primeiros segundos (quebra visual/verbal), ritmo de cortes claros e 1 ideia acionável por beat.";
+      return "Comunicação Audiovisual (Vídeo Curto): Tríade de Gancho Sincronizada nos 2s iniciais (cena + texto curto na tela + fala), ritmo oral natural em PT-BR e 1 ideia acionável por beat.";
     case "geo_article":
       return "Diagramação Editorial + GEO (Artigo): padrão F e Layer-Cake; subtítulos descritivos com front-loading, resposta direta (direct_fact) na 1ª frase de cada seção e blocos escaneáveis de alta densidade útil.";
     case "lp_copy":
-      return "Arquitetura de Conversão (Landing Page): hierarquia visual progressiva (Hero claro -> Dor real -> Mecanismo/Entregáveis -> Prova verificável -> FAQ de objeções -> CTA único sem ruído).";
+      return "Arquitetura de Conversão (Landing Page): hierarquia visual progressiva (Hero com UVP -> Dor real -> Mecanismo Único -> Prova verificável -> FAQ de objeções -> CTA único sem ruído).";
   }
 }
 
@@ -378,20 +579,24 @@ export interface AdvertisingCrossReferenceInput {
   objective: string;
   productInput: string;
   brand?: Pick<BrandContext, "brand_name" | "icp_description" | "tone_of_voice" | "visual_tokens">;
+  recentAssetCount?: number;
+  seed?: string;
 }
 
 export interface AdvertisingCrossReference {
   version: string;
+  visualTheme: VisualThemeId;
   colorAnalysis: ColorAnalysis;
   audienceAnalysis: AudienceAndAwarenessAnalysis;
   designDirective: string;
   marketingDigitalDirective: string;
   persuasionDirective: string;
+  brandDnaDirective: string;
 }
 
 /**
- * Cruza os 6 pilares (Marketing Digital, Cores, Comunicação/Publicidade,
- * Design/Diagramação, Público/Consumo e Linguagem/Persuasão) para o ativo atual.
+ * Motor de Cruzamento Científico (Orquestração Pré-Geração):
+ * Peça = Pilar × Persona(JTBD/ABEP) × DNA da Marca(Kapferer) × ToV(NN/g) × Gancho Cognitivo + Formato
  */
 export function crossReferenceAdvertisingContext(
   input: AdvertisingCrossReferenceInput,
@@ -402,43 +607,60 @@ export function crossReferenceAdvertisingContext(
     objective: input.objective,
     assetType: input.assetType,
     angleType: input.angleType,
+    abepClass: input.brand?.tone_of_voice?.abep_class,
   });
 
-  const designDirective = designDirectiveForAsset(input.assetType);
+  const visualTheme = selectVisualTheme({
+    preference: input.brand?.tone_of_voice?.visual_style_preference,
+    seed: input.seed ?? `${input.objective}:${input.productInput}`,
+    recentCount: input.recentAssetCount,
+  });
+
+  const designDirective = designDirectiveForAsset(input.assetType, visualTheme);
+  const stepps = steppsDirective(input.assetType, input.recentAssetCount);
   const marketingDigitalDirective =
     input.assetType === "geo_article"
-      ? "Marketing Digital & GEO: estruture cada seção com resposta direta citável (E-E-A-T), vocabulário de entidade consistente e utilidade real sem preenchimento vazio."
-      : "Marketing Digital & DBA (Ehrenberg-Bass): retenha atenção qualificada nos 3s iniciais / 125 caracteres e reforce os sinais distintivos da marca com conexão clara ao produto no fechamento.";
+      ? `Marketing Digital & GEO: estruture cada seção com resposta direta citável (E-E-A-T), vocabulário de entidade consistente e utilidade real. ${stepps}`
+      : `Marketing Digital & DBA (Ehrenberg-Bass): retenha atenção qualificada nos 3s iniciais / 125 caracteres e reforce os ativos distintivos da marca. ${stepps}`;
 
+  const hookDirective = cognitiveHookDirective(input.angleType, input.assetType);
   const persuasionDirective = [
+    hookDirective,
     ...audienceAnalysis.persuasionTriggers,
     "CXL Clareza > Esperteza: use especificidade concreta, voz ativa em PT-BR e zero escassez/urgência fabricada (conformidade CONAR).",
   ].join(" ");
 
+  const brandDnaDirective = buildToneVectorDirective(input.brand?.tone_of_voice);
+
   return {
     version: MARKETING_LIBRARY_VERSION,
+    visualTheme,
     colorAnalysis,
     audienceAnalysis,
     designDirective,
     marketingDigitalDirective,
     persuasionDirective,
+    brandDnaDirective,
   };
 }
 
 /**
- * Serializa a matriz cruzada dos 6 pilares em bloco denso para injeção direta
- * antes da geração do material publicitário.
+ * Serializa a matriz científica cruzada dos 6 pilares + Brand DNA em bloco denso
+ * para injeção direta pelo Agente Orquestrador antes da geração do material.
  */
 export function buildAdvertisingSynthesisBlock(input: AdvertisingCrossReferenceInput): string {
   const matrix = crossReferenceAdvertisingContext(input);
 
   return [
-    `## MATRIZ CRUZADA DE REFERÊNCIAS PUBLICITÁRIAS (${matrix.version}) — aplique todos os 6 pilares antes de redigir`,
-    `1. Marketing Digital & Posicionamento: ${matrix.marketingDigitalDirective}`,
-    `2. Psicologia das Cores & Identidade Visual: ${matrix.colorAnalysis.semanticDirective} ${matrix.colorAnalysis.layoutDirective}`,
-    `3. Comunicação Social & Publicidade (${matrix.audienceAnalysis.awarenessStage}): ${matrix.audienceAnalysis.awarenessDirective}`,
-    `4. Design & Diagramação Profissional: ${matrix.designDirective}`,
-    `5. Público-Alvo & Consumo (${matrix.audienceAnalysis.segment.toUpperCase()}): ${matrix.audienceAnalysis.consumerDirective}`,
-    `6. Linguagem & Persuasão Ética: ${matrix.persuasionDirective}`,
-  ].join("\n");
+    `## MATRIZ CIENTÍFICA CRUZADA DE REFERÊNCIAS PUBLICITÁRIAS (${matrix.version}) — aplique todos os vetores antes de redigir`,
+    `1. Marketing Digital, DBA & STEPPS: ${matrix.marketingDigitalDirective}`,
+    `2. Psicologia das Cores & Semiótica Visual: ${matrix.colorAnalysis.semanticDirective} ${matrix.colorAnalysis.layoutDirective}`,
+    `3. Comunicação Social, Schwartz (${matrix.audienceAnalysis.awarenessStage}) & ELM (${matrix.audienceAnalysis.elmRoute}): ${matrix.audienceAnalysis.awarenessDirective} ${matrix.audienceAnalysis.elmDirective}`,
+    `4. Design & Diagramação Profissional (Tema ${matrix.visualTheme}): ${matrix.designDirective}`,
+    `5. Público-Alvo, JTBD & Critério Brasil (${matrix.audienceAnalysis.segment.toUpperCase()}): ${matrix.audienceAnalysis.consumerDirective}`,
+    `6. Linguagem, Sistema 1/2, Cialdini & Ganchos: ${matrix.persuasionDirective}`,
+    matrix.brandDnaDirective ? `7. DNA Estratégico & Vetor de Tom de Voz (Kapferer / NN/g): ${matrix.brandDnaDirective}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 }

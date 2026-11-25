@@ -109,6 +109,19 @@ const brandUpdateSchema = z.object({
   backgroundColor: z.string().trim().regex(HEX_COLOR).optional().or(z.literal("")),
   accentColor: z.string().trim().regex(HEX_COLOR).optional().or(z.literal("")),
   factsText: z.string().trim().max(3000).optional(),
+  uvp: z.string().trim().max(400).optional(),
+  contrarianThesis: z.string().trim().max(400).optional(),
+  objectionsText: z.string().trim().max(1200).optional(),
+  abepClass: z.enum(["A", "B1", "B2", "C1", "C2", "DE", "misto"]).optional(),
+  jtbdFunctional: z.string().trim().max(300).optional(),
+  jtbdEmotional: z.string().trim().max(300).optional(),
+  formality: z.coerce.number().int().min(1).max(10).optional(),
+  humor: z.coerce.number().int().min(1).max(10).optional(),
+  irreverence: z.coerce.number().int().min(1).max(10).optional(),
+  enthusiasm: z.coerce.number().int().min(1).max(10).optional(),
+  visualStylePreference: z
+    .enum(["auto", "editorial_classic", "magazine_split", "dark_impact", "swiss_minimal"])
+    .optional(),
 });
 
 export async function updateBrandAction(
@@ -128,6 +141,17 @@ export async function updateBrandAction(
     backgroundColor: formData.get("backgroundColor") ?? "",
     accentColor: formData.get("accentColor") ?? "",
     factsText: formData.get("factsText") ?? undefined,
+    uvp: formData.get("uvp") ?? undefined,
+    contrarianThesis: formData.get("contrarianThesis") ?? undefined,
+    objectionsText: formData.get("objectionsText") ?? undefined,
+    abepClass: formData.get("abepClass") || undefined,
+    jtbdFunctional: formData.get("jtbdFunctional") ?? undefined,
+    jtbdEmotional: formData.get("jtbdEmotional") ?? undefined,
+    formality: formData.get("formality") || undefined,
+    humor: formData.get("humor") || undefined,
+    irreverence: formData.get("irreverence") || undefined,
+    enthusiasm: formData.get("enthusiasm") || undefined,
+    visualStylePreference: formData.get("visualStylePreference") || undefined,
   });
 
   if (!parsed.success) {
@@ -175,6 +199,15 @@ export async function updateBrandAction(
       });
   }
 
+  const objections =
+    parsed.data.objectionsText !== undefined
+      ? parsed.data.objectionsText
+          .split(/\r?\n/)
+          .map((item) => item.trim())
+          .filter((item) => item.length >= 3)
+          .slice(0, 6)
+      : undefined;
+
   const update = await supabase
     .from("brand_profiles")
     .update({
@@ -184,6 +217,25 @@ export async function updateBrandAction(
       tone_of_voice: {
         ...(existing.data?.tone_of_voice ?? {}),
         ...(descriptors.length > 0 ? { descriptors } : {}),
+        ...(parsed.data.uvp !== undefined ? { uvp: parsed.data.uvp || undefined } : {}),
+        ...(parsed.data.contrarianThesis !== undefined
+          ? { contrarian_thesis: parsed.data.contrarianThesis || undefined }
+          : {}),
+        ...(objections !== undefined ? { objections } : {}),
+        ...(parsed.data.abepClass ? { abep_class: parsed.data.abepClass } : {}),
+        ...(parsed.data.jtbdFunctional !== undefined
+          ? { jtbd_functional: parsed.data.jtbdFunctional || undefined }
+          : {}),
+        ...(parsed.data.jtbdEmotional !== undefined
+          ? { jtbd_emotional: parsed.data.jtbdEmotional || undefined }
+          : {}),
+        ...(parsed.data.formality !== undefined ? { formality: parsed.data.formality } : {}),
+        ...(parsed.data.humor !== undefined ? { humor: parsed.data.humor } : {}),
+        ...(parsed.data.irreverence !== undefined ? { irreverence: parsed.data.irreverence } : {}),
+        ...(parsed.data.enthusiasm !== undefined ? { enthusiasm: parsed.data.enthusiasm } : {}),
+        ...(parsed.data.visualStylePreference
+          ? { visual_style_preference: parsed.data.visualStylePreference }
+          : {}),
       },
       visual_tokens: nextVisualTokens,
       entity_facts: nextEntityFacts,
