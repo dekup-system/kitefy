@@ -25,6 +25,7 @@ const serverEnvSchema = z.object({
   LLM_PROVIDER_MODE: z.enum(["mock", "live"]).default("mock"),
   ANTHROPIC_API_KEY: z.string().min(10).optional(),
   DEEPSEEK_API_KEY: z.string().min(10).optional(),
+  SILICONFLOW_API_KEY: z.string().min(10).optional(),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(10).optional(),
   OPENAI_API_KEY: z.string().min(10).optional(),
 
@@ -39,8 +40,11 @@ const serverEnvSchema = z.object({
   SERPER_API_KEY: z.string().min(10).optional(),
 
   // --- Imagens ---------------------------------------------------------------
-  IMAGE_PROVIDER: z.enum(["none", "google_nano_banana", "seedream", "mock"]).default("none"),
+  IMAGE_PROVIDER: z
+    .enum(["none", "google_nano_banana", "siliconflow", "seedream", "mock"])
+    .default("none"),
   IMAGE_PROVIDER_API_KEY: z.string().min(10).optional(),
+  SILICONFLOW_IMAGE_MODEL: z.string().default("black-forest-labs/FLUX.2-flex"),
 
   // --- GA4 (telemetria) ------------------------------------------------------
   GA4_WEBHOOK_SECRET: z.string().min(16).optional(),
@@ -133,9 +137,14 @@ export function requireLiveProvider(provider: "llm" | "serp" | "mp" | "image"): 
 
   if (provider === "llm") {
     if (env.LLM_PROVIDER_MODE === "mock") return;
-    if (!env.ANTHROPIC_API_KEY && !env.GOOGLE_GENERATIVE_AI_API_KEY && !env.DEEPSEEK_API_KEY) {
+    if (
+      !env.ANTHROPIC_API_KEY &&
+      !env.GOOGLE_GENERATIVE_AI_API_KEY &&
+      !env.DEEPSEEK_API_KEY &&
+      !env.SILICONFLOW_API_KEY
+    ) {
       throw new Error(
-        "LLM_PROVIDER_MODE=live exige DEEPSEEK_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY ou ANTHROPIC_API_KEY.",
+        "LLM_PROVIDER_MODE=live exige SILICONFLOW_API_KEY, DEEPSEEK_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY ou ANTHROPIC_API_KEY.",
       );
     }
   }
@@ -154,8 +163,12 @@ export function requireLiveProvider(provider: "llm" | "serp" | "mp" | "image"): 
 
   if (provider === "image") {
     if (env.IMAGE_PROVIDER === "none") return;
-    if (env.IMAGE_PROVIDER !== "mock" && !env.IMAGE_PROVIDER_API_KEY) {
-      throw new Error(`IMAGE_PROVIDER=${env.IMAGE_PROVIDER} exige IMAGE_PROVIDER_API_KEY.`);
+    const hasKey =
+      Boolean(env.IMAGE_PROVIDER_API_KEY) ||
+      (env.IMAGE_PROVIDER === "siliconflow" && Boolean(env.SILICONFLOW_API_KEY)) ||
+      (env.IMAGE_PROVIDER === "google_nano_banana" && Boolean(env.GOOGLE_GENERATIVE_AI_API_KEY));
+    if (env.IMAGE_PROVIDER !== "mock" && !hasKey) {
+      throw new Error(`IMAGE_PROVIDER=${env.IMAGE_PROVIDER} exige chave de API configurada.`);
     }
   }
 }

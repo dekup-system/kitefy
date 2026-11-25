@@ -13,7 +13,7 @@ import { getServerEnv } from "@/lib/env";
  *  - embeddings -> Gemini Embedding com dimensão fixa (<= 2000).
  */
 
-export type ProviderId = "anthropic" | "google" | "openai" | "deepseek";
+export type ProviderId = "anthropic" | "google" | "openai" | "deepseek" | "siliconflow";
 
 export interface ModelSpec {
   provider: ProviderId;
@@ -21,14 +21,21 @@ export interface ModelSpec {
   raw: string;
 }
 
-const KNOWN_PROVIDERS: readonly ProviderId[] = ["anthropic", "google", "openai", "deepseek"];
+const KNOWN_PROVIDERS: readonly ProviderId[] = [
+  "anthropic",
+  "google",
+  "openai",
+  "deepseek",
+  "siliconflow",
+];
 
 /**
  * Base URL de provedores compatíveis com a API da OpenAI.
- * A DeepSeek expõe `/v1` no mesmo formato de chat completions.
+ * DeepSeek e SiliconFlow expõem `/v1` no mesmo formato de chat completions.
  */
 const OPENAI_COMPATIBLE_BASE_URL: Partial<Record<ProviderId, string>> = {
   deepseek: "https://api.deepseek.com/v1",
+  siliconflow: "https://api.siliconflow.com/v1",
 };
 
 export function parseModelSpec(raw: string): ModelSpec {
@@ -106,6 +113,20 @@ function providerInstance(id: ProviderId): CallableProvider {
       instance = ((modelId: string) => deepseek.chat(modelId)) as unknown as AnyProvider;
       break;
     }
+    case "siliconflow": {
+      if (!env.SILICONFLOW_API_KEY) {
+        throw new Error(
+          "SILICONFLOW_API_KEY ausente para o provider siliconflow. Gere a chave em cloud.siliconflow.com.",
+        );
+      }
+      const siliconflow = createOpenAI({
+        apiKey: env.SILICONFLOW_API_KEY,
+        baseURL: OPENAI_COMPATIBLE_BASE_URL.siliconflow,
+        name: "siliconflow",
+      });
+      instance = ((modelId: string) => siliconflow.chat(modelId)) as unknown as AnyProvider;
+      break;
+    }
   }
 
   const callable = instance as unknown as CallableProvider;
@@ -152,7 +173,8 @@ export function resetProviderCache(): void {
  */
 export function supportsStructuredOutputs(spec: string): boolean {
   try {
-    return parseModelSpec(spec).provider !== "deepseek";
+    const provider = parseModelSpec(spec).provider;
+    return provider !== "deepseek" && provider !== "siliconflow";
   } catch {
     return false;
   }
