@@ -155,20 +155,26 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
         "Close-up conceptual visual metaphor, refined textures, contemporary luxury editorial aesthetic",
       ];
 
+      // Geração sequencial para evitar rate-limit (HTTP 429) no provedor de imagem IA
+      // quando o carrossel pede 2 ou 3 ilustrações na mesma requisição.
       let slotOrder = 0;
-      slides = await Promise.all(
-        payload.slides.map(async (slide, idx) => {
-          if (!chosenIndexes.has(idx) || slide.image_url) return slide;
-          const direction = artDirectionBySlot[slotOrder % artDirectionBySlot.length]!;
-          slotOrder += 1;
-          const img = await generateEditorialImageDataUrl({
-            prompt: `${slide.title}. ${slide.body}. ${direction}. Brand: ${input.brand.brand_name}`,
-            aspectRatio: idx === 0 ? "3:4" : "4:3",
-            brandPrimaryHex: tokens.primary,
-          });
-          return img ? { ...slide, image_url: img, has_ai_imagery: true } : slide;
-        }),
-      );
+      const enrichedSlides = [];
+      for (let idx = 0; idx < payload.slides.length; idx += 1) {
+        const slide = payload.slides[idx]!;
+        if (!chosenIndexes.has(idx) || slide.image_url) {
+          enrichedSlides.push(slide);
+          continue;
+        }
+        const direction = artDirectionBySlot[slotOrder % artDirectionBySlot.length]!;
+        slotOrder += 1;
+        const img = await generateEditorialImageDataUrl({
+          prompt: `${slide.title}. ${slide.body}. ${direction}. Brand: ${input.brand.brand_name}`,
+          aspectRatio: idx === 0 ? "3:4" : "4:3",
+          brandPrimaryHex: tokens.primary,
+        });
+        enrichedSlides.push(img ? { ...slide, image_url: img, has_ai_imagery: true } : slide);
+      }
+      slides = enrichedSlides;
     }
 
     const rendered = await renderCarousel({

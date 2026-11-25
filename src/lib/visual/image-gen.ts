@@ -28,15 +28,26 @@ export interface GenerateEditorialImageInput {
   brandPrimaryHex?: string;
 }
 
-export function isLiveImageGenerationEnabled(): boolean {
+function resolveEffectiveImageProvider(): "siliconflow" | "google_nano_banana" | null {
   const env = getServerEnv();
   if (env.IMAGE_PROVIDER === "siliconflow") {
-    return Boolean(env.SILICONFLOW_API_KEY || env.IMAGE_PROVIDER_API_KEY);
+    return env.SILICONFLOW_API_KEY || env.IMAGE_PROVIDER_API_KEY ? "siliconflow" : null;
   }
   if (env.IMAGE_PROVIDER === "google_nano_banana") {
-    return Boolean(env.IMAGE_PROVIDER_API_KEY || env.GOOGLE_GENERATIVE_AI_API_KEY);
+    return env.IMAGE_PROVIDER_API_KEY || env.GOOGLE_GENERATIVE_AI_API_KEY
+      ? "google_nano_banana"
+      : null;
   }
-  return false;
+  // Auto-ativa SiliconFlow em modo live quando SILICONFLOW_API_KEY já está configurada
+  // (evita que IMAGE_PROVIDER default="none" silencie a geração de imagens IA).
+  if (env.IMAGE_PROVIDER === "none" && env.LLM_PROVIDER_MODE === "live" && env.SILICONFLOW_API_KEY) {
+    return "siliconflow";
+  }
+  return null;
+}
+
+export function isLiveImageGenerationEnabled(): boolean {
+  return resolveEffectiveImageProvider() !== null;
 }
 
 function buildGuardedPrompt(input: GenerateEditorialImageInput): string | null {
@@ -67,6 +78,53 @@ function siliconFlowSizeFor(aspectRatio: GenerateEditorialImageInput["aspectRati
   }
 }
 
+async function callSiliconFlowOnce(
+  apiKey: string,
+  model: string,
+  finalPrompt: string,
+  imageSize: string,
+  signal: AbortSignal,
+): Promise<{ dataUrl: string | null; status: number; errorBody?: string }> {
+  const response = await fetch(SILICONFLOW_IMAGE_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      prompt: finalPrompt,
+      image_size: imageSize,
+    }),
+    signal,
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => "");
+    return { dataUrl: null, status: response.status, errorBody: errorBody.slice(0, 300) };
+  }
+
+  const data = (await response.json()) as {
+    images?: { url?: string }[];
+    data?: { url?: string; b64_json?: string }[];
+  };
+  const b64 = data.data?.[0]?.b64_json;
+  if (b64) return { dataUrl: `data:image/png;base64,${b64}`, status: 200 };
+
+  const imageUrl = data.images?.[0]?.url ?? data.data?.[0]?.url;
+  if (!imageUrl) return { dataUrl: null, status: 200, errorBody: "missing_image_url" };
+
+  const imgResponse = await fetch(imageUrl, { signal });
+  if (!imgResponse.ok) {
+    return { dataUrl: null, status: imgResponse.status, errorBody: "image_download_failed" };
+  }
+
+  const rawType = (imgResponse.headers.get("content-type") ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
+  const contentType = rawType.startsWith("image/") ? rawType : "image/png";
+  const buffer = Buffer.from(await imgResponse.arrayBuffer());
+  return { dataUrl: `data:${contentType};base64,${buffer.toString("base64")}`, status: 200 };
+}
+
 async function generateViaSiliconFlow(
   finalPrompt: string,
   aspectRatio: GenerateEditorialImageInput["aspectRatio"],
@@ -77,44 +135,37 @@ async function generateViaSiliconFlow(
 
   const model = env.SILICONFLOW_IMAGE_MODEL || "black-forest-labs/FLUX.2-flex";
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 35_000);
+  const timeout = setTimeout(() => controller.abort(), 55_000);
 
   try {
-    const response = await fetch(SILICONFLOW_IMAGE_ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        prompt: finalPrompt,
-        image_size: siliconFlowSizeFor(aspectRatio),
-      }),
-      signal: controller.signal,
-    });
+    const preferredSize = siliconFlowSizeFor(aspectRatio);
+    let attempt = await callSiliconFlowOnce(apiKey, model, finalPrompt, preferredSize, controller.signal);
 
-    if (!response.ok) {
-      log.warn("SiliconFlow Image retornou erro HTTP", { status: response.status, model });
+    // Se o modelo rejeitar o aspect ratio (HTTP 400) ou sofrer rate limit (429/5xx),
+    // tenta novamente com 1024x1024 (suportado universalmente no FLUX.2-flex).
+    if (!attempt.dataUrl && (attempt.status === 400 || attempt.status === 429 || attempt.status >= 500)) {
+      log.warn("SiliconFlow Image falhou na 1ª tentativa; tentando fallback 1024x1024", {
+        status: attempt.status,
+        model,
+        preferredSize,
+        errorBody: attempt.errorBody,
+      });
+      if (attempt.status === 429) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
+      attempt = await callSiliconFlowOnce(apiKey, model, finalPrompt, "1024x1024", controller.signal);
+    }
+
+    if (!attempt.dataUrl) {
+      log.warn("SiliconFlow Image não retornou imagem após fallback", {
+        status: attempt.status,
+        model,
+        errorBody: attempt.errorBody,
+      });
       return null;
     }
 
-    const data = (await response.json()) as {
-      images?: { url?: string }[];
-      data?: { url?: string; b64_json?: string }[];
-    };
-    const b64 = data.data?.[0]?.b64_json;
-    if (b64) return `data:image/png;base64,${b64}`;
-
-    const imageUrl = data.images?.[0]?.url ?? data.data?.[0]?.url;
-    if (!imageUrl) return null;
-
-    const imgResponse = await fetch(imageUrl, { signal: controller.signal });
-    if (!imgResponse.ok) return null;
-
-    const contentType = imgResponse.headers.get("content-type") || "image/jpeg";
-    const buffer = Buffer.from(await imgResponse.arrayBuffer());
-    return `data:${contentType};base64,${buffer.toString("base64")}`;
+    return attempt.dataUrl;
   } catch (error) {
     log.warn("Falha ao gerar imagem editorial via SiliconFlow (usando fallback tipográfico)", {
       model,
@@ -179,16 +230,16 @@ async function generateViaGoogleImagen(
 export async function generateEditorialImageDataUrl(
   input: GenerateEditorialImageInput,
 ): Promise<string | null> {
-  if (!isLiveImageGenerationEnabled()) return null;
+  const provider = resolveEffectiveImageProvider();
+  if (!provider) return null;
 
   const finalPrompt = buildGuardedPrompt(input);
   if (!finalPrompt) return null;
 
-  const env = getServerEnv();
-  if (env.IMAGE_PROVIDER === "siliconflow") {
+  if (provider === "siliconflow") {
     return generateViaSiliconFlow(finalPrompt, input.aspectRatio);
   }
-  if (env.IMAGE_PROVIDER === "google_nano_banana") {
+  if (provider === "google_nano_banana") {
     return generateViaGoogleImagen(finalPrompt, input.aspectRatio);
   }
   return null;

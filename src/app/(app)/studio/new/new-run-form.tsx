@@ -131,6 +131,20 @@ const ASSET_OPTIONS: {
   },
 ];
 
+/** Extrai automaticamente do estudo da marca a oferta/serviço mais relevante para o item 3. */
+function deriveBrandDefaultProduct(brand?: BrandOption): string {
+  if (!brand) return "";
+  const uvp = brand.tone_of_voice?.uvp?.trim();
+  if (uvp && uvp.length >= 6) return uvp.slice(0, 180);
+  const firstFact = brand.entity_facts?.[0]?.claim?.trim();
+  if (firstFact && firstFact.length >= 6) return firstFact.slice(0, 180);
+  const highlight = brand.knowledge_highlights?.[0]?.trim();
+  if (highlight && highlight.length >= 6) return highlight.slice(0, 180);
+  const jtbd = brand.tone_of_voice?.jtbd_functional?.trim();
+  if (jtbd && jtbd.length >= 6) return jtbd.slice(0, 180);
+  return `Atendimento e soluções da ${brand.brand_name}`;
+}
+
 export function NewRunForm({
   brands,
   defaultBrandId,
@@ -149,10 +163,14 @@ export function NewRunForm({
   mockMode: boolean;
 }) {
   const router = useRouter();
+  const initialBrandId = defaultBrandId ?? brands[0]?.id ?? "";
+  const initialBrand = brands.find((b) => b.id === initialBrandId) ?? brands[0];
   const [assetType, setAssetType] = useState<AssetType>(defaultAssetType ?? "typo_carousel");
-  const [brandId, setBrandId] = useState(defaultBrandId ?? brands[0]?.id ?? "");
+  const [brandId, setBrandId] = useState(initialBrandId);
   const [objective, setObjective] = useState(defaultObjective ?? "");
-  const [product, setProduct] = useState(defaultProduct ?? "");
+  const [product, setProduct] = useState(
+    defaultProduct?.trim() || deriveBrandDefaultProduct(initialBrand),
+  );
   const [research, setResearch] = useState(false);
   const [visualFormat, setVisualFormat] = useState<"4:5" | "9:16">("4:5");
   const [visualStyle, setVisualStyle] = useState<"auto" | VisualThemeId>("auto");
@@ -220,7 +238,10 @@ export function NewRunForm({
               <button
                 key={brand.id}
                 type="button"
-                onClick={() => setBrandId(brand.id)}
+                onClick={() => {
+                  setBrandId(brand.id);
+                  setProduct(deriveBrandDefaultProduct(brand));
+                }}
                 aria-pressed={brandId === brand.id}
                 className={`inline-flex h-9 items-center rounded-full border px-3 text-sm transition-colors ${
                   brandId === brand.id

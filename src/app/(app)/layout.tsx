@@ -125,6 +125,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             isAdmin={session.isPlatformAdmin}
             variant="sidebar"
           />
+
+          <a
+            href="mailto:suporte@m3dmultidev.com.br"
+            className="flex items-center gap-2.5 rounded-xl border border-sidebar-border/80 bg-black/25 px-2.5 py-2 transition-colors hover:border-white/25 hover:bg-black/40"
+            title="Falar com o suporte M3D Multidev"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/m3d-multidev-logo.png"
+              alt="M3D Multidev"
+              className="size-8 shrink-0 rounded-md object-contain"
+            />
+            <div className="min-w-0 leading-tight">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-signal">
+                Suporte
+              </p>
+              <p className="truncate text-[11px] font-medium text-white/90">M3D Multidev</p>
+              <p className="truncate text-[10px] text-sidebar-muted">suporte@m3dmultidev.com.br</p>
+            </div>
+          </a>
         </div>
       </aside>
 

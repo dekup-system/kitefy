@@ -297,18 +297,29 @@ const guardrailSchema = z.object({
         rule: z.string().min(3).max(120),
         excerpt: z.string().min(1).max(240),
         severity: z.enum(["blocker", "warning"]),
+        suggestion: z.string().min(1).max(360).optional(),
       }),
     )
     .max(12),
 });
 
 export interface GuardrailReview {
-  violations: { rule: string; excerpt: string; severity: "blocker" | "warning" }[];
+  violations: {
+    rule: string;
+    excerpt: string;
+    severity: "blocker" | "warning";
+    suggestion?: string;
+  }[];
   usage: TokenUsageEntry[];
 }
 
 interface GuardrailOutput {
-  violations: { rule: string; excerpt: string; severity: "blocker" | "warning" }[];
+  violations: {
+    rule: string;
+    excerpt: string;
+    severity: "blocker" | "warning";
+    suggestion?: string;
+  }[];
 }
 
 /**

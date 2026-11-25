@@ -32,13 +32,18 @@ export async function evaluateCompliance(
 
   const llm = await reviewWithGuardrailModel({ text, assetType: input.assetType });
 
-  const violations = [
+  const violations: ComplianceReport["violations"] = [
     ...deterministic.violations.map((violation) => ({
       rule: violation.rule,
       excerpt: violation.excerpt,
       severity: violation.severity,
     })),
-    ...llm.violations,
+    ...llm.violations.map((violation) => ({
+      rule: violation.rule,
+      excerpt: violation.excerpt,
+      severity: violation.severity,
+      ...(violation.suggestion ? { suggestion: violation.suggestion } : {}),
+    })),
   ];
 
   // Deduplica por regra+trecho (determinístico e LLM costumam concordar).

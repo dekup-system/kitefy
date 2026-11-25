@@ -459,7 +459,13 @@ export type ContentPayload =
 
 export interface ComplianceReport {
   approved: boolean;
-  violations: { rule: string; excerpt: string; severity: "blocker" | "warning" }[];
+  violations: {
+    rule: string;
+    excerpt: string;
+    severity: "blocker" | "warning";
+    /** Reescrita sugerida pela IA pronta para substituir `excerpt` no texto. */
+    suggestion?: string;
+  }[];
   checked_at: string;
   reviewer: "deterministic" | "llm";
   requires_transparency_label: boolean;

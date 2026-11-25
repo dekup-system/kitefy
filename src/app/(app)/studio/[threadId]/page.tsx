@@ -743,7 +743,14 @@ export default async function StudioPage({
                   ) : (
                     <ul className="space-y-3">
                       {compliance.violations.map((violation, index) => {
-                        const suggested = suggestComplianceRewrite(violation.excerpt, violation.rule);
+                        const aiSuggestion = violation.suggestion?.trim();
+                        const hasDistinctAiSuggestion =
+                          Boolean(aiSuggestion) &&
+                          aiSuggestion!.toLowerCase() !== violation.excerpt.trim().toLowerCase() &&
+                          !/^(remova|substitua|evite|adicione|ajuste|inclua)\b/i.test(aiSuggestion!);
+                        const suggested = hasDistinctAiSuggestion
+                          ? aiSuggestion!
+                          : suggestComplianceRewrite(violation.excerpt, violation.rule);
                         return (
                           <li
                             key={`${violation.rule}-${index}`}
