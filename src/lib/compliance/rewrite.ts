@@ -1,9 +1,28 @@
 /**
- * Sugestão automática de reescrita CONAR-compliant e substituição segura no payload.
+ * Sugestão automática de reescrita CONAR-compliant + motivo legível por regra.
  *
- * Transforma trechos marcados como Recomendação ou Proibição em formulações
- * naturais, objetivas e sem promessas absolutas em PT-BR (custo US$ 0).
+ * Explica claramente POR QUE o trecho foi sinalizado e gera uma formulação
+ * genuinamente diferente e aderente ao CONAR para aplicação em 1 clique.
  */
+
+const RULE_EXPLANATIONS: Record<string, string> = {
+  medical_absolute_promise: "Promessa absoluta de cura ou resultado médico sem ressalva.",
+  financial_guarantee: "Promessa de ganho ou retorno financeiro garantido/sem risco.",
+  absolute_superlative: "Superlativo absoluto ('o melhor do mundo/Brasil') sem fonte verificável.",
+  fabricated_urgency: "Senso de urgência/escassez sem data ou condição real comprovada.",
+  atypical_testimonial: "Resultado numérico específico sem aviso de que resultados variam.",
+  forbidden_synthetic_media: "Menção a recurso proibido (avatar falante, clonagem de voz ou lip-sync).",
+  health_disclaimer_missing: "Tema de saúde sem aviso educativo recomendando orientação profissional.",
+  finance_disclaimer_missing: "Tema financeiro sem aviso informativo de que não é recomendação garantida.",
+  free_without_condition: "Uso de 'grátis/gratuito' sem explicitar a condição ou escopo.",
+  deadline_promise: "Promessa de prazo fechado ('em X dias') — o CONAR recomenda faixa estimada.",
+  tone_avoid: "Termo presente na lista de palavras a evitar da sua marca.",
+  unverified_number: "Dado numérico sem fonte cadastrada nos fatos verificáveis da marca.",
+};
+
+export function describeComplianceRule(rule: string): string {
+  return RULE_EXPLANATIONS[rule] ?? "Trecho sinalizado para suavização e maior clareza publicitária.";
+}
 
 const REWRITE_RULES: [RegExp, string][] = [
   [/\b100%\s*(garantid[oa]s?|comprovad[oa]s?|eficaz(es)?|segur[oa]s?)\b/gi, "com método validado na prática"],
@@ -27,21 +46,36 @@ const REWRITE_RULES: [RegExp, string][] = [
   [/\bantes\s+e\s+depois\b/gi, "evolução do acompanhamento"],
 ];
 
-export function suggestComplianceRewrite(excerpt: string, _rule?: string): string {
+export function suggestComplianceRewrite(excerpt: string, rule?: string): string {
   const clean = excerpt.trim();
   if (!clean) return "";
+
+  // Regras específicas de recomendação onde o trecho é curto (1-3 palavras)
+  if (rule === "health_disclaimer_missing") {
+    return `${clean} (conteúdo educativo — consulte sempre um profissional habilitado)`;
+  }
+  if (rule === "finance_disclaimer_missing") {
+    return `${clean} (conteúdo informativo — avalie conforme seu perfil)`;
+  }
+  if (rule === "free_without_condition") {
+    return `${clean} (sujeito às condições e disponibilidade vigentes)`;
+  }
+  if (rule === "deadline_promise") {
+    return "em prazo estimado conforme avaliação do caso";
+  }
+  if (rule === "unverified_number") {
+    return clean.replace(/\b\d+[.,]?\d*\s*%/g, "uma parcela relevante").replace(/\b\d+\b/g, "vários");
+  }
 
   let rewritten = clean;
   for (const [pattern, replacement] of REWRITE_RULES) {
     rewritten = rewritten.replace(pattern, replacement);
   }
 
-  // Normaliza espaços duplos e capitalização inicial
   rewritten = rewritten.replace(/\s+/g, " ").trim();
   if (rewritten.toLowerCase() === clean.toLowerCase()) {
-    // Fallback objetivo quando a regra apontou tom/estilo sem palavra-chave fixa
     const trimmedPunct = clean.replace(/[.!?]+$/, "");
-    rewritten = `Na prática, ${trimmedPunct.charAt(0).toLowerCase()}${trimmedPunct.slice(1)} (sujeito à avaliação do seu caso).`;
+    rewritten = `${trimmedPunct} (conforme avaliação e condições aplicáveis)`;
   }
 
   return rewritten;

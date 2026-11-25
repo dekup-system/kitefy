@@ -276,6 +276,23 @@ export interface BrandAudienceStudy {
   personas: AudiencePersona[];
 }
 
+export interface CompetitorRadarIdea {
+  title: string;
+  assetType: "typo_carousel" | "short_script_kit" | "single_creative" | "geo_article";
+  objective: string;
+  productInput: string;
+}
+
+export interface CompetitorRadarEntry {
+  id: string;
+  name: string;
+  url: string;
+  kind: "site" | "social";
+  topics?: string[];
+  ideas?: CompetitorRadarIdea[];
+  lastAnalyzedAt?: string | null;
+}
+
 export interface ToneOfVoice {
   archetype?: string;
   descriptors?: string[];
@@ -300,6 +317,8 @@ export interface ToneOfVoice {
   visual_style_preference?: "auto" | VisualThemeId;
   /** Estudo completo de público, personas (JTBD + VoC) e demografia IBGE/ABEP. */
   audience_study?: BrandAudienceStudy;
+  /** Radar de concorrentes observados por marca (site ou rede social). */
+  competitor_radar?: CompetitorRadarEntry[];
 }
 
 /** Cores em hex e/ou OKLCH (o renderizador aceita ambos). */

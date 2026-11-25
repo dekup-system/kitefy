@@ -27,7 +27,7 @@ import {
   decideStudioRunAction,
   markAssetPostedAction,
 } from "@/lib/studio/actions";
-import { suggestComplianceRewrite } from "@/lib/compliance/rewrite";
+import { describeComplianceRule, suggestComplianceRewrite } from "@/lib/compliance/rewrite";
 import { ScheduleAssetCard } from "./schedule-asset-card";
 import type { AssetScheduleMeta } from "@/lib/schedule/actions";
 import { recordQuickFeedbackAction } from "@/lib/telemetry/actions";
@@ -757,13 +757,16 @@ export default async function StudioPage({
                               <Badge variant={violation.severity === "blocker" ? "destructive" : "warning"}>
                                 {violation.severity === "blocker" ? "Proibição (ajuste obrigatório)" : "Recomendação"}
                               </Badge>
+                              <span className="text-[11px] font-medium text-muted-foreground">
+                                {describeComplianceRule(violation.rule)}
+                              </span>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              <strong className="text-foreground">Trecho encontrado:</strong> &ldquo;{violation.excerpt}&rdquo;
+                              <strong className="text-foreground">Trecho atual no texto (o que melhorar):</strong> &ldquo;{violation.excerpt}&rdquo;
                             </p>
                             <div className="rounded-md border border-border bg-background p-2.5 text-xs">
-                              <p className="font-medium text-foreground">Sugestão automática de reescrita:</p>
-                              <p className="mt-1 text-muted-foreground">&ldquo;{suggested}&rdquo;</p>
+                              <p className="font-medium text-foreground">Sugestão de substituição:</p>
+                              <p className="mt-1 text-foreground">&ldquo;{suggested}&rdquo;</p>
                             </div>
                             <form action={applyComplianceFixAction}>
                               <input type="hidden" name="threadId" value={threadId} />

@@ -183,7 +183,7 @@ export default async function SchedulePage({
     <div className="space-y-6">
       <PageHeader
         title="Grade Semanal de Agendamentos"
-        description="Organize suas publicações nos 7 dias da semana por horário e ative lembretes gratuitos com 30 minutos de antecedência."
+        description="Organize suas publicações nos 7 dias da semana por horário e ative lembretes com 30 minutos de antecedência."
         actions={
           <Button asChild size="sm">
             <Link href="/studio/new">
@@ -194,26 +194,20 @@ export default async function SchedulePage({
         }
       />
 
-      {/* Aviso transparente sobre lembretes gratuitos */}
-      <div className="grid gap-3 rounded-xl border border-border bg-muted/30 p-4 text-xs sm:grid-cols-2">
-        <div className="flex items-start gap-2.5">
-          <Bell className="mt-0.5 size-4 shrink-0 text-brand-signal" aria-hidden="true" />
-          <div>
-            <p className="font-semibold text-foreground">Alarme de 30 min grátis no celular (.ics)</p>
-            <p className="text-muted-foreground">
-              Clique em <strong>Alarme 30 min</strong> em qualquer post agendado para salvar no Google Calendar, iPhone ou Outlook com notificação automática 30 minutos antes — custo R$ 0.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-start gap-2.5">
-          <MessageCircle className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden="true" />
-          <div>
-            <p className="font-semibold text-foreground">Lembrete no WhatsApp sem custo de API</p>
-            <p className="text-muted-foreground">
-              A API oficial do WhatsApp cobra por disparo automático; para manter custo R$ 0, cada post agendado traz o botão <strong>Enviar no WhatsApp</strong> pronto para mandar para você ou sua equipe em 1 clique.
-            </p>
-          </div>
-        </div>
+      {/* Dica objetiva de lembretes */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-2">
+          <Bell className="size-3.5 shrink-0 text-brand-signal" aria-hidden="true" />
+          <span>
+            <strong className="text-foreground">Alarme 30m:</strong> salva o aviso na agenda do celular 30 minutos antes.
+          </span>
+        </span>
+        <span className="flex items-center gap-2">
+          <MessageCircle className="size-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
+          <span>
+            <strong className="text-foreground">WhatsApp:</strong> envia o lembrete pronto para você ou sua equipe em 1 clique.
+          </span>
+        </span>
       </div>
 
       {/* Navegação da semana */}
