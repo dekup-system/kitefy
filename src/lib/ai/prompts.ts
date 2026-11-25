@@ -124,6 +124,7 @@ export function buildSystemPrompt(assetType: AssetType): string {
       "- Siga o arco narrativo contínuo: Capa de impacto (cover) -> Problema/tensão real -> Provas/passos práticos -> Fechamento acionável (cta).",
       "- Título de slide com no máximo 8 palavras; corpo com 15 a 35 palavras que complementam o título sem repetição.",
       "- Respeite rigorosamente a quantidade de slides e de ilustrações IA (has_ai_imagery=true) especificada no briefing do usuário.",
+      "- NUNCA invente ou preencha image_url — deixe image_url omitido (as imagens reais serão geradas automaticamente pelo motor visual).",
     ],
     single_creative: [
       "",

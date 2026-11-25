@@ -66,10 +66,18 @@ async function loadBrandLogoDataUrl(logoPath: string | undefined): Promise<strin
       return null;
     }
     const raw = Buffer.from(await data.arrayBuffer());
-    // Dimensões fixas (216x64) com fundo transparente: o Satori exige width e
+    // Remove margens transparentes/vazias excessivas antes de redimensionar para
+    // que a arte real da logomarca ocupe o espaço completo (264x84) sem encolher.
+    let trimmedBuf = raw;
+    try {
+      trimmedBuf = await sharp(raw, { failOn: "error" }).trim({ threshold: 10 }).toBuffer();
+    } catch {
+      trimmedBuf = raw;
+    }
+    // Dimensões fixas (264x84) com fundo transparente: o Satori exige width e
     // height explícitos em <img> para não colapsar a largura para 0px.
-    const resized = await sharp(raw, { failOn: "error" })
-      .resize(216, 64, {
+    const resized = await sharp(trimmedBuf, { failOn: "error" })
+      .resize(264, 84, {
         fit: "contain",
         background: { r: 0, g: 0, b: 0, alpha: 0 },
       })
@@ -127,14 +135,23 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
     warnings.push(...rendered.warnings);
   } else {
     const payload = input.payload as CarouselOutput;
-    let slides = payload.slides;
+    // Remove qualquer image_url alucinada pelo LLM (ex.: https://example.com/...)
+    // mantendo apenas data URLs reais já geradas pelo motor visual.
+    let slides: CarouselOutput["slides"] = payload.slides.map((slide) => {
+      const hasRealDataUrl =
+        typeof slide.image_url === "string" && slide.image_url.trim().startsWith("data:image/");
+      if (hasRealDataUrl) return slide;
+      const { image_url: _discarded, ...rest } = slide;
+      void _discarded;
+      return rest;
+    });
 
     // Carrossel híbrido: gera 2 imagens IA (preset 5 slides) ou 3 imagens IA (preset 7 slides)
     // com direção de arte distinta por slide dentro da mesma identidade da marca.
     if (input.assetType === "hybrid_carousel" && isLiveImageGenerationEnabled()) {
       const targetImageCount = input.carouselPreset === "7_slides_3_ai" ? 3 : 2;
       const chosenIndexes = new Set<number>([0]);
-      payload.slides.forEach((slide, idx) => {
+      slides.forEach((slide, idx) => {
         if (chosenIndexes.size < targetImageCount && slide.has_ai_imagery) {
           chosenIndexes.add(idx);
         }
@@ -142,8 +159,8 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
       // Garante distribuição visual equilibrada (ex.: [0, 2] ou [0, 2, 4]) se o LLM marcou menos slides.
       const fallbackSlots =
         targetImageCount === 3
-          ? [0, Math.min(2, payload.slides.length - 1), Math.min(4, payload.slides.length - 1)]
-          : [0, Math.min(2, payload.slides.length - 1)];
+          ? [0, Math.min(2, slides.length - 1), Math.min(4, slides.length - 1)]
+          : [0, Math.min(2, slides.length - 1)];
       for (const slot of fallbackSlots) {
         if (chosenIndexes.size >= targetImageCount) break;
         chosenIndexes.add(slot);
@@ -159,8 +176,8 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
       // quando o carrossel pede 2 ou 3 ilustrações na mesma requisição.
       let slotOrder = 0;
       const enrichedSlides = [];
-      for (let idx = 0; idx < payload.slides.length; idx += 1) {
-        const slide = payload.slides[idx]!;
+      for (let idx = 0; idx < slides.length; idx += 1) {
+        const slide = slides[idx]!;
         if (!chosenIndexes.has(idx) || slide.image_url) {
           enrichedSlides.push(slide);
           continue;
