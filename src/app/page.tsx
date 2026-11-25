@@ -168,9 +168,9 @@ export default function KitefyLandingPage() {
       />
       {/* ---------------- Header (60% claro) ---------------- */}
       <header className="sticky top-0 z-30 border-b border-brand-border bg-brand-canvas/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-5">
           <Link href="/" aria-label="Kitefy — página inicial" className="shrink-0">
-            <KitefyLogo height={40} priority />
+            <KitefyLogo height={34} priority />
           </Link>
 
           <nav aria-label="Navegação principal" className="hidden items-center gap-7 text-sm text-brand-navy-soft md:flex">
@@ -188,15 +188,16 @@ export default function KitefyLandingPage() {
             </a>
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <Link
               href="/login"
-              className="hidden text-sm font-medium text-brand-navy transition-colors hover:text-brand-signal-text sm:inline"
+              className="inline-flex items-center rounded-md px-2.5 py-1.5 text-sm font-medium text-brand-navy transition-colors hover:text-brand-signal-text"
             >
               Entrar
             </Link>
-            <Link href="#pacotes" className="kitefy-cta-compact">
-              Escolher pacote
+            <Link href="#pacotes" className="kitefy-cta-compact whitespace-nowrap">
+              <span className="sm:hidden">Pacotes</span>
+              <span className="hidden sm:inline">Escolher pacote</span>
             </Link>
           </div>
         </div>
