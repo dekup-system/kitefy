@@ -11,6 +11,8 @@ import {
   type KnowledgePillarId,
 } from "@/lib/ai/marketing-knowledge";
 import { buildCleanCopyText } from "@/lib/export/pack";
+import { fetchIbgeDemographics } from "@/lib/audience/ibge-demographics";
+import { generateBrandAudienceStudy } from "@/lib/audience/persona-generator";
 import { buildBrandContextBlock, buildUserPrompt } from "@/lib/ai/prompts";
 import type { BrandContext } from "@/types/domain";
 
@@ -192,5 +194,28 @@ describe("marketing-knowledge library", () => {
     expect(clean).not.toContain("##");
     expect(clean).not.toContain("**");
     expect(clean).not.toContain("---");
+  });
+
+  it("gera estudo de público com dados IBGE, análise de consumo, personas JTBD/VoC e injeta no orquestrador", async () => {
+    const ibge = await fetchIbgeDemographics("PR");
+    expect(ibge.uf).toBe("PR");
+    expect(ibge.population).toBeGreaterThan(10_000_000);
+    expect(ibge.perCapitaIncomeBrl).toBeGreaterThan(2000);
+
+    const study = await generateBrandAudienceStudy({
+      brandName: "Atlas Contabilidade Digital",
+      region: "PR",
+      icpDescription: "Empresários de PMEs de serviços",
+      abepClass: "B1",
+      entityFacts: [{ claim: "Planejamento tributário legal para PMEs" }],
+    });
+    expect(study.personas.length).toBeGreaterThanOrEqual(2);
+    expect(study.personas[0]?.vocPhrases.length).toBeGreaterThanOrEqual(2);
+    expect(study.consumptionAnalysis.buyingTriggers.length).toBeGreaterThanOrEqual(2);
+
+    const vector = buildToneVectorDirective({ audience_study: study });
+    expect(vector).toContain("Demografia IBGE");
+    expect(vector).toContain("Persona ativa");
+    expect(vector).toContain("VoC literal");
   });
 });

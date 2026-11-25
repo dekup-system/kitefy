@@ -5,9 +5,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseServerClient, requireSessionContext } from "@/lib/supabase/server";
 import { extractBrandDraft } from "@/lib/onboarding/extract";
+import { generateBrandAudienceStudy } from "@/lib/audience/persona-generator";
 import { PLANS } from "@/lib/pricing";
 import { createLogger } from "@/lib/logger";
-import type { PlanTier } from "@/types/domain";
+import type { AbepClass, PlanTier } from "@/types/domain";
 
 /**
  * Onboarding: um campo (URL ou descrição) + template de nicho opcional.
@@ -279,4 +280,92 @@ export async function startFirstAssetAction(formData: FormData): Promise<void> {
 export async function skipOnboardingAction(): Promise<void> {
   await requireSessionContext();
   redirect("/app");
+}
+
+export interface AudienceStudyActionState {
+  error?: string;
+  notice?: string;
+}
+
+export async function generateAudienceStudyAction(
+  _prev: AudienceStudyActionState,
+  formData: FormData,
+): Promise<AudienceStudyActionState> {
+  const session = await requireSessionContext();
+  const brandId = String(formData.get("brandId") ?? "").trim();
+  const region = String(formData.get("region") ?? "Brasil").trim().slice(0, 120);
+
+  if (!brandId) {
+    return { error: "Marca inválida." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const [{ data: brand, error: brandErr }, { data: chunks }] = await Promise.all([
+    supabase
+      .from("brand_profiles")
+      .select("id, brand_name, website_url, icp_description, tone_of_voice, entity_facts")
+      .eq("id", brandId)
+      .eq("tenant_id", session.tenantId)
+      .maybeSingle<{
+        id: string;
+        brand_name: string;
+        website_url: string | null;
+        icp_description: string | null;
+        tone_of_voice: Record<string, unknown> | null;
+        entity_facts: { claim: string }[] | null;
+      }>(),
+    supabase
+      .from("knowledge_chunks")
+      .select("content")
+      .eq("brand_id", brandId)
+      .eq("tenant_id", session.tenantId)
+      .order("created_at", { ascending: false })
+      .limit(4),
+  ]);
+
+  if (brandErr || !brand) {
+    return { error: "Marca não encontrada nesta conta." };
+  }
+
+  const currentTone = brand.tone_of_voice ?? {};
+  const abepClass =
+    typeof currentTone.abep_class === "string"
+      ? (currentTone.abep_class as AbepClass)
+      : undefined;
+
+  const study = await generateBrandAudienceStudy({
+    brandName: brand.brand_name,
+    websiteUrl: brand.website_url,
+    icpDescription: brand.icp_description,
+    region: region || "Brasil",
+    abepClass,
+    entityFacts: brand.entity_facts ?? [],
+    knowledgeHighlights: (chunks ?? []).map((c: { content: string }) => c.content),
+  });
+
+  const nextTone = {
+    ...currentTone,
+    audience_study: study,
+    ...(study.ibge.dominantAbepClasses[0] && !currentTone.abep_class
+      ? { abep_class: study.ibge.dominantAbepClasses[0] }
+      : {}),
+  };
+
+  const { error: updateErr } = await supabase
+    .from("brand_profiles")
+    .update({ tone_of_voice: nextTone })
+    .eq("id", brandId)
+    .eq("tenant_id", session.tenantId);
+
+  if (updateErr) {
+    return { error: `Não foi possível salvar o estudo: ${updateErr.message}` };
+  }
+
+  revalidatePath("/settings/brand");
+  revalidatePath("/studio/new");
+  revalidatePath("/app");
+
+  return {
+    notice: `Estudo gerado com dados demográficos (${study.ibge.regionLabel}) e ${study.personas.length} personas baseadas em evidência.`,
+  };
 }

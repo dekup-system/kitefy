@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { BrandForm } from "./brand-form";
 import { BrandCreateForm } from "./brand-create-form";
 import { BrandLogoForm } from "./brand-logo-form";
+import { AudienceStudyCard } from "./audience-study-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -124,6 +125,8 @@ export default async function BrandSettingsPage({
               </CardContent>
             </Card>
           ) : null}
+
+          {selected ? <AudienceStudyCard brand={selected} /> : null}
 
           <Card>
             <CardHeader>

@@ -513,6 +513,18 @@ export function buildToneVectorDirective(tone?: ToneOfVoice): string {
         .join(" | ")}`,
     );
   }
+  if (tone.audience_study) {
+    const study = tone.audience_study;
+    const primaryPersona = study.personas[0];
+    dna.push(
+      `Demografia IBGE (${study.ibge.regionLabel}): renda per capita R$ ${study.ibge.perCapitaIncomeBrl}/mês, classes ${study.ibge.dominantAbepClasses.join("/")}; consumo: ${study.consumptionAnalysis.priceSensitivity}`,
+    );
+    if (primaryPersona) {
+      dna.push(
+        `Persona ativa (${primaryPersona.name}, ${primaryPersona.ageRange}, ABEP ${primaryPersona.abepClass}): dor/fricção "${primaryPersona.triedAndFailed}"; gatilho "${primaryPersona.buyingTrigger}"; VoC literal: ${primaryPersona.vocPhrases.slice(0, 2).map((p) => `"${p}"`).join(" / ")}`,
+      );
+    }
+  }
 
   return [
     parts.length > 0 ? `Vetor de Tom de Voz (NN/g): ${parts.join(" · ")}.` : "",

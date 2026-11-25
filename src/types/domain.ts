@@ -240,6 +240,42 @@ export type VisualThemeId =
   | "dark_impact"
   | "swiss_minimal";
 
+export interface AudiencePersona {
+  name: string;
+  archetype: string;
+  ageRange: string;
+  abepClass: AbepClass;
+  jtbdFunctional: string;
+  jtbdEmotional: string;
+  jtbdSocial: string;
+  triedAndFailed: string;
+  hiddenObjections: string[];
+  buyingTrigger: string;
+  vocPhrases: string[];
+}
+
+export interface BrandAudienceStudy {
+  generatedAt: string;
+  region: string;
+  ibge: {
+    regionLabel: string;
+    uf: string | null;
+    population: number;
+    perCapitaIncomeBrl: number;
+    dominantAbepClasses: AbepClass[];
+    source: string;
+    fetchedLive: boolean;
+  };
+  consumptionAnalysis: {
+    decisionCycle: string;
+    priceSensitivity: string;
+    mainChannels: string[];
+    buyingTriggers: string[];
+    marketFriction: string;
+  };
+  personas: AudiencePersona[];
+}
+
 export interface ToneOfVoice {
   archetype?: string;
   descriptors?: string[];
@@ -262,6 +298,8 @@ export interface ToneOfVoice {
   jtbd_emotional?: string;
   /** Preferência de direção de arte para carrosséis/posts ("auto" rotaciona entre os 4 temas). */
   visual_style_preference?: "auto" | VisualThemeId;
+  /** Estudo completo de público, personas (JTBD + VoC) e demografia IBGE/ABEP. */
+  audience_study?: BrandAudienceStudy;
 }
 
 /** Cores em hex e/ou OKLCH (o renderizador aceita ambos). */
