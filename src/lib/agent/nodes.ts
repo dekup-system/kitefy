@@ -266,6 +266,7 @@ export async function contentGeneratorNode(
     })),
     serpInsights: state.serpInsights,
     complianceFeedback,
+    carouselPreset: state.carouselPreset ?? undefined,
   });
 
   // Guarda o modelo usado nos metadados do ativo (transparência de IA).
@@ -340,6 +341,7 @@ export async function visualRenderNode(
       assetType: state.assetType,
       format: state.visualFormat ?? "4:5",
       visualTheme: state.strategyBrief?.visualTheme,
+      carouselPreset: state.carouselPreset ?? undefined,
       payload: state.draftPayload,
       brand: state.brandContext,
     });
@@ -382,7 +384,7 @@ export async function humanApprovalNode(
     hooks: hooksFromPayload(payload, state),
     compliance: state.complianceReport,
     visualPaths: state.renderedVisualPaths,
-    creditsCost: creditsFor(state.assetType, state.researchEnabled),
+    creditsCost: creditsFor(state.assetType, state.researchEnabled, state.carouselPreset ?? undefined),
     requires_transparency_label: state.complianceReport?.requires_transparency_label ?? false,
   });
 
@@ -401,8 +403,12 @@ export function routeAfterApproval(state: OrganicStudioStateType): "persistAsset
   return state.approvalStatus === "approved" ? "persistAsset" : END;
 }
 
-function creditsFor(assetType: OrganicStudioStateType["assetType"], researchEnabled = false): number {
-  return totalRunCreditCost(assetType, researchEnabled);
+function creditsFor(
+  assetType: OrganicStudioStateType["assetType"],
+  researchEnabled = false,
+  carouselPreset?: OrganicStudioStateType["carouselPreset"] extends infer T ? Exclude<T, null> : never,
+): number {
+  return totalRunCreditCost(assetType, researchEnabled, carouselPreset);
 }
 
 // ---------------------------------------------------------------------------
@@ -415,7 +421,7 @@ export async function finalizeAssetNode(
   if (!state.draftPayload) throw new Error("Nada para persistir.");
   if (state.approvalStatus !== "approved") throw new Error("Ativo não aprovado.");
 
-  const credits = creditsFor(state.assetType, state.researchEnabled);
+  const credits = creditsFor(state.assetType, state.researchEnabled, state.carouselPreset ?? undefined);
   const title = state.approvalDecision?.title?.trim() || deriveTitle(state.draftPayload);
   const hooks = hooksFromPayload(state.draftPayload, state);
   const selectedIndex = state.approvalDecision?.selected_hook_index ?? 0;

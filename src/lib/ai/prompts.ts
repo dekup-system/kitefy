@@ -120,10 +120,10 @@ export function buildSystemPrompt(assetType: AssetType): string {
     ],
     hybrid_carousel: [
       "",
-      "FORMATO: carrossel híbrido (7 a 10 slides), tipografia editorial + até 2 slides com ilustração.",
-      "- Siga o mesmo arco narrativo contínuo: Capa forte (cover) -> Problema concreto -> Passos/provas práticas -> Fechamento acionável (cta).",
+      "FORMATO: carrossel ilustrado editorial com imagens geradas por IA + diagramação variada por slide.",
+      "- Siga o arco narrativo contínuo: Capa de impacto (cover) -> Problema/tensão real -> Provas/passos práticos -> Fechamento acionável (cta).",
       "- Título de slide com no máximo 8 palavras; corpo com 15 a 35 palavras que complementam o título sem repetição.",
-      "- Marque has_ai_imagery=true somente nos slides que terão ilustração sintética (máximo 2).",
+      "- Respeite rigorosamente a quantidade de slides e de ilustrações IA (has_ai_imagery=true) especificada no briefing do usuário.",
     ],
     single_creative: [
       "",
@@ -168,6 +168,7 @@ export interface GenerationPromptInput {
   serpInsights: SerpInsights | null;
   brand?: Pick<BrandContext, "brand_name" | "icp_description" | "tone_of_voice" | "visual_tokens">;
   previousErrors?: string[];
+  carouselPreset?: "5_slides_2_ai" | "7_slides_3_ai";
 }
 
 export function buildUserPrompt(input: GenerationPromptInput): string {
@@ -215,9 +216,17 @@ export function buildUserPrompt(input: GenerationPromptInput): string {
     brand: input.brand,
   });
 
+  const hybridDirective =
+    input.assetType === "hybrid_carousel"
+      ? input.carouselPreset === "7_slides_3_ai"
+        ? "Configuração obrigatória do Carrossel Ilustrado: gere EXATAMENTE 7 slides no array `slides`, marcando `has_ai_imagery: true` em EXATAMENTE 3 slides (capa slide 0 + 2 slides intermediários, ex.: slides 2 e 4)."
+        : "Configuração obrigatória do Carrossel Ilustrado: gere EXATAMENTE 5 slides no array `slides`, marcando `has_ai_imagery: true` em EXATAMENTE 2 slides (capa slide 0 + 1 slide intermediário, ex.: slide 2)."
+      : "";
+
   return [
     `Objetivo editorial: ${input.objective}`,
     `Produto/serviço a destacar no fechamento: ${input.productInput}`,
+    hybridDirective,
     `Ângulo principal (${input.selectedArm.angle_type}): ${mainAngleHelp}`,
     `Estrutura narrativa (${input.selectedArm.framework}): ${mainFrameworkHelp}`,
     `Ângulos de exploração para variantes A/B: ${input.explorationArms

@@ -12,6 +12,7 @@ import {
 } from "@/lib/visual";
 import { generateEditorialImageDataUrl, isLiveImageGenerationEnabled } from "@/lib/visual/image-gen";
 import type { CarouselOutput, SingleCreativeOutput } from "@/lib/ai/content-schemas";
+import type { HybridCarouselPreset } from "@/lib/pricing";
 
 /**
  * Adaptador fino entre o grafo e o motor visual.
@@ -31,6 +32,8 @@ export interface RenderVisualInput {
   format?: RenderFormat;
   /** Tema visual escolhido pelo Orquestrador Estratégico (4 estilos distintos). */
   visualTheme?: VisualThemeId;
+  /** Preset do carrossel ilustrado (5 slides / 2 IA ou 7 slides / 3 IA). */
+  carouselPreset?: HybridCarouselPreset;
   payload: ContentPayload;
   brand: BrandContext;
 }
@@ -63,10 +66,10 @@ async function loadBrandLogoDataUrl(logoPath: string | undefined): Promise<strin
       return null;
     }
     const raw = Buffer.from(await data.arrayBuffer());
-    // Dimensões fixas (132x40) com fundo transparente: o Satori exige width e
+    // Dimensões fixas (216x64) com fundo transparente: o Satori exige width e
     // height explícitos em <img> para não colapsar a largura para 0px.
     const resized = await sharp(raw, { failOn: "error" })
-      .resize(132, 40, {
+      .resize(216, 64, {
         fit: "contain",
         background: { r: 0, g: 0, b: 0, alpha: 0 },
       })
@@ -126,18 +129,41 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
     const payload = input.payload as CarouselOutput;
     let slides = payload.slides;
 
-    // Carrossel híbrido: gera no máximo 2 imagens editoriais (teto de custo)
-    // quando IMAGE_PROVIDER=google_nano_banana está ativo.
+    // Carrossel híbrido: gera 2 imagens IA (preset 5 slides) ou 3 imagens IA (preset 7 slides)
+    // com direção de arte distinta por slide dentro da mesma identidade da marca.
     if (input.assetType === "hybrid_carousel" && isLiveImageGenerationEnabled()) {
-      let generatedCount = 0;
+      const targetImageCount = input.carouselPreset === "7_slides_3_ai" ? 3 : 2;
+      const chosenIndexes = new Set<number>([0]);
+      payload.slides.forEach((slide, idx) => {
+        if (chosenIndexes.size < targetImageCount && slide.has_ai_imagery) {
+          chosenIndexes.add(idx);
+        }
+      });
+      // Garante distribuição visual equilibrada (ex.: [0, 2] ou [0, 2, 4]) se o LLM marcou menos slides.
+      const fallbackSlots =
+        targetImageCount === 3
+          ? [0, Math.min(2, payload.slides.length - 1), Math.min(4, payload.slides.length - 1)]
+          : [0, Math.min(2, payload.slides.length - 1)];
+      for (const slot of fallbackSlots) {
+        if (chosenIndexes.size >= targetImageCount) break;
+        chosenIndexes.add(slot);
+      }
+
+      const artDirectionBySlot = [
+        "Hero magazine cover editorial photography, dramatic architectural lighting, deep focal depth, clean negative space",
+        "Modern minimalist studio lifestyle scene, warm natural shadows, crisp editorial composition",
+        "Close-up conceptual visual metaphor, refined textures, contemporary luxury editorial aesthetic",
+      ];
+
+      let slotOrder = 0;
       slides = await Promise.all(
         payload.slides.map(async (slide, idx) => {
-          const wantsImage = Boolean(slide.has_ai_imagery) || idx === 0;
-          if (!wantsImage || generatedCount >= 2 || slide.image_url) return slide;
-          generatedCount += 1;
+          if (!chosenIndexes.has(idx) || slide.image_url) return slide;
+          const direction = artDirectionBySlot[slotOrder % artDirectionBySlot.length]!;
+          slotOrder += 1;
           const img = await generateEditorialImageDataUrl({
-            prompt: `${slide.title}. ${slide.body}. Editorial visual for ${input.brand.brand_name}`,
-            aspectRatio: "4:3",
+            prompt: `${slide.title}. ${slide.body}. ${direction}. Brand: ${input.brand.brand_name}`,
+            aspectRatio: idx === 0 ? "3:4" : "4:3",
             brandPrimaryHex: tokens.primary,
           });
           return img ? { ...slide, image_url: img, has_ai_imagery: true } : slide;

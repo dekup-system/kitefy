@@ -10,7 +10,7 @@ import { Field, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { CREDIT_COSTS, totalRunCreditCost } from "@/lib/pricing";
+import { CREDIT_COSTS, totalRunCreditCost, type HybridCarouselPreset } from "@/lib/pricing";
 import { buildWeeklyIdeas } from "@/lib/onboarding/extract";
 import type { AssetType, ToneOfVoice, VisualThemeId } from "@/types/domain";
 
@@ -107,10 +107,10 @@ const ASSET_OPTIONS: {
   },
   {
     type: "hybrid_carousel",
-    intent: "Carrossel com ilustração IA",
-    eta: "~50s",
-    label: "Carrossel ilustrado (7–10 slides)",
-    description: "Slides nas cores da marca com faixa de imagem e transparência.",
+    intent: "Carrossel com imagens IA + diagramação dinâmica",
+    eta: "~55s",
+    label: "Carrossel ilustrado (5 ou 7 slides)",
+    description: "Escolha 5 slides (2 imagens IA) ou 7 slides (3 imagens IA), com diagramação exclusiva por slide.",
     icon: ImageIcon,
   },
   {
@@ -156,6 +156,7 @@ export function NewRunForm({
   const [research, setResearch] = useState(false);
   const [visualFormat, setVisualFormat] = useState<"4:5" | "9:16">("4:5");
   const [visualStyle, setVisualStyle] = useState<"auto" | VisualThemeId>("auto");
+  const [carouselPreset, setCarouselPreset] = useState<HybridCarouselPreset>("5_slides_2_ai");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -168,7 +169,11 @@ export function NewRunForm({
     assetType === "hybrid_carousel" ||
     assetType === "single_creative";
   const isResearchActive = assetType === "geo_article" ? true : research;
-  const cost = totalRunCreditCost(assetType, isResearchActive);
+  const cost = totalRunCreditCost(
+    assetType,
+    isResearchActive,
+    assetType === "hybrid_carousel" ? carouselPreset : undefined,
+  );
   const insufficient = creditBalance < cost;
   const canSubmit = Boolean(brandId) && objective.trim().length >= 8 && product.trim().length >= 3 && !insufficient && !pending;
 
@@ -187,6 +192,7 @@ export function NewRunForm({
             researchEnabled: isResearchActive,
             visualFormat,
             visualStyle,
+            ...(assetType === "hybrid_carousel" ? { carouselPreset } : {}),
           }),
         });
 
@@ -287,7 +293,7 @@ export function NewRunForm({
                     {option.label}
                   </span>
                   <Badge variant="outline" className="font-mono text-[11px]">
-                    {CREDIT_COSTS[option.type]} cr · {option.eta}
+                    {option.type === "hybrid_carousel" ? "4–6 cr" : `${CREDIT_COSTS[option.type]} cr`} · {option.eta}
                   </Badge>
                 </span>
                 <span className="text-xs text-muted-foreground">{option.description}</span>
@@ -296,6 +302,52 @@ export function NewRunForm({
           })}
         </div>
       </fieldset>
+
+      {assetType === "hybrid_carousel" ? (
+        <fieldset className="space-y-2.5 rounded-xl border border-border bg-muted/30 p-4">
+          <legend className="text-sm font-medium">Tamanho do Carrossel Ilustrado</legend>
+          <p className="text-xs text-muted-foreground">
+            Cada slide com imagem IA recebe uma diagramação editorial exclusiva dentro da identidade visual da marca.
+          </p>
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {[
+              {
+                value: "5_slides_2_ai" as const,
+                title: "5 slides · 2 imagens IA",
+                subtitle: "Capa cinematográfica + 1 slide ilustrado + 3 slides editoriais",
+                credits: "4 créditos",
+              },
+              {
+                value: "7_slides_3_ai" as const,
+                title: "7 slides · 3 imagens IA",
+                subtitle: "Capa cinematográfica + 2 slides ilustrados + 4 slides editoriais",
+                credits: "6 créditos",
+              },
+            ].map((preset) => {
+              const active = carouselPreset === preset.value;
+              return (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => setCarouselPreset(preset.value)}
+                  aria-pressed={active}
+                  className={`flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors ${
+                    active ? "border-foreground/40 bg-accent" : "border-border bg-card hover:bg-accent/40"
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">{preset.title}</span>
+                    <Badge variant="outline" className="font-mono text-[11px]">
+                      {preset.credits}
+                    </Badge>
+                  </span>
+                  <span className="text-xs text-muted-foreground">{preset.subtitle}</span>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      ) : null}
 
       {needsVisualFormat ? (
         <div className="grid gap-4 sm:grid-cols-2">

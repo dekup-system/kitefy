@@ -453,6 +453,7 @@ export async function renderSingleCreative(input: RenderSingleCreativeInput): Pr
     height: dimensions.height,
     imageDataUrl,
     brandLogoDataUrl: input.brandLogoDataUrl ?? null,
+    visualTheme: input.visualTheme ?? "editorial_classic",
   };
 
   const asset = await produceAsset({

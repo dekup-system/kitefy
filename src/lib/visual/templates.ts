@@ -393,15 +393,16 @@ interface FooterOptions {
 }
 
 function footerElement(options: FooterOptions): ReactElement {
-  const brand = truncateChars(options.brandName.toUpperCase(), 34) || "MARCA";
-  const label = options.hasAiImagery ? `${brand} · ILUSTRAÇÃO IA` : brand;
+  const maxBrandChars = options.brandLogoDataUrl ? (options.hasAiImagery ? 16 : 22) : 34;
+  const brand = truncateChars(options.brandName.toUpperCase(), maxBrandChars) || "MARCA";
+  const label = options.hasAiImagery ? `${brand} · IA` : brand;
 
   const brandBlock = box(
     {
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
-      gap: 14,
+      gap: 18,
     },
     options.brandLogoDataUrl
       ? box(
@@ -409,19 +410,19 @@ function footerElement(options: FooterOptions): ReactElement {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 152,
-            height: 52,
-            paddingLeft: 10,
-            paddingRight: 10,
-            borderRadius: 12,
+            width: 240,
+            height: 78,
+            paddingLeft: 12,
+            paddingRight: 12,
+            borderRadius: 16,
             backgroundColor: options.isDarkSurface ? "#FFFFFF" : "rgba(24,19,49,0.05)",
             borderWidth: 1,
             borderStyle: "solid",
-            borderColor: options.isDarkSurface ? "rgba(255,255,255,0.2)" : "rgba(24,19,49,0.08)",
+            borderColor: options.isDarkSurface ? "rgba(255,255,255,0.28)" : "rgba(24,19,49,0.10)",
           },
           imageLayer(options.brandLogoDataUrl, {
-            width: 132,
-            height: 40,
+            width: 216,
+            height: 64,
             objectFit: "contain",
           }),
         )
@@ -430,9 +431,9 @@ function footerElement(options: FooterOptions): ReactElement {
       {
         display: "flex",
         fontFamily: SATORI_FONT_FAMILY,
-        fontSize: 21,
+        fontSize: 22,
         fontWeight: 600,
-        letterSpacing: 2,
+        letterSpacing: 1.8,
         color: options.color,
       },
       label,
@@ -648,16 +649,258 @@ function noImageSlide(chrome: SlideChrome, body: ReactElement, options: ComposeO
   );
 }
 
+type ImageCompositionMode = "full_bleed_hero" | "editorial_overlap" | "framed_gallery" | "dark_spotlight";
+
+function resolveImageComposition(
+  layout: TemplateLayout,
+  index: number,
+  visualTheme?: VisualThemeId,
+): ImageCompositionMode {
+  if (layout === "cover" || layout === "single") {
+    return "full_bleed_hero";
+  }
+  const themeOffset =
+    visualTheme === "magazine_split"
+      ? 1
+      : visualTheme === "dark_impact"
+        ? 2
+        : visualTheme === "swiss_minimal"
+          ? 1
+          : 0;
+  const slot = (index + themeOffset) % 3;
+  if (slot === 1) return "editorial_overlap";
+  if (slot === 2) return "framed_gallery";
+  return "dark_spotlight";
+}
+
 function imageSlide(
   chrome: SlideChrome,
+  layout: TemplateLayout,
   body: ReactElement,
   imageDataUrl: string,
   bandHeight: number,
   options: ComposeOptions,
 ): ReactElement {
   const width = contentWidthFor(chrome.width);
-  const panelHeight = chrome.height - bandHeight;
   const showPage = options.showPage !== false;
+  const pageText = showPage && chrome.total > 0 ? `${chrome.index}/${chrome.total}` : undefined;
+  const mode = resolveImageComposition(layout, chrome.index, chrome.visualTheme);
+
+  // 1) FULL-BLEED HERO (Capa e Post Único): foto editorial em tela cheia + gradiente escuro cinematográfico
+  if (mode === "full_bleed_hero") {
+    return box(
+      {
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        width: chrome.width,
+        height: chrome.height,
+        position: "relative",
+        boxSizing: "border-box",
+        padding: SAFE_AREA,
+        backgroundColor: chrome.tokens.primary,
+        overflow: "hidden",
+      },
+      imageLayer(imageDataUrl, {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: chrome.width,
+        height: chrome.height,
+        objectFit: "cover",
+      }),
+      box({
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: chrome.width,
+        height: chrome.height,
+        backgroundImage:
+          "linear-gradient(180deg, rgba(10,12,24,0.52) 0%, rgba(10,12,24,0.18) 34%, rgba(10,12,24,0.84) 72%, rgba(10,12,24,0.96) 100%)",
+      }),
+      box({
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: chrome.width,
+        height: 10,
+        backgroundColor: chrome.tokens.accent,
+      }),
+      box(
+        { display: "flex", flexDirection: "column", width, position: "relative" },
+        topBarElement(chrome, { ...options, isDarkSurface: true, footerColor: "#FFFFFF" }),
+      ),
+      box(
+        {
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
+          width,
+          flexGrow: 1,
+          position: "relative",
+          paddingBottom: 12,
+        },
+        body,
+      ),
+      box(
+        { display: "flex", flexDirection: "column", width, position: "relative" },
+        footerElement({
+          brandName: chrome.brandName,
+          brandLogoDataUrl: chrome.brandLogoDataUrl,
+          width,
+          color: "#FFFFFF",
+          page: pageText,
+          hasAiImagery: true,
+          swipeCue: options.swipeCue,
+          isDarkSurface: true,
+        }),
+      ),
+    );
+  }
+
+  // 2) FRAMED GALLERY: ritmo invertido — texto editorial lidera no topo + foto emoldurada de revista abaixo
+  if (mode === "framed_gallery") {
+    const galleryHeight = Math.round(chrome.height * 0.34);
+    const bg = options.background ?? chrome.tokens.background;
+    const isDark = Boolean(options.isDarkSurface);
+    return box(
+      {
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        width: chrome.width,
+        height: chrome.height,
+        position: "relative",
+        boxSizing: "border-box",
+        padding: SAFE_AREA,
+        backgroundColor: bg,
+        overflow: "hidden",
+      },
+      box({
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: chrome.width,
+        height: 10,
+        backgroundColor: options.topStripeColor ?? chrome.tokens.accent,
+      }),
+      topBarElement(chrome, { ...options, isDarkSurface: isDark }),
+      box(
+        {
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          width,
+          flexGrow: 1,
+          gap: 28,
+        },
+        box({ display: "flex", flexDirection: "column", width }, body),
+        box(
+          {
+            display: "flex",
+            width,
+            height: galleryHeight,
+            borderRadius: 28,
+            overflow: "hidden",
+            borderWidth: 2,
+            borderStyle: "solid",
+            borderColor: isDark ? "rgba(255,255,255,0.18)" : "rgba(24,19,49,0.12)",
+            position: "relative",
+          },
+          imageLayer(imageDataUrl, {
+            width,
+            height: galleryHeight,
+            objectFit: "cover",
+          }),
+        ),
+      ),
+      footerElement({
+        brandName: chrome.brandName,
+        brandLogoDataUrl: chrome.brandLogoDataUrl,
+        width,
+        color: options.footerColor ?? chrome.tokens.mutedOnBackground,
+        page: pageText,
+        hasAiImagery: true,
+        swipeCue: options.swipeCue,
+        isDarkSurface: isDark,
+      }),
+    );
+  }
+
+  // 3) DARK SPOTLIGHT: canvas escuro de alto contraste + faixa lateral em acento + foto emoldurada no topo
+  if (mode === "dark_spotlight") {
+    const photoHeight = Math.round(chrome.height * 0.34);
+    return box(
+      {
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        width: chrome.width,
+        height: chrome.height,
+        position: "relative",
+        boxSizing: "border-box",
+        padding: SAFE_AREA,
+        backgroundColor: chrome.tokens.primary,
+        overflow: "hidden",
+      },
+      box({
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: 14,
+        height: chrome.height,
+        backgroundColor: chrome.tokens.accent,
+      }),
+      topBarElement(chrome, {
+        ...options,
+        isDarkSurface: true,
+        footerColor: chrome.tokens.textOnPrimary,
+      }),
+      box(
+        {
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          width,
+          flexGrow: 1,
+          gap: 28,
+        },
+        box(
+          {
+            display: "flex",
+            width,
+            height: photoHeight,
+            borderRadius: 24,
+            overflow: "hidden",
+            borderWidth: 2,
+            borderStyle: "solid",
+            borderColor: "rgba(255,255,255,0.22)",
+          },
+          imageLayer(imageDataUrl, {
+            width,
+            height: photoHeight,
+            objectFit: "cover",
+          }),
+        ),
+        box({ display: "flex", flexDirection: "column", width }, body),
+      ),
+      footerElement({
+        brandName: chrome.brandName,
+        brandLogoDataUrl: chrome.brandLogoDataUrl,
+        width,
+        color: chrome.tokens.textOnPrimary,
+        page: pageText,
+        hasAiImagery: true,
+        swipeCue: options.swipeCue,
+        isDarkSurface: true,
+      }),
+    );
+  }
+
+  // 4) EDITORIAL OVERLAP: foto editorial superior ampla + cartão flutuante sobreposto com filete de acento
+  const overlapOffset = 48;
+  const panelTop = Math.max(220, bandHeight - overlapOffset);
+  const panelHeight = chrome.height - panelTop;
 
   return box(
     {
@@ -676,11 +919,30 @@ function imageSlide(
       left: 0,
       width: chrome.width,
       height: bandHeight,
+      objectFit: "cover",
+    }),
+    box({
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: chrome.width,
+      height: 140,
+      backgroundImage: "linear-gradient(180deg, rgba(10,12,24,0.58) 0%, rgba(10,12,24,0) 100%)",
     }),
     box(
       {
         position: "absolute",
-        top: bandHeight,
+        top: 40,
+        left: SAFE_AREA,
+        width,
+        display: "flex",
+      },
+      topBarElement(chrome, { ...options, isDarkSurface: true, footerColor: "#FFFFFF" }),
+    ),
+    box(
+      {
+        position: "absolute",
+        top: panelTop,
         left: 0,
         width: chrome.width,
         height: panelHeight,
@@ -688,19 +950,32 @@ function imageSlide(
         flexDirection: "column",
         justifyContent: "space-between",
         boxSizing: "border-box",
-        padding: SAFE_AREA,
+        paddingLeft: SAFE_AREA,
+        paddingRight: SAFE_AREA,
+        paddingTop: 48,
+        paddingBottom: SAFE_AREA,
         backgroundColor: options.panelColor ?? options.background ?? chrome.tokens.background,
-        borderTopLeftRadius: 40,
-        borderTopRightRadius: 40,
+        borderTopLeftRadius: 44,
+        borderTopRightRadius: 44,
         overflow: "hidden",
       },
+      box({
+        position: "absolute",
+        top: 0,
+        left: SAFE_AREA,
+        width: 140,
+        height: 8,
+        borderBottomLeftRadius: 4,
+        borderBottomRightRadius: 4,
+        backgroundColor: chrome.tokens.accent,
+      }),
       box({ display: "flex", flexDirection: "column", justifyContent: "center", width, flexGrow: 1 }, body),
       footerElement({
         brandName: chrome.brandName,
         brandLogoDataUrl: chrome.brandLogoDataUrl,
         width,
         color: options.footerColor ?? chrome.tokens.mutedOnBackground,
-        page: showPage && chrome.total > 0 ? `${chrome.index}/${chrome.total}` : undefined,
+        page: pageText,
         hasAiImagery: true,
         swipeCue: options.swipeCue,
         isDarkSurface: options.isDarkSurface,
@@ -716,23 +991,22 @@ function composeSlide(
   options: ComposeOptions = {},
 ): ReactElement {
   if (chrome.imageDataUrl) {
-    return imageSlide(chrome, body, chrome.imageDataUrl, imageBandHeight(layout, chrome.height), options);
+    return imageSlide(chrome, layout, body, chrome.imageDataUrl, imageBandHeight(layout, chrome.height), options);
   }
   return noImageSlide(chrome, body, options);
 }
 
-/** Altura da faixa de imagem (px) para cada layout e canvas. */
+/** Altura da imagem preparada (px) para cada layout e canvas. */
 export function imageBandHeight(layout: TemplateLayout, height: number): number {
   switch (layout) {
     case "cover":
-      return Math.round(height * 0.4);
     case "single":
-      return Math.round(height * 0.32);
+      return height;
     case "quote":
     case "data":
-      return Math.round(height * 0.3);
+      return Math.round(height * 0.44);
     default:
-      return Math.round(height * 0.3);
+      return Math.round(height * 0.44);
   }
 }
 
@@ -748,8 +1022,9 @@ const coverLayout: SlideTemplate = (input) => {
   const body = truncateBody(input.body);
   const compact = Boolean(input.imageDataUrl);
   const tall = isTall(input.height);
-  const base = Math.round((tall ? 114 : 102) * (compact ? 0.84 : 1));
-  const bodySize = Math.round((tall ? 36 : 34) * (compact ? 0.9 : 1));
+  const base = Math.round((tall ? 114 : 102) * (compact ? 0.92 : 1));
+  const bodySize = Math.round((tall ? 36 : 34) * (compact ? 0.94 : 1));
+  const coverTextColor = compact ? "#FFFFFF" : input.tokens.textOnPrimary;
 
   return composeSlide(
     chrome,
@@ -757,7 +1032,7 @@ const coverLayout: SlideTemplate = (input) => {
     box(
       { display: "flex", flexDirection: "column", width },
       accentBar(input.tokens, 112),
-      titleElement(title, base, input.tokens.textOnPrimary, input.tokens, width, 38),
+      titleElement(title, base, coverTextColor, input.tokens, width, 34),
       body
         ? box(
             {
@@ -765,7 +1040,7 @@ const coverLayout: SlideTemplate = (input) => {
               flexDirection: "row",
               alignItems: "stretch",
               width,
-              marginTop: 32,
+              marginTop: 28,
             },
             box({
               display: "flex",
@@ -774,7 +1049,7 @@ const coverLayout: SlideTemplate = (input) => {
               backgroundColor: input.tokens.accent,
               marginRight: 22,
             }),
-            bodyElement(body, bodySize, input.tokens.textOnPrimary, input.tokens, width - 28, 0),
+            bodyElement(body, bodySize, coverTextColor, input.tokens, width - 28, 0),
           )
         : null,
     ),
@@ -1050,6 +1325,7 @@ export function singleCreative(input: SingleCreativeTemplateInput): ReactElement
     height: input.height,
     imageDataUrl: input.imageDataUrl ?? null,
     brandLogoDataUrl: input.brandLogoDataUrl ?? null,
+    visualTheme: input.visualTheme ?? "editorial_classic",
   };
 
   const headline = truncateTitle(input.headline);

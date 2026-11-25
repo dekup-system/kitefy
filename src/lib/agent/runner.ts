@@ -69,6 +69,7 @@ export async function startStudioRun(input: OrganicStudioInput): Promise<StudioR
       researchEnabled: input.researchEnabled,
       visualFormat: input.visualFormat ?? "4:5",
       visualStyle: input.visualStyle ?? "auto",
+      carouselPreset: input.carouselPreset ?? null,
       brandContext: null,
       serpInsights: null,
       selectedArm: null,

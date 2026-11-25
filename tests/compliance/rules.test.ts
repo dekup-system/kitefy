@@ -5,6 +5,7 @@ import {
   runDeterministicComplianceCheck,
   type DeterministicComplianceResult,
 } from "@/lib/compliance/rules";
+import { describeComplianceRule, suggestComplianceRewrite } from "@/lib/compliance/rewrite";
 import type { ToneOfVoice } from "@/types/domain";
 
 const CLEAN_TONE: ToneOfVoice = {};
@@ -182,5 +183,28 @@ describe("requiresTransparencyLabel", () => {
       false,
     );
     expect(requiresTransparencyLabel({ hasAiImagery: true, assetType: "geo_article" })).toBe(false);
+  });
+});
+
+describe("suggestComplianceRewrite & describeComplianceRule", () => {
+  it("sempre produz sugestão distinta do trecho original para regras determinísticas e do LLM em PT-BR", () => {
+    const cases: [string, string][] = [
+      ["24h", "unverified_number"],
+      ["3x mais clientes", "afirmação numérica sem fonte declarada"],
+      ["R$ 150 de economia", "afirmação numérica sem fonte declarada"],
+      ["Resultados em 7 dias.", "deadline_promise"],
+      ["Somos o melhor do mundo em marketing.", "superlativo absoluto sem prova"],
+      ["Atendimento garantido sem risco.", "promessa absoluta de resultado"],
+      ["tratamento clínico", "health_disclaimer_missing"],
+      ["Grátis", "free_without_condition"],
+      ["Solução exclusiva para você", "superlativo absoluto"],
+    ];
+
+    for (const [excerpt, rule] of cases) {
+      const suggested = suggestComplianceRewrite(excerpt, rule);
+      expect(suggested.length).toBeGreaterThan(0);
+      expect(suggested.trim().toLowerCase()).not.toBe(excerpt.trim().toLowerCase());
+      expect(describeComplianceRule(rule).length).toBeGreaterThan(10);
+    }
   });
 });

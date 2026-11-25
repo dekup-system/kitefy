@@ -18,6 +18,7 @@ import {
   type GenerationPromptInput,
 } from "@/lib/ai/prompts";
 import type { AngleType, AssetType, Framework, TokenUsageEntry } from "@/types/domain";
+import type { HybridCarouselPreset } from "@/lib/pricing";
 
 /**
  * Camada única de geração de conteúdo.
@@ -43,6 +44,8 @@ export interface GenerateAssetInput
   explorationArms: { angle_type: AngleType; framework: Framework }[];
   /** Apontamentos do guardrail da tentativa anterior para orientar a regeneração. */
   complianceFeedback?: string[];
+  /** Preset do Carrossel Ilustrado (5 slides · 2 IA ou 7 slides · 3 IA). */
+  carouselPreset?: HybridCarouselPreset;
 }
 
 export interface GenerateAssetResult {
@@ -186,6 +189,7 @@ export async function generateAssetContent(input: GenerateAssetInput): Promise<G
     explorationArms: input.explorationArms,
     serpInsights: input.serpInsights ?? null,
     brand: input.brand,
+    carouselPreset: input.carouselPreset,
   };
 
   const previousErrors: string[] = [...(input.complianceFeedback ?? [])];

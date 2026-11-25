@@ -37,6 +37,7 @@ const bodySchema = z.object({
   visualStyle: z
     .enum(["auto", "editorial_classic", "magazine_split", "dark_impact", "swiss_minimal"])
     .default("auto"),
+  carouselPreset: z.enum(["5_slides_2_ai", "7_slides_3_ai"]).optional(),
 });
 
 const activeRunsByTenant = new Map<string, number>();
@@ -88,7 +89,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const isAdmin = session.isPlatformAdmin;
   const researchEnabled = parsed.data.researchEnabled || parsed.data.assetType === "geo_article";
-  const cost = isAdmin ? 0 : totalRunCreditCost(parsed.data.assetType, researchEnabled);
+  const carouselPreset =
+    parsed.data.assetType === "hybrid_carousel"
+      ? (parsed.data.carouselPreset ?? "5_slides_2_ai")
+      : undefined;
+  const cost = isAdmin ? 0 : totalRunCreditCost(parsed.data.assetType, researchEnabled, carouselPreset);
   if (!isAdmin && (!tenant.data || tenant.data.credit_balance < cost)) {
     return NextResponse.json(
       {
@@ -174,6 +179,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       researchEnabled,
       visualFormat: parsed.data.visualFormat,
       visualStyle: parsed.data.visualStyle,
+      carouselPreset,
       requestedBy: session.user.id,
     });
 

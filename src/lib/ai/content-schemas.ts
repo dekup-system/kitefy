@@ -116,7 +116,7 @@ export const carouselSchema = z.object({
   kind: z.enum(["typo_carousel", "hybrid_carousel"]),
   slides: z
     .array(carouselSlideSchema)
-    .min(7, "Carrossel precisa de no mínimo 7 slides.")
+    .min(5, "Carrossel precisa de no mínimo 5 slides.")
     .max(10, "Carrossel precisa de no máximo 10 slides."),
   caption: z.object({
     seo: z.string().min(80).max(2200),

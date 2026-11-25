@@ -11,6 +11,7 @@ import type {
   VisualThemeId,
 } from "@/types/domain";
 import type { AdvertisingCrossReference } from "@/lib/ai/marketing-knowledge";
+import type { HybridCarouselPreset } from "@/lib/pricing";
 
 /**
  * Estado do grafo OrganicStudio.
@@ -48,8 +49,10 @@ export interface OrganicStudioInput {
   researchEnabled: boolean;
   /** Formato dos slides (4:5 feed, 9:16 story). */
   visualFormat: "4:5" | "9:16";
-  /** Estilo visual escolhido na criação ("auto" alterna entre os 4 temas). */
+  /** Estilo visual escolhido na criação ("auto" usa o estudo científico da marca). */
   visualStyle?: "auto" | VisualThemeId;
+  /** Preset do Carrossel Ilustrado (5 slides · 2 IA ou 7 slides · 3 IA). */
+  carouselPreset?: HybridCarouselPreset;
   /** Usuário que iniciou; usado apenas para auditoria/LGPD. */
   requestedBy?: string;
 }
@@ -68,6 +71,7 @@ export const OrganicStudioState = Annotation.Root({
   researchEnabled: Annotation<boolean>,
   visualFormat: Annotation<"4:5" | "9:16">,
   visualStyle: Annotation<"auto" | VisualThemeId | null>,
+  carouselPreset: Annotation<HybridCarouselPreset | null>,
 
   // --- Contexto --------------------------------------------------------------
   brandContext: Annotation<BrandContext | null>,

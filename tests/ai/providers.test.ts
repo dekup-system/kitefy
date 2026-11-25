@@ -67,7 +67,7 @@ describe("contrato JSON para provedores sem schema nativo", () => {
 
   it("carrega o limite de slides do carrossel", () => {
     const contract = buildJsonContractFor("typo_carousel");
-    expect(contract).toContain('"minItems": 7');
+    expect(contract).toContain('"minItems": 5');
     expect(contract).toContain('"maxItems": 10');
   });
 });

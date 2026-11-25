@@ -68,13 +68,16 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
 
 export const PLAN_ORDER: PlanTier[] = ["essential", "pro", "agency"];
 
-/** Custo em créditos por tipo de ativo. Débito só após entrega validada. */
+/** Preset do Carrossel Ilustrado (quantidade de slides e imagens geradas por IA). */
+export type HybridCarouselPreset = "5_slides_2_ai" | "7_slides_3_ai";
+
+/** Custo em créditos por tipo de ativo. Débito atômico no início com estorno automático em erro técnico. */
 export const CREDIT_COSTS = {
   short_script_kit: 1,
   typo_carousel: 1,
   serp_analysis: 1,
   single_creative: 2,
-  hybrid_carousel: 3,
+  hybrid_carousel: 4,
   lp_copy: 3,
   geo_article: 5,
 } as const satisfies Record<AssetType | "serp_analysis", number>;
@@ -87,13 +90,20 @@ export function creditCost(subject: CostSubject): number {
 
 /**
  * Custo total de uma geração no estúdio.
- * Quando a pesquisa de mercado (SERP) é ativada em formatos que não são
- * artigos GEO (o artigo GEO já embute SERP nos seus 5 créditos), soma +1 crédito.
+ * - Carrossel ilustrado: 4 créditos (5 slides · 2 imagens IA) ou 6 créditos (7 slides · 3 imagens IA).
+ * - Quando a pesquisa de mercado (SERP) é ativada em formatos que não são
+ *   artigos GEO (o artigo GEO já embute SERP nos seus 5 créditos), soma +1 crédito.
  */
-export function totalRunCreditCost(assetType: AssetType, researchEnabled = false): number {
+export function totalRunCreditCost(
+  assetType: AssetType,
+  researchEnabled = false,
+  carouselPreset?: HybridCarouselPreset,
+): number {
   const base = CREDIT_COSTS[assetType];
+  const extraCarousel =
+    assetType === "hybrid_carousel" && carouselPreset === "7_slides_3_ai" ? 2 : 0;
   const extraSerp = researchEnabled && assetType !== "geo_article" ? CREDIT_COSTS.serp_analysis : 0;
-  return base + extraSerp;
+  return base + extraCarousel + extraSerp;
 }
 
 export function formatBRL(cents: number): string {

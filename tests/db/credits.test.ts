@@ -160,6 +160,9 @@ describe("Sistema de créditos atômico", () => {
     expect(totalRunCreditCost("short_script_kit", false)).toBe(1);
     expect(totalRunCreditCost("short_script_kit", true)).toBe(2);
     expect(totalRunCreditCost("typo_carousel", true)).toBe(2);
+    expect(totalRunCreditCost("hybrid_carousel", false, "5_slides_2_ai")).toBe(4);
+    expect(totalRunCreditCost("hybrid_carousel", false, "7_slides_3_ai")).toBe(6);
+    expect(totalRunCreditCost("hybrid_carousel", true, "7_slides_3_ai")).toBe(7);
     expect(totalRunCreditCost("geo_article", false)).toBe(5);
     expect(totalRunCreditCost("geo_article", true)).toBe(5);
   });
