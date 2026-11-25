@@ -32,6 +32,13 @@ export async function evaluateCompliance(
 
   const llm = await reviewWithGuardrailModel({ text, assetType: input.assetType });
 
+  // O filtro determinístico (rules.ts) é a barreira dura contra ilegalidades
+  // literais (cura falsa, lucro garantido, ANVISA, clonagem de voz).
+  // A camada LLM atua como consultoria de sensibilidade (Recomendação CONAR com
+  // reescrita pronta em 1 clique), evitando falsos positivos que abortariam o carrossel.
+  const isHardPolicyLlm = (rule: string, excerpt: string) =>
+    /avatar|clonagem\s+de\s+voz|lip[\s-]?sync|\btts\b/i.test(`${rule} ${excerpt}`);
+
   const violations: ComplianceReport["violations"] = [
     ...deterministic.violations.map((violation) => ({
       rule: violation.rule,
@@ -41,7 +48,9 @@ export async function evaluateCompliance(
     ...llm.violations.map((violation) => ({
       rule: violation.rule,
       excerpt: violation.excerpt,
-      severity: violation.severity,
+      severity: isHardPolicyLlm(violation.rule, violation.excerpt)
+        ? ("blocker" as const)
+        : ("warning" as const),
       ...(violation.suggestion ? { suggestion: violation.suggestion } : {}),
     })),
   ];
