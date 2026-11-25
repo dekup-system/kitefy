@@ -58,11 +58,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const brands = (brandsQuery.data ?? []) as { id: string; brand_name: string }[];
   const primaryBrand = brands[0] ?? null;
 
-  const creditPct = Math.min(
-    100,
-    Math.max(0, Math.round((tenant.credit_balance / Math.max(1, plan.monthlyCredits)) * 100)),
-  );
-  const lowCredits = tenant.credit_balance <= Math.max(5, Math.round(plan.monthlyCredits * 0.15));
+  const creditPct = session.isPlatformAdmin
+    ? 100
+    : Math.min(
+        100,
+        Math.max(0, Math.round((tenant.credit_balance / Math.max(1, plan.monthlyCredits)) * 100)),
+      );
+  const lowCredits =
+    !session.isPlatformAdmin &&
+    tenant.credit_balance <= Math.max(5, Math.round(plan.monthlyCredits * 0.15));
 
   return (
     <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[248px_1fr]">
@@ -83,7 +87,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-medium text-sidebar-muted">Saldo de créditos</span>
               <span className="font-mono text-sm font-semibold tabular-nums text-white">
-                {tenant.credit_balance}
+                {session.isPlatformAdmin ? "∞" : tenant.credit_balance}
               </span>
             </div>
             <div
@@ -92,7 +96,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               aria-valuenow={creditPct}
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-label={`Saldo de créditos: ${tenant.credit_balance} de ${plan.monthlyCredits}`}
+              aria-label={
+                session.isPlatformAdmin
+                  ? "Saldo de créditos: ilimitado"
+                  : `Saldo de créditos: ${tenant.credit_balance} de ${plan.monthlyCredits}`
+              }
             >
               <div
                 className={lowCredits ? "h-full rounded-full bg-brand-signal" : "h-full rounded-full bg-white/85"}
@@ -101,7 +109,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
             <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-sidebar-muted">
               <span className="truncate">
-                {packageName} · {plan.monthlyCredits}/mês
+                {session.isPlatformAdmin ? `${packageName} · Ilimitado` : `${packageName} · ${plan.monthlyCredits}/mês`}
               </span>
               <Link
                 href="/settings/billing"

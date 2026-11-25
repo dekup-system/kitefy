@@ -83,9 +83,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .eq("id", session.tenantId)
     .single<{ credit_balance: number; plan_tier: string }>();
 
+  const isAdmin = session.isPlatformAdmin;
   const researchEnabled = parsed.data.researchEnabled || parsed.data.assetType === "geo_article";
-  const cost = totalRunCreditCost(parsed.data.assetType, researchEnabled);
-  if (!tenant.data || tenant.data.credit_balance < cost) {
+  const cost = isAdmin ? 0 : totalRunCreditCost(parsed.data.assetType, researchEnabled);
+  if (!isAdmin && (!tenant.data || tenant.data.credit_balance < cost)) {
     return NextResponse.json(
       {
         error: `Créditos insuficientes: este conteúdo custa ${cost} e você tem ${tenant.data?.credit_balance ?? 0}.`,
@@ -111,28 +112,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const admin = createSupabaseAdminClient();
 
   // Débito atômico ANTES de acionar as APIs pagas de IA ("gerou, cobrou").
-  const { error: debitError } = await admin.rpc("consume_credits", {
-    p_tenant_id: session.tenantId,
-    p_delta: -cost,
-    p_reason: parsed.data.assetType,
-    p_reference_id: threadId,
-  });
+  // Contas admin da plataforma possuem créditos ilimitados (cost = 0).
+  if (cost > 0) {
+    const { error: debitError } = await admin.rpc("consume_credits", {
+      p_tenant_id: session.tenantId,
+      p_delta: -cost,
+      p_reason: parsed.data.assetType,
+      p_reference_id: threadId,
+    });
 
-  if (debitError) {
-    const remaining = (activeRunsByTenant.get(session.tenantId) ?? 1) - 1;
-    if (remaining <= 0) activeRunsByTenant.delete(session.tenantId);
-    else activeRunsByTenant.set(session.tenantId, remaining);
+    if (debitError) {
+      const remaining = (activeRunsByTenant.get(session.tenantId) ?? 1) - 1;
+      if (remaining <= 0) activeRunsByTenant.delete(session.tenantId);
+      else activeRunsByTenant.set(session.tenantId, remaining);
 
-    return NextResponse.json(
-      {
-        error: `Créditos insuficientes para iniciar a geração (${cost} crédito${cost > 1 ? "s" : ""}).`,
-        code: "insufficient_credits",
-      },
-      { status: 402 },
-    );
+      return NextResponse.json(
+        {
+          error: `Créditos insuficientes para iniciar a geração (${cost} crédito${cost > 1 ? "s" : ""}).`,
+          code: "insufficient_credits",
+        },
+        { status: 402 },
+      );
+    }
   }
 
   const autoRefundOnTechnicalFailure = async (reason: string): Promise<void> => {
+    if (cost <= 0) return;
     const { error: refundError } = await admin.rpc("consume_credits", {
       p_tenant_id: session.tenantId,
       p_delta: cost,
