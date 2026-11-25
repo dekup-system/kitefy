@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CalendarDays,
   CreditCard,
   FileStack,
   Globe,
@@ -22,6 +23,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/app", label: "Início", icon: LayoutDashboard },
       { href: "/campaigns", label: "Biblioteca", icon: FileStack },
+      { href: "/schedule", label: "Agendamentos", icon: CalendarDays },
     ],
   },
   {

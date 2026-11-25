@@ -28,6 +28,8 @@ import {
   markAssetPostedAction,
 } from "@/lib/studio/actions";
 import { suggestComplianceRewrite } from "@/lib/compliance/rewrite";
+import { ScheduleAssetCard } from "./schedule-asset-card";
+import type { AssetScheduleMeta } from "@/lib/schedule/actions";
 import { recordQuickFeedbackAction } from "@/lib/telemetry/actions";
 import { signVisualPaths } from "@/lib/agent/visual-adapter";
 import { buildCleanCopyText } from "@/lib/export/pack";
@@ -626,6 +628,17 @@ export default async function StudioPage({
             ))}
           </div>
         </section>
+      ) : null}
+
+      {/* Agendamento na grade semanal (7 dias) após salvar o ativo */}
+      {approved && asset ? (
+        <ScheduleAssetCard
+          assetId={asset.id}
+          threadId={threadId}
+          existingSchedule={
+            (asset.content_payload as unknown as { _schedule?: AssetScheduleMeta } | null)?._schedule ?? null
+          }
+        />
       ) : null}
 
       {/* Feedback de resultado em 1 clique (F1) para alimentar o aprendizado da marca */}

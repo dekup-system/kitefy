@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BarChart3 } from "lucide-react";
 import { TelemetryForms } from "./telemetry-forms";
+import { TelemetryCharts } from "./telemetry-charts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -109,7 +110,9 @@ export default async function TelemetryPage() {
           description="A telemetria é sempre vinculada a uma marca e, quando possível, a um ativo."
         />
       ) : (
-        <Tabs defaultValue="registrar" className="space-y-4">
+        <>
+          <TelemetryCharts rows={telemetryRows} arms={armRows} />
+          <Tabs defaultValue="registrar" className="space-y-4">
           <TabsList>
             <TabsTrigger value="registrar">Registrar</TabsTrigger>
             <TabsTrigger value="historico">Histórico</TabsTrigger>
@@ -214,6 +217,7 @@ export default async function TelemetryPage() {
             </Card>
           </TabsContent>
         </Tabs>
+        </>
       )}
     </div>
   );
