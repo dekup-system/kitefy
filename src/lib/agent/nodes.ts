@@ -518,12 +518,22 @@ async function persistApprovedAsset(input: PersistInput): Promise<string> {
         );
       }
 
-      await client.query(`select public.consume_credits($1,$2,$3,$4)`, [
-        input.tenantId,
-        -input.credits,
-        input.assetType,
-        assetId,
-      ]);
+      // Só debita aqui se o run for legado (não debitado na geração em /api/studio/start).
+      const alreadyDebited = await client.query<{ id: string }>(
+        `select id from public.credit_ledger
+          where tenant_id = $1 and reference_id = $2 and delta < 0
+          limit 1`,
+        [input.tenantId, input.threadId],
+      );
+
+      if (alreadyDebited.rows.length === 0) {
+        await client.query(`select public.consume_credits($1,$2,$3,$4)`, [
+          input.tenantId,
+          -input.credits,
+          input.assetType,
+          assetId,
+        ]);
+      }
 
       return assetId;
     });
@@ -565,17 +575,27 @@ async function persistApprovedAsset(input: PersistInput): Promise<string> {
     log.error("Falha ao gravar ganchos; mantendo ativo.", { assetId: asset.id, message: hookError.message });
   }
 
-  const { error: creditError } = await supabase.rpc("consume_credits", {
-    p_tenant_id: input.tenantId,
-    p_delta: -input.credits,
-    p_reason: input.assetType,
-    p_reference_id: asset.id,
-  });
+  const { data: existingDebit } = await supabase
+    .from("credit_ledger")
+    .select("id")
+    .eq("tenant_id", input.tenantId)
+    .eq("reference_id", input.threadId)
+    .lt("delta", 0)
+    .limit(1);
 
-  if (creditError) {
-    // Não deixa ativo "grátis" por inconsistência: remove o ativo recém-criado.
-    await supabase.from("campaigns_and_assets").delete().eq("id", asset.id);
-    throw new Error(`Falha ao debitar créditos: ${creditError.message}`);
+  if (!existingDebit || existingDebit.length === 0) {
+    const { error: creditError } = await supabase.rpc("consume_credits", {
+      p_tenant_id: input.tenantId,
+      p_delta: -input.credits,
+      p_reason: input.assetType,
+      p_reference_id: asset.id,
+    });
+
+    if (creditError) {
+      // Não deixa ativo "grátis" por inconsistência: remove o ativo recém-criado.
+      await supabase.from("campaigns_and_assets").delete().eq("id", asset.id);
+      throw new Error(`Falha ao debitar créditos: ${creditError.message}`);
+    }
   }
 
   return asset.id;

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { startStudioRun } from "@/lib/agent/runner";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { totalRunCreditCost } from "@/lib/pricing";
 import { createLogger } from "@/lib/logger";
 import { getServerEnv } from "@/lib/env";
@@ -107,6 +108,52 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   activeRunsByTenant.set(session.tenantId, currentActive + 1);
   const threadId = randomUUID();
+  const admin = createSupabaseAdminClient();
+
+  // Débito atômico ANTES de acionar as APIs pagas de IA ("gerou, cobrou").
+  const { error: debitError } = await admin.rpc("consume_credits", {
+    p_tenant_id: session.tenantId,
+    p_delta: -cost,
+    p_reason: parsed.data.assetType,
+    p_reference_id: threadId,
+  });
+
+  if (debitError) {
+    const remaining = (activeRunsByTenant.get(session.tenantId) ?? 1) - 1;
+    if (remaining <= 0) activeRunsByTenant.delete(session.tenantId);
+    else activeRunsByTenant.set(session.tenantId, remaining);
+
+    return NextResponse.json(
+      {
+        error: `Créditos insuficientes para iniciar a geração (${cost} crédito${cost > 1 ? "s" : ""}).`,
+        code: "insufficient_credits",
+      },
+      { status: 402 },
+    );
+  }
+
+  const autoRefundOnTechnicalFailure = async (reason: string): Promise<void> => {
+    const { error: refundError } = await admin.rpc("consume_credits", {
+      p_tenant_id: session.tenantId,
+      p_delta: cost,
+      p_reason: `refund_technical_error:${reason.slice(0, 60)}`,
+      p_reference_id: threadId,
+    });
+    if (refundError) {
+      log.error("Falha ao estornar créditos após erro técnico", {
+        tenantId: session.tenantId,
+        threadId,
+        cost,
+        message: refundError.message,
+      });
+    } else {
+      log.info("Estorno automático de créditos executado após erro técnico", {
+        tenantId: session.tenantId,
+        threadId,
+        cost,
+      });
+    }
+  };
 
   try {
     const run = await startStudioRun({
@@ -121,18 +168,43 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       requestedBy: session.user.id,
     });
 
+    // Erro técnico do pipeline (ex.: falha de API ou guardrail sem entrega): estorno 100% automático.
+    if (run.status === "failed" || !run.view.draft) {
+      await autoRefundOnTechnicalFailure(run.view.error ?? "pipeline_failed");
+      return NextResponse.json(
+        {
+          error:
+            run.view.error ??
+            "Ocorreu um erro técnico ao gerar o conteúdo. Seus créditos foram estornados automaticamente.",
+          threadId,
+          refunded: true,
+        },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json({
       threadId,
       status: run.status,
       view: run.view,
       interrupt: run.interrupt,
+      creditsCharged: cost,
       mockMode: getServerEnv().LLM_PROVIDER_MODE === "mock",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    log.error("Falha ao iniciar run", { tenantId: session.tenantId, message });
+    await autoRefundOnTechnicalFailure(message);
+    log.error("Falha ao iniciar run (créditos estornados automaticamente)", {
+      tenantId: session.tenantId,
+      threadId,
+      message,
+    });
     return NextResponse.json(
-      { error: `Não foi possível gerar o ativo: ${message}`, threadId },
+      {
+        error: `Não foi possível gerar o ativo por erro técnico (${message}). Seus créditos foram estornados automaticamente.`,
+        threadId,
+        refunded: true,
+      },
       { status: 500 },
     );
   } finally {

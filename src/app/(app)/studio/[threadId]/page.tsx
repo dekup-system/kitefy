@@ -401,13 +401,13 @@ export default async function StudioPage({
         </Alert>
       ) : null}
 
-      {/* Aprovação humana (Tela 3) */}
+      {/* Finalização e escolha da abertura */}
       {awaiting ? (
         <Card className="border-foreground/30">
           <CardHeader>
-            <CardTitle>Passo final: escolha a abertura e aprove</CardTitle>
+            <CardTitle>Passo final: escolha a abertura e salve na biblioteca</CardTitle>
             <CardDescription>
-              Você só usa {credits} crédito{credits > 1 ? "s" : ""} se aprovar. Se não gostar, clique em &ldquo;Descartar sem custo&rdquo;.
+              {credits} crédito{credits > 1 ? "s" : ""} já debitado{credits > 1 ? "s" : ""} na geração deste conteúdo. Escolha sua abertura favorita abaixo para salvar na biblioteca e liberar o download completo (.ZIP).
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -442,11 +442,7 @@ export default async function StudioPage({
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button type="submit" name="approved" value="true" size="lg" className="flex-1">
                   <CheckCircle2 className="size-4" aria-hidden="true" />
-                  Aprovar e liberar download ({credits} crédito{credits > 1 ? "s" : ""})
-                </Button>
-                <Button type="submit" name="approved" value="false" variant="outline" size="lg">
-                  <XCircle className="size-4" aria-hidden="true" />
-                  Descartar sem custo
+                  Salvar na biblioteca e liberar download (.ZIP)
                 </Button>
               </div>
             </form>

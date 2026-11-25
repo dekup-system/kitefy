@@ -158,7 +158,7 @@ export function resolveNextBestAction(input: NextBestActionInput): NextBestActio
           ? "1 conteúdo pronto para sua aprovação"
           : `${input.pendingApprovalCount} conteúdos prontos para aprovação`,
       description:
-        "Revise os ganchos, confira as imagens e aprove para liberar o download. Créditos só são debitados na aprovação.",
+        "Revise os ganchos, confira as imagens e salve na biblioteca para liberar o download (.ZIP).",
       ctaLabel: "Revisar agora",
       href: `/studio/${input.firstPendingThreadId}`,
       tone: "signal",

@@ -122,7 +122,7 @@ const siteSchema = {
         "@type": "AggregateOffer",
         priceCurrency: "BRL",
         lowPrice: "49.90",
-        highPrice: "269.90",
+        highPrice: "299.90",
         offerCount: 3,
         availability: "https://schema.org/InStock",
         url: "https://www.kitefy.com.br/pricing",
