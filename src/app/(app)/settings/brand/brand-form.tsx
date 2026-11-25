@@ -48,7 +48,7 @@ export function BrandForm({ brand }: { brand: BrandProfileRow }) {
             id="websiteUrl"
             name="websiteUrl"
             type="url"
-            defaultValue={brand.website_url ?? ""}
+            defaultValue={brand.website_url || "https://"}
             placeholder="https://suamarca.com.br ou https://instagram.com/suamarca"
           />
         </Field>

@@ -160,16 +160,14 @@ describe("marketing-knowledge library", () => {
     expect(vector).toContain("Diagnóstico tributário em 48h");
     expect(vector).toContain("Pagar imposto sem planejamento");
 
-    const themeFixed = selectVisualTheme({ preference: "magazine_split", seed: "abc" });
+    const themeFixed = selectVisualTheme({ preference: "magazine_split" });
     expect(themeFixed).toBe("magazine_split");
 
-    const themesAuto = new Set([
-      selectVisualTheme({ preference: "auto", seed: "thread-1", recentCount: 0 }),
-      selectVisualTheme({ preference: "auto", seed: "thread-2", recentCount: 1 }),
-      selectVisualTheme({ preference: "auto", seed: "thread-3", recentCount: 2 }),
-      selectVisualTheme({ preference: "auto", seed: "thread-4", recentCount: 3 }),
-    ]);
-    expect(themesAuto.size).toBeGreaterThanOrEqual(2);
+    // Seleção científica determinística (sem aleatoriedade) baseada no estudo da marca
+    expect(selectVisualTheme({ preference: "auto", abepClass: "A" })).toBe("swiss_minimal");
+    expect(selectVisualTheme({ preference: "auto", colorMood: "quente_energia" })).toBe("dark_impact");
+    expect(selectVisualTheme({ preference: "auto", segment: "b2c" })).toBe("magazine_split");
+    expect(selectVisualTheme({ preference: "auto", segment: "b2b", colorMood: "fria_confianca" })).toBe("editorial_classic");
   });
 
   it("buildCleanCopyText gera texto pronto para copiar sem símbolos de Markdown/IA", () => {

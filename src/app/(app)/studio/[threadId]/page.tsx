@@ -22,7 +22,12 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { readStudioRun, runBelongsToTenant } from "@/lib/agent/runner";
-import { decideStudioRunAction, markAssetPostedAction } from "@/lib/studio/actions";
+import {
+  applyComplianceFixAction,
+  decideStudioRunAction,
+  markAssetPostedAction,
+} from "@/lib/studio/actions";
+import { suggestComplianceRewrite } from "@/lib/compliance/rewrite";
 import { recordQuickFeedbackAction } from "@/lib/telemetry/actions";
 import { signVisualPaths } from "@/lib/agent/visual-adapter";
 import { buildCleanCopyText } from "@/lib/export/pack";
@@ -375,23 +380,53 @@ export default async function StudioPage({
         </Alert>
       ) : null}
 
-      {compliance && compliance.approved ? (
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3.5 py-2.5 text-xs text-muted-foreground">
-          <ShieldCheck className="size-4 shrink-0 text-foreground" aria-hidden="true" />
-          <span>
-            <strong className="font-medium text-foreground">Revisão publicitária concluída:</strong> nenhum termo proibido pelo CONAR foi encontrado neste conteúdo.
-          </span>
-        </div>
-      ) : null}
+      {(() => {
+        const blockersCount = compliance
+          ? compliance.violations.filter((v) => v.severity === "blocker").length
+          : 0;
+        const warningsCount = compliance
+          ? compliance.violations.filter((v) => v.severity === "warning").length
+          : 0;
 
-      {compliance && !compliance.approved ? (
-        <Alert variant="destructive">
-          <AlertTriangle className="size-4" aria-hidden="true" />
-          <AlertDescription>
-            Atenção: encontramos {compliance.violations.filter((v) => v.severity === "blocker").length} frase(s) com promessa exagerada. Descarte este rascunho sem custo e gere outro.
-          </AlertDescription>
-        </Alert>
-      ) : null}
+        if (blockersCount > 0) {
+          return (
+            <div className="flex items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-950 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-100">
+              <AlertTriangle className="size-4 shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
+              <span>
+                <strong className="font-semibold">
+                  Revisão CONAR: {blockersCount} proibição{blockersCount > 1 ? "ões" : ""}
+                  {warningsCount > 0 ? ` e ${warningsCount} recomendação${warningsCount > 1 ? "ões" : ""}` : ""} encontrada{blockersCount + warningsCount > 1 ? "s" : ""}.
+                </strong>{" "}
+                Abra a aba <em>Revisão CONAR</em> abaixo para aplicar as sugestões de correção automática.
+              </span>
+            </div>
+          );
+        }
+
+        if (warningsCount > 0) {
+          return (
+            <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100">
+              <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+              <span>
+                <strong className="font-semibold">
+                  Revisão publicitária concluída com {warningsCount} recomendação{warningsCount > 1 ? "ões" : ""} de melhoria.
+                </strong>{" "}
+                Nenhum termo proibido, mas há sugestões prontas para aplicar na aba <em>Revisão CONAR</em> abaixo.
+              </span>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-950 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-100">
+            <ShieldCheck className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+            <span>
+              <strong className="font-semibold">Revisão publicitária concluída (100% conforme):</strong>{" "}
+              nenhum termo proibido ou recomendação pendente pelo CONAR.
+            </span>
+          </div>
+        );
+      })()}
 
       {(compliance?.requires_transparency_label || asset?.has_ai_imagery) ? (
         <Alert variant="warning">
@@ -693,17 +728,43 @@ export default async function StudioPage({
                       Nenhuma restrição encontrada. Conteúdo seguro para publicação.
                     </p>
                   ) : (
-                    <ul className="space-y-2">
-                      {compliance.violations.map((violation, index) => (
-                        <li key={`${violation.rule}-${index}`} className="rounded-md border border-border p-3">
-                          <div className="flex items-center gap-2">
-                            <Badge variant={violation.severity === "blocker" ? "destructive" : "warning"}>
-                              {violation.severity === "blocker" ? "Ajuste obrigatório" : "Recomendação"}
-                            </Badge>
-                          </div>
-                          <p className="mt-1 text-xs text-muted-foreground">Trecho: &ldquo;{violation.excerpt}&rdquo;</p>
-                        </li>
-                      ))}
+                    <ul className="space-y-3">
+                      {compliance.violations.map((violation, index) => {
+                        const suggested = suggestComplianceRewrite(violation.excerpt, violation.rule);
+                        return (
+                          <li
+                            key={`${violation.rule}-${index}`}
+                            className={`space-y-2.5 rounded-lg border p-3.5 ${
+                              violation.severity === "blocker"
+                                ? "border-red-200 bg-red-50/50 dark:border-red-900/50 dark:bg-red-950/20"
+                                : "border-amber-200 bg-amber-50/50 dark:border-amber-900/50 dark:bg-amber-950/20"
+                            }`}
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <Badge variant={violation.severity === "blocker" ? "destructive" : "warning"}>
+                                {violation.severity === "blocker" ? "Proibição (ajuste obrigatório)" : "Recomendação"}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              <strong className="text-foreground">Trecho encontrado:</strong> &ldquo;{violation.excerpt}&rdquo;
+                            </p>
+                            <div className="rounded-md border border-border bg-background p-2.5 text-xs">
+                              <p className="font-medium text-foreground">Sugestão automática de reescrita:</p>
+                              <p className="mt-1 text-muted-foreground">&ldquo;{suggested}&rdquo;</p>
+                            </div>
+                            <form action={applyComplianceFixAction}>
+                              <input type="hidden" name="threadId" value={threadId} />
+                              <input type="hidden" name="assetId" value={asset?.id ?? ""} />
+                              <input type="hidden" name="original" value={violation.excerpt} />
+                              <input type="hidden" name="replacement" value={suggested} />
+                              <Button type="submit" size="sm" variant="outline">
+                                <CheckCircle2 className="size-3.5" aria-hidden="true" />
+                                Aplicar correção
+                              </Button>
+                            </form>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </>

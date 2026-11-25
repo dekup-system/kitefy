@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { purgeStudioThread, readStudioRun, resumeStudioRun, runBelongsToTenant } from "@/lib/agent/runner";
+import { getStudioGraph } from "@/lib/agent/graph";
+import { replaceTextInPayload } from "@/lib/compliance/rewrite";
 import { requireSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env";
@@ -131,4 +133,80 @@ export async function markAssetPostedAction(formData: FormData): Promise<void> {
   }
   revalidatePath("/campaigns");
   revalidatePath("/app");
+}
+
+const complianceFixSchema = z.object({
+  threadId: z.string().min(8).max(120),
+  assetId: z.string().uuid().optional().or(z.literal("")),
+  original: z.string().trim().min(1).max(400),
+  replacement: z.string().trim().min(1).max(500),
+});
+
+/**
+ * Aplica em 1 clique uma sugestão de reescrita CONAR no rascunho ou ativo salvo.
+ */
+export async function applyComplianceFixAction(formData: FormData): Promise<void> {
+  const session = await requireSessionContext();
+  const parsed = complianceFixSchema.safeParse({
+    threadId: formData.get("threadId"),
+    assetId: formData.get("assetId") ?? "",
+    original: formData.get("original"),
+    replacement: formData.get("replacement"),
+  });
+
+  if (!parsed.success) return;
+  const { threadId, assetId, original, replacement } = parsed.data;
+
+  const supabase = await createSupabaseServerClient();
+
+  if (assetId) {
+    const { data: asset } = await supabase
+      .from("campaigns_and_assets")
+      .select("id, content_payload")
+      .eq("id", assetId)
+      .eq("tenant_id", session.tenantId)
+      .maybeSingle<{ id: string; content_payload: Record<string, unknown> }>();
+
+    if (asset?.content_payload) {
+      const { updated, changed } = replaceTextInPayload(asset.content_payload, original, replacement);
+      if (changed) {
+        await supabase
+          .from("campaigns_and_assets")
+          .update({ content_payload: updated })
+          .eq("id", asset.id)
+          .eq("tenant_id", session.tenantId);
+      }
+    }
+  }
+
+  const owns = await runBelongsToTenant(threadId, session.tenantId).catch(() => false);
+  if (owns) {
+    const run = await readStudioRun(threadId).catch(() => null);
+    if (run?.view.draft) {
+      const { updated } = replaceTextInPayload(run.view.draft, original, replacement);
+      const nextViolations = (run.view.compliance?.violations ?? []).filter(
+        (v) => v.excerpt.trim().toLowerCase() !== original.trim().toLowerCase(),
+      );
+      const nextCompliance = run.view.compliance
+        ? {
+            ...run.view.compliance,
+            violations: nextViolations,
+            approved: nextViolations.every((v) => v.severity !== "blocker"),
+          }
+        : null;
+
+      await getStudioGraph()
+        .updateState(
+          { configurable: { thread_id: threadId } },
+          {
+            draftPayload: updated,
+            ...(nextCompliance ? { complianceReport: nextCompliance } : {}),
+          },
+        )
+        .catch(() => undefined);
+    }
+  }
+
+  revalidatePath(`/studio/${threadId}`);
+  revalidatePath("/campaigns");
 }

@@ -76,9 +76,12 @@ export async function createBrandAction(
     return { error: "Seu perfil não tem permissão para criar marcas." };
   }
 
+  const rawWebsite = String(formData.get("websiteUrl") ?? "").trim();
+  const normalizedWebsite = /^https?:\/\/?$/i.test(rawWebsite) ? "" : rawWebsite;
+
   const parsed = createBrandSchema.safeParse({
     brandName: formData.get("brandName"),
-    websiteUrl: formData.get("websiteUrl") || undefined,
+    websiteUrl: normalizedWebsite || undefined,
     icpDescription: formData.get("icpDescription") || undefined,
   });
 

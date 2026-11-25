@@ -542,23 +542,53 @@ const VISUAL_THEMES: readonly VisualThemeId[] = [
 ];
 
 /**
- * Seleciona o estilo visual de forma determinística e variada, evitando que
- * carrosséis consecutivos da mesma marca saiam sempre com o mesmo molde.
+ * Seleciona o estilo visual de forma 100% científica e determinística
+ * (sem aleatoriedade), cruzando a paleta de cores da marca, a classe ABEP,
+ * o segmento B2B/B2C e as dimensões de Tom de Voz (NN/g).
  */
 export function selectVisualTheme(input: {
   preference?: "auto" | VisualThemeId;
+  colorMood?: ColorMood;
+  segment?: AudienceSegment;
+  abepClass?: AbepClass;
+  tone?: ToneOfVoice;
   seed?: string;
   recentCount?: number;
 }): VisualThemeId {
   if (input.preference && input.preference !== "auto" && VISUAL_THEMES.includes(input.preference)) {
     return input.preference;
   }
-  const seedStr = `${input.seed ?? ""}-${input.recentCount ?? 0}`;
-  let hash = 0;
-  for (let i = 0; i < seedStr.length; i += 1) {
-    hash = (hash * 31 + seedStr.charCodeAt(i)) >>> 0;
+
+  // 1. Classe A, paleta neutra/escura ou comunicação formal/sofisticada -> Minimalista Suíço
+  if (
+    input.abepClass === "A" ||
+    input.colorMood === "neutra_editorial" ||
+    (typeof input.tone?.formality === "number" && input.tone.formality <= 3)
+  ) {
+    return "swiss_minimal";
   }
-  return VISUAL_THEMES[hash % VISUAL_THEMES.length] ?? "editorial_classic";
+
+  // 2. Paleta quente/energia ou tom provocador/vibrante -> Dark Impacto
+  if (
+    input.colorMood === "quente_energia" ||
+    (typeof input.tone?.irreverence === "number" && input.tone.irreverence >= 7) ||
+    (typeof input.tone?.enthusiasm === "number" && input.tone.enthusiasm >= 8)
+  ) {
+    return "dark_impact";
+  }
+
+  // 3. Público B2C, paleta criativa/orgânica ou comunicação casual -> Magazine Split
+  if (
+    input.segment === "b2c" ||
+    input.colorMood === "sofisticada_criativa" ||
+    input.colorMood === "organica_equilibrio" ||
+    (typeof input.tone?.formality === "number" && input.tone.formality >= 7)
+  ) {
+    return "magazine_split";
+  }
+
+  // 4. B2B / Fria-Confiança / Consultivo estruturado -> Editorial Clássico
+  return "editorial_classic";
 }
 
 function designDirectiveForAsset(assetType: AssetType, visualTheme: VisualThemeId): string {
@@ -624,6 +654,10 @@ export function crossReferenceAdvertisingContext(
 
   const visualTheme = selectVisualTheme({
     preference: input.brand?.tone_of_voice?.visual_style_preference,
+    colorMood: colorAnalysis.mood,
+    segment: audienceAnalysis.segment,
+    abepClass: audienceAnalysis.abepClass,
+    tone: input.brand?.tone_of_voice,
     seed: input.seed ?? `${input.objective}:${input.productInput}`,
     recentCount: input.recentAssetCount,
   });

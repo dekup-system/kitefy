@@ -31,7 +31,7 @@ export default async function NewStudioRunPage({
   const [brandsQuery, chunksQuery] = await Promise.all([
     supabase
       .from("brand_profiles")
-      .select("id, brand_name, icp_description, entity_facts")
+      .select("id, brand_name, icp_description, tone_of_voice, entity_facts")
       .eq("tenant_id", session.tenantId)
       .order("created_at", { ascending: true }),
     supabase
@@ -56,6 +56,7 @@ export default async function NewStudioRunPage({
     id: string;
     brand_name: string;
     icp_description?: string | null;
+    tone_of_voice?: import("@/types/domain").ToneOfVoice | null;
     entity_facts?: { claim: string }[];
   }[]).map((brand) => ({
     ...brand,

@@ -132,10 +132,13 @@ export async function updateBrandAction(
   const session = await requireSessionContext();
   const supabase = await createSupabaseServerClient();
 
+  const rawWebsite = String(formData.get("websiteUrl") ?? "").trim();
+  const normalizedWebsite = /^https?:\/\/?$/i.test(rawWebsite) ? "" : rawWebsite;
+
   const parsed = brandUpdateSchema.safeParse({
     brandId: formData.get("brandId"),
     brandName: formData.get("brandName"),
-    websiteUrl: formData.get("websiteUrl") ?? "",
+    websiteUrl: normalizedWebsite,
     icpDescription: formData.get("icpDescription") ?? undefined,
     tone: formData.get("tone") ?? undefined,
     primaryColor: formData.get("primaryColor") ?? "",

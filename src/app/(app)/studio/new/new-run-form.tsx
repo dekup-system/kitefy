@@ -12,35 +12,66 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { CREDIT_COSTS, totalRunCreditCost } from "@/lib/pricing";
 import { buildWeeklyIdeas } from "@/lib/onboarding/extract";
-import type { AssetType, VisualThemeId } from "@/types/domain";
+import type { AssetType, ToneOfVoice, VisualThemeId } from "@/types/domain";
 
 interface BrandOption {
   id: string;
   brand_name: string;
   icp_description?: string | null;
+  tone_of_voice?: ToneOfVoice | null;
   entity_facts?: { claim: string }[];
   knowledge_highlights?: string[];
 }
 
-/** Atalhos para quem não sabe escrever o briefing: preenchem o objetivo. */
-const OBJECTIVE_PRESETS = [
-  {
-    label: "Por que escolher a gente",
-    text: "Explicar por que nossa forma de atender é diferente e por que isso importa para o cliente",
-  },
-  {
-    label: "Erro comum do cliente",
-    text: "Mostrar o erro mais comum que o cliente comete nesse assunto e como evitar sem gastar mais",
-  },
-  {
-    label: "Oferta do mês",
-    text: "Apresentar a oferta do mês com clareza: o que inclui, para quem serve e como começar",
-  },
-  {
-    label: "Dúvida frequente",
-    text: "Responder a dúvida que mais aparece no WhatsApp, em linguagem simples e sem promessa exagerada",
-  },
-] as const;
+/** Gera 5 balões de objetivo dinâmicos com base no estudo real de cada marca. */
+function buildBrandObjectiveChips(brand?: BrandOption): { label: string; text: string }[] {
+  const name = brand?.brand_name ?? "nossa marca";
+  const tone = brand?.tone_of_voice;
+  const primaryPersona = tone?.audience_study?.personas?.[0];
+  const icpShort = brand?.icp_description?.trim().slice(0, 85);
+  const firstFact = brand?.entity_facts?.[0]?.claim?.trim();
+  const firstObjection =
+    tone?.objections?.[0]?.trim() || primaryPersona?.hiddenObjections?.[0]?.trim();
+  const firstVoc = primaryPersona?.vocPhrases?.[0]?.trim();
+  const buyingTrigger = primaryPersona?.buyingTrigger?.trim();
+
+  return [
+    {
+      label: "Quebrar mito do mercado",
+      text: tone?.contrarian_thesis?.trim()
+        ? `Desmistificar a crença comum defendendo a tese de ${name}: "${tone.contrarian_thesis.trim()}"`
+        : `Expor o erro mais caro que ${icpShort || `o público de ${name}`} comete ao escolher uma solução genérica`,
+    },
+    {
+      label: "Derrubar objeção real",
+      text: firstObjection
+        ? `Responder com clareza e provas práticas a objeção real do cliente: "${firstObjection}"`
+        : `Responder sem rodeios a dúvida que mais trava o fechamento com ${name}`,
+    },
+    {
+      label: "Mostrar mecanismo único",
+      text: tone?.uvp?.trim()
+        ? `Explicar na prática como funciona o diferencial exclusivo de ${name}: ${tone.uvp.trim()}`
+        : firstFact
+          ? `Mostrar por que ${name} se destaca na prática com base em: ${firstFact}`
+          : `Explicar por que o método de trabalho de ${name} traz mais previsibilidade e segurança`,
+    },
+    {
+      label: "Falar na voz do cliente",
+      text: firstVoc
+        ? `Responder diretamente à fala real do cliente ideal: "${firstVoc}"`
+        : tone?.jtbd_functional?.trim()
+          ? `Mostrar passo a passo como ajudar o cliente a ${tone.jtbd_functional.trim()}`
+          : `Mostrar uma situação real do cotidiano de ${icpShort || "nosso público"} e como resolver`,
+    },
+    {
+      label: "Gatilho de decisão",
+      text: buyingTrigger
+        ? `Ativar o momento de decisão do cliente (${buyingTrigger}) convidando para conversar com ${name}`
+        : `Apresentar a oferta principal de ${name} com clareza: para quem é, o que entrega e próximo passo`,
+    },
+  ];
+}
 
 const ASSET_OPTIONS: {
   type: AssetType;
@@ -130,6 +161,7 @@ export function NewRunForm({
 
   const currentBrand = brands.find((b) => b.id === brandId) ?? brands[0];
   const weeklyIdeas = currentBrand ? buildWeeklyIdeas(currentBrand) : [];
+  const objectiveChips = buildBrandObjectiveChips(currentBrand);
 
   const needsVisualFormat =
     assetType === "typo_carousel" ||
@@ -304,7 +336,7 @@ export function NewRunForm({
               onChange={(event) => setVisualStyle(event.target.value as "auto" | VisualThemeId)}
               className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
             >
-              <option value="auto">Automático (alterna entre os 4 estilos)</option>
+              <option value="auto">Estilo da Marca (baseado no estudo e biblioteca)</option>
               <option value="editorial_classic">Editorial Clássico (capa escura + cards)</option>
               <option value="magazine_split">Magazine Split (faixa lateral + número gigante)</option>
               <option value="dark_impact">Dark Impacto (alto contraste escuro)</option>
@@ -322,7 +354,7 @@ export function NewRunForm({
         >
           <div className="space-y-2">
             <div className="flex flex-wrap gap-1.5">
-              {OBJECTIVE_PRESETS.map((preset) => (
+              {objectiveChips.map((preset) => (
                 <button
                   key={preset.label}
                   type="button"

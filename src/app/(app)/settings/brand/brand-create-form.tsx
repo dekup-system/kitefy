@@ -77,6 +77,7 @@ export function BrandCreateForm({
             id="newBrandWebsite"
             name="websiteUrl"
             type="url"
+            defaultValue="https://"
             placeholder="https://suamarca.com.br ou https://instagram.com/suamarca"
             disabled={pending}
           />
