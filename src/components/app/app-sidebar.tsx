@@ -27,15 +27,15 @@ const NAV_GROUPS = [
   {
     label: "Inteligência",
     items: [
+      { href: "/settings/brand", label: "Marcas e Personas", icon: Palette },
       { href: "/competitors", label: "Concorrentes", icon: Radar },
       { href: "/telemetry", label: "Resultados", icon: TrendingUp },
       { href: "/google", label: "Pacote Google", icon: Globe },
     ],
   },
   {
-    label: "Marca e conta",
+    label: "Conta",
     items: [
-      { href: "/settings/brand", label: "Marca e voz", icon: Palette },
       { href: "/settings/billing", label: "Plano e créditos", icon: CreditCard },
       { href: "/settings/account", label: "Minha conta", icon: UserRound },
     ],

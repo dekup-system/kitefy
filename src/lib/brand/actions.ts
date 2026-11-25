@@ -9,6 +9,7 @@ import { extractBrandDraft } from "@/lib/onboarding/extract";
 import { PLANS } from "@/lib/pricing";
 import { createLogger } from "@/lib/logger";
 import { MAX_BRAND_LOGO_BYTES, validateBrandLogo } from "./logo";
+import { extractLogoPalettes } from "./logo-colors";
 import {
   MAX_BRAND_LOGO_DIMENSION,
   removeBrandLogo,
@@ -220,12 +221,29 @@ export async function uploadBrandLogoAction(
       buffer,
     });
 
+    const logoPalettes = await extractLogoPalettes(buffer);
+    const firstLogoPalette = logoPalettes[0];
+
     const previous =
       typeof brand.visualTokens.logo_path === "string" ? brand.visualTokens.logo_path : null;
 
+    const nextVisualTokens: VisualTokens = {
+      ...brand.visualTokens,
+      logo_path: path,
+      ...(logoPalettes.length > 0 ? { logo_palettes: logoPalettes } : {}),
+      // Se a marca ainda não definiu cor própria, aplica automaticamente a paleta principal da logo
+      ...(!brand.visualTokens.primary && firstLogoPalette
+        ? {
+            primary: firstLogoPalette.primary,
+            background: firstLogoPalette.background,
+            accent: firstLogoPalette.accent,
+          }
+        : {}),
+    };
+
     const update = await (await createSupabaseServerClient())
       .from("brand_profiles")
-      .update({ visual_tokens: { ...brand.visualTokens, logo_path: path } })
+      .update({ visual_tokens: nextVisualTokens })
       .eq("id", parsedBrand.data)
       .eq("tenant_id", session.tenantId)
       .select("id");

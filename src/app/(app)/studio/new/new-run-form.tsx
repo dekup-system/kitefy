@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { CREDIT_COSTS, totalRunCreditCost } from "@/lib/pricing";
 import { buildWeeklyIdeas } from "@/lib/onboarding/extract";
-import type { AssetType } from "@/types/domain";
+import type { AssetType, VisualThemeId } from "@/types/domain";
 
 interface BrandOption {
   id: string;
@@ -124,6 +124,7 @@ export function NewRunForm({
   const [product, setProduct] = useState(defaultProduct ?? "");
   const [research, setResearch] = useState(false);
   const [visualFormat, setVisualFormat] = useState<"4:5" | "9:16">("4:5");
+  const [visualStyle, setVisualStyle] = useState<"auto" | VisualThemeId>("auto");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -153,6 +154,7 @@ export function NewRunForm({
             productInput: product.trim(),
             researchEnabled: isResearchActive,
             visualFormat,
+            visualStyle,
           }),
         });
 
@@ -264,31 +266,52 @@ export function NewRunForm({
       </fieldset>
 
       {needsVisualFormat ? (
-        <Field
-          label="Onde você vai postar?"
-          hint="Muda o tamanho das imagens geradas. Feed é 1080×1350; Story/Reels é 1080×1920."
-        >
-          <div className="flex flex-wrap gap-2">
-            {[
-              { value: "4:5" as const, label: "Feed (4:5)" },
-              { value: "9:16" as const, label: "Story / Reels (9:16)" },
-            ].map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setVisualFormat(option.value)}
-                aria-pressed={visualFormat === option.value}
-                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                  visualFormat === option.value
-                    ? "border-foreground/40 bg-accent font-medium"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label="Onde você vai postar?"
+            hint="Feed é 1080×1350; Story/Reels é 1080×1920."
+          >
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: "4:5" as const, label: "Feed (4:5)" },
+                { value: "9:16" as const, label: "Story / Reels (9:16)" },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setVisualFormat(option.value)}
+                  aria-pressed={visualFormat === option.value}
+                  className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                    visualFormat === option.value
+                      ? "border-foreground/40 bg-accent font-medium"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <Field
+            htmlFor="visualStyle"
+            label="Estilo visual do carrossel / post"
+            hint="Escolha a direção de arte desta peça antes de gerar."
+          >
+            <select
+              id="visualStyle"
+              value={visualStyle}
+              onChange={(event) => setVisualStyle(event.target.value as "auto" | VisualThemeId)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
+            >
+              <option value="auto">Automático (alterna entre os 4 estilos)</option>
+              <option value="editorial_classic">Editorial Clássico (capa escura + cards)</option>
+              <option value="magazine_split">Magazine Split (faixa lateral + número gigante)</option>
+              <option value="dark_impact">Dark Impacto (alto contraste escuro)</option>
+              <option value="swiss_minimal">Minimalista Suíço (grid preciso + respiro)</option>
+            </select>
+          </Field>
+        </div>
       ) : null}
 
       <FieldGroup>
@@ -378,13 +401,13 @@ export function NewRunForm({
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface-inset/50 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-0.5 text-xs">
           <p className="font-medium text-foreground">
-            Débito de <span className="font-mono">{cost}</span> crédito{cost > 1 ? "s" : ""} só após aprovação
+            Custo da geração: <span className="font-mono">{cost}</span> crédito{cost > 1 ? "s" : ""} (estorno automático em erro técnico)
           </p>
           <p className="text-muted-foreground">
             Saldo atual: <span className="font-mono text-foreground">{creditBalance} cr</span>
             {!insufficient ? (
               <>
-                {" "}· após aprovar: <span className="font-mono text-foreground">{creditBalance - cost} cr</span>
+                {" "}· saldo previsto: <span className="font-mono text-foreground">{creditBalance - cost} cr</span>
               </>
             ) : null}
           </p>

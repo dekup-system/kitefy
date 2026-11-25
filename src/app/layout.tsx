@@ -116,7 +116,7 @@ const siteSchema = {
         "Carrosséis prontos de 7 a 10 slides com identidade visual da marca",
         "Artigos GEO de 1.500 a 2.500 palavras com JSON-LD Schema.org validado",
         "Pacote Google exportável em ZIP (sitemap.xml, robots.txt para IAs e index.html)",
-        "Sem OAuth social e cobrança de crédito somente após aprovação humana",
+        "Sem OAuth social e estorno automático de créditos em caso de erro técnico",
       ],
       offers: {
         "@type": "AggregateOffer",

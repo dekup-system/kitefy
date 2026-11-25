@@ -8,6 +8,7 @@ import type {
   Framework,
   SerpInsights,
   TokenUsageEntry,
+  VisualThemeId,
 } from "@/types/domain";
 import type { AdvertisingCrossReference } from "@/lib/ai/marketing-knowledge";
 
@@ -47,6 +48,8 @@ export interface OrganicStudioInput {
   researchEnabled: boolean;
   /** Formato dos slides (4:5 feed, 9:16 story). */
   visualFormat: "4:5" | "9:16";
+  /** Estilo visual escolhido na criação ("auto" alterna entre os 4 temas). */
+  visualStyle?: "auto" | VisualThemeId;
   /** Usuário que iniciou; usado apenas para auditoria/LGPD. */
   requestedBy?: string;
 }
@@ -64,6 +67,7 @@ export const OrganicStudioState = Annotation.Root({
   productInput: Annotation<string>,
   researchEnabled: Annotation<boolean>,
   visualFormat: Annotation<"4:5" | "9:16">,
+  visualStyle: Annotation<"auto" | VisualThemeId | null>,
 
   // --- Contexto --------------------------------------------------------------
   brandContext: Annotation<BrandContext | null>,

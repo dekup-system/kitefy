@@ -72,8 +72,8 @@ const STEPS = [
   },
   {
     step: "03",
-    title: "Aprovação humana e exportação",
-    body: "Você revisa em uma tela, escolhe o gancho principal e aprova. Sai em PNG, Markdown, HTML, JSON-LD ou ZIP — e a publicação continua sendo sua.",
+    title: "Revisão rápida e exportação",
+    body: "Você revisa em uma tela, escolhe o gancho principal e salva na biblioteca. Sai em PNG, texto limpo, HTML, JSON-LD ou ZIP — e a publicação continua sendo sua.",
   },
 ];
 
@@ -125,7 +125,7 @@ const WHY = [
 const FAQ = [
   {
     q: "O que exatamente eu recebo em cada pacote?",
-    a: "Cada pacote entrega ativos exportáveis: roteiros com 3 ganchos A/B, carrosséis de 7 a 10 slides, artigos GEO com JSON-LD e packs de landing page. O consumo é por crédito (1 por roteiro ou carrossel, 2 por criativo, 3 por carrossel híbrido ou LP, 5 por artigo GEO) e o débito só acontece depois da sua aprovação.",
+    a: "Cada pacote entrega ativos exportáveis: roteiros com 3 ganchos A/B, carrosséis de 7 a 10 slides, criativos com imagem editorial, artigos GEO com JSON-LD e packs de landing page. O consumo é por crédito (1 por roteiro ou carrossel, 2 por post único, 3 por carrossel ilustrado ou LP, 5 por artigo GEO), com estorno automático em caso de erro técnico.",
   },
   {
     q: "Preciso conectar minhas redes sociais?",
@@ -136,8 +136,8 @@ const FAQ = [
     a: "Não. Os roteiros são feitos para gravação humana, com a sua voz. Não há TTS, lip-sync, avatar digital nem coleta de dados biométricos faciais ou vocais.",
   },
   {
-    q: "Como funciona a aprovação antes da cobrança?",
-    a: "O ativo é gerado e fica em revisão. Você escolhe o gancho principal e aprova; só então os créditos são debitados e o ativo é gravado. Se rejeitar, nada é cobrado. Falha técnica gera estorno automático.",
+    q: "Como funciona o consumo de créditos e estorno?",
+    a: "Os créditos são debitados no momento da geração conforme a tabela de cada formato. Caso ocorra qualquer erro técnico na API ou no pipeline sem entrega do conteúdo, o sistema estorna os créditos 100% automaticamente na hora.",
   },
   {
     q: "Meus dados são usados para treinar modelos?",
@@ -247,7 +247,7 @@ export default function KitefyLandingPage() {
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Check className="size-3.5 text-brand-navy" aria-hidden="true" />
-                  Débito só após aprovação
+                  Estorno automático em erro técnico
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Check className="size-3.5 text-brand-navy" aria-hidden="true" />

@@ -39,13 +39,17 @@ export function BrandForm({ brand }: { brand: BrandProfileRow }) {
         <Field htmlFor="brandName" label="Nome do seu negócio ou marca">
           <Input id="brandName" name="brandName" defaultValue={brand.brand_name} required maxLength={160} />
         </Field>
-        <Field htmlFor="websiteUrl" label="Site ou link principal (opcional)" hint="Pode ser o site oficial da sua empresa.">
+        <Field
+          htmlFor="websiteUrl"
+          label="Site oficial ou link da rede social (opcional)"
+          hint="Aceita site (https://suamarca.com.br) ou perfil público (Instagram, LinkedIn, YouTube, TikTok)."
+        >
           <Input
             id="websiteUrl"
             name="websiteUrl"
             type="url"
             defaultValue={brand.website_url ?? ""}
-            placeholder="https://suamarca.com.br"
+            placeholder="https://suamarca.com.br ou https://instagram.com/suamarca"
           />
         </Field>
         <Field
@@ -79,9 +83,43 @@ export function BrandForm({ brand }: { brand: BrandProfileRow }) {
         <div>
           <p className="text-sm font-medium">Cores dos seus carrosséis e imagens</p>
           <p className="text-xs text-muted-foreground">
-            Escolha uma combinação pronta ou personalize com as cores da sua marca. O contraste de leitura é ajustado automaticamente.
+            Ao enviar sua logomarca, o Kitefy extrai automaticamente as cores predominantes com 3 variações prontas. Você também pode escolher um preset ou personalizar.
           </p>
         </div>
+
+        {(brand.visual_tokens?.logo_palettes ?? []).length > 0 ? (
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-foreground">
+              Extraídas da sua logomarca
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(brand.visual_tokens?.logo_palettes ?? []).map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => {
+                    setPrimaryColor(preset.primary);
+                    setBackgroundColor(preset.background);
+                    setAccentColor(preset.accent);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-background px-3 py-1 text-xs font-medium hover:bg-accent"
+                >
+                  <span
+                    className="inline-block size-3 rounded-full border border-border"
+                    style={{ backgroundColor: preset.primary }}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className="inline-block size-3 rounded-full border border-border"
+                    style={{ backgroundColor: preset.accent }}
+                    aria-hidden="true"
+                  />
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <div className="flex flex-wrap gap-2">
           {COLOR_PRESETS.map((preset) => (
@@ -221,47 +259,26 @@ export function BrandForm({ brand }: { brand: BrandProfileRow }) {
           </Field>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field
-            htmlFor="abepClass"
-            label="Perfil Econômico do Público (Critério Brasil ABEP)"
-            hint="Calibra argumentos de valor e vocabulário brasileiro."
+        <Field
+          htmlFor="abepClass"
+          label="Perfil Econômico do Público (Critério Brasil ABEP)"
+          hint="Calibra argumentos de valor e vocabulário brasileiro."
+        >
+          <select
+            id="abepClass"
+            name="abepClass"
+            defaultValue={brand.tone_of_voice?.abep_class ?? "misto"}
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
           >
-            <select
-              id="abepClass"
-              name="abepClass"
-              defaultValue={brand.tone_of_voice?.abep_class ?? "misto"}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
-            >
-              <option value="misto">Público Amplo / Misto</option>
-              <option value="A">Classe A (Alta Renda / Curadoria &amp; Tempo)</option>
-              <option value="B1">Classe B1 (Média-Alta / Previsibilidade &amp; ROI)</option>
-              <option value="B2">Classe B2 (Média Consolidada / Custo-Benefício)</option>
-              <option value="C1">Classe C1 (Média Emergente / Praticidade Direta)</option>
-              <option value="C2">Classe C2 (Popular Consolidada / Economia Real)</option>
-              <option value="DE">Classes D-E (Essencial &amp; Acessível)</option>
-            </select>
-          </Field>
-
-          <Field
-            htmlFor="visualStylePreference"
-            label="Estilo Visual dos Carrosséis e Posts"
-            hint="No modo Automático, o estúdio varia entre os 4 temas editoriais."
-          >
-            <select
-              id="visualStylePreference"
-              name="visualStylePreference"
-              defaultValue={brand.tone_of_voice?.visual_style_preference ?? "auto"}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
-            >
-              <option value="auto">Automático (alterna entre os 4 estilos editoriais)</option>
-              <option value="editorial_classic">Editorial Clássico (capa escura + cards)</option>
-              <option value="magazine_split">Magazine Split (faixa lateral + número gigante)</option>
-              <option value="dark_impact">Dark Impacto (alto contraste escuro)</option>
-              <option value="swiss_minimal">Minimalista Suíço (grid preciso + respiro)</option>
-            </select>
-          </Field>
-        </div>
+            <option value="misto">Público Amplo / Misto</option>
+            <option value="A">Classe A (Alta Renda / Curadoria &amp; Tempo)</option>
+            <option value="B1">Classe B1 (Média-Alta / Previsibilidade &amp; ROI)</option>
+            <option value="B2">Classe B2 (Média Consolidada / Custo-Benefício)</option>
+            <option value="C1">Classe C1 (Média Emergente / Praticidade Direta)</option>
+            <option value="C2">Classe C2 (Popular Consolidada / Economia Real)</option>
+            <option value="DE">Classes D-E (Essencial &amp; Acessível)</option>
+          </select>
+        </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field htmlFor="jtbdFunctional" label="Job Funcional (o que o cliente quer resolver)">

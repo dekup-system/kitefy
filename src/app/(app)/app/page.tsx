@@ -38,7 +38,7 @@ export const metadata: Metadata = { title: "Início" };
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Rascunho",
-  awaiting_approval: "Aguardando aprovação",
+  awaiting_approval: "Pronto para revisar",
   approved: "Pronto",
   exported: "Publicado",
 };

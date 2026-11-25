@@ -26,8 +26,9 @@ export interface BrandCompletenessInput {
     avoid?: string[];
     reading_level?: string;
     exemplars?: string[];
-    formality?: string;
+    formality?: string | number;
     energy?: string;
+    audience_study?: { personas?: unknown[] } | null;
   } | null;
   visual_tokens?: { logo_path?: string; primary?: string; accent?: string } | null;
   entity_facts?: { claim: string; source_url?: string | null }[] | null;
@@ -61,14 +62,24 @@ export function computeBrandCompleteness(brand: BrandCompletenessInput): BrandCo
       label: "Público-alvo (ICP) definido",
       done: Boolean(brand.icp_description && brand.icp_description.trim().length >= 12),
       href: brandHref,
-      weight: 20,
+      weight: 15,
+    },
+    {
+      key: "audience",
+      label: "Estudo de público e personas (IBGE/ABEP)",
+      done: Boolean(
+        brand.tone_of_voice?.audience_study?.personas &&
+          brand.tone_of_voice.audience_study.personas.length > 0,
+      ),
+      href: brandHref,
+      weight: 15,
     },
     {
       key: "website",
-      label: "Site oficial informado",
+      label: "Site ou rede social informado",
       done: Boolean(brand.website_url && brand.website_url.trim().length >= 8),
       href: brandHref,
-      weight: 15,
+      weight: 10,
     },
     {
       key: "logo",
@@ -101,10 +112,10 @@ export function computeBrandCompleteness(brand: BrandCompletenessInput): BrandCo
     },
     {
       key: "google",
-      label: "Token do Google Search Console salvo",
+      label: "Verificação do Google Search Console salva",
       done: Boolean(brand.google_verification_token && brand.google_verification_token.trim().length > 0),
       href: googleHref,
-      weight: 15,
+      weight: 10,
     },
   ];
 
@@ -152,14 +163,14 @@ export function resolveNextBestAction(input: NextBestActionInput): NextBestActio
 
   if (input.pendingApprovalCount > 0 && input.firstPendingThreadId) {
     return {
-      eyebrow: "Revisão pendente",
+      eyebrow: "Revisão e exportação",
       title:
         input.pendingApprovalCount === 1
-          ? "1 conteúdo pronto para sua aprovação"
-          : `${input.pendingApprovalCount} conteúdos prontos para aprovação`,
+          ? "1 conteúdo pronto para revisar e baixar"
+          : `${input.pendingApprovalCount} conteúdos prontos para revisar e baixar`,
       description:
-        "Revise os ganchos, confira as imagens e salve na biblioteca para liberar o download (.ZIP).",
-      ctaLabel: "Revisar agora",
+        "Escolha sua abertura preferida, confira as imagens e salve na biblioteca para liberar o download (.ZIP).",
+      ctaLabel: "Abrir conteúdo",
       href: `/studio/${input.firstPendingThreadId}`,
       tone: "signal",
     };

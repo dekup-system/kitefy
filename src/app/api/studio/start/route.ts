@@ -34,6 +34,9 @@ const bodySchema = z.object({
   productInput: z.string().trim().min(3, "Informe o produto ou oferta.").max(280),
   researchEnabled: z.boolean().default(false),
   visualFormat: z.enum(["4:5", "9:16"]).default("4:5"),
+  visualStyle: z
+    .enum(["auto", "editorial_classic", "magazine_split", "dark_impact", "swiss_minimal"])
+    .default("auto"),
 });
 
 const activeRunsByTenant = new Map<string, number>();
@@ -170,6 +173,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       productInput: parsed.data.productInput,
       researchEnabled,
       visualFormat: parsed.data.visualFormat,
+      visualStyle: parsed.data.visualStyle,
       requestedBy: session.user.id,
     });
 

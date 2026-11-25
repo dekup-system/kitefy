@@ -9,14 +9,14 @@ import { CREDIT_COSTS, formatBRL, PLANS } from "@/lib/pricing";
 export const metadata: Metadata = {
   title: "Pacotes e créditos — Start, Lift e Flow",
   description:
-    "Pacotes Kitefy Start, Lift e Flow para marketing orgânico e artigos GEO com créditos transparentes, aprovação humana antes do débito e cobrança em BRL.",
+    "Pacotes Kitefy Start, Lift e Flow para marketing orgânico e artigos GEO com créditos transparentes, estorno automático em erro técnico e cobrança em BRL.",
   alternates: {
     canonical: "https://www.kitefy.com.br/pricing",
   },
   openGraph: {
     title: "Pacotes e créditos — Kitefy Start, Lift e Flow",
     description:
-      "Preço claro e crédito transparente: o débito só acontece após a sua aprovação do ativo.",
+      "Preço claro e crédito transparente: estorno automático em caso de erro técnico e sem fidelidade.",
     url: "https://www.kitefy.com.br/pricing",
     locale: "pt_BR",
     type: "website",
@@ -58,8 +58,8 @@ export default function PricingPage() {
             Preço claro, crédito transparente.
           </h1>
           <p className="mt-4 text-pretty text-[1.0625rem] leading-relaxed text-brand-navy-soft">
-            Sem taxa de setup e sem contrato longo. O consumo é por ativo e o débito acontece apenas
-            depois da sua aprovação. Falha técnica gera estorno automático.
+            Sem taxa de setup e sem contrato longo. O consumo é por geração conforme o formato, com
+            estorno 100% automático em caso de falha técnica.
           </p>
         </div>
 

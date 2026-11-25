@@ -11,14 +11,17 @@ describe("workspace-insights", () => {
   it("calcula completude da marca de 0 a 100 com pendências acionáveis", () => {
     const empty = computeBrandCompleteness({ id: "b1", brand_name: "Kitefy" });
     expect(empty.score).toBe(0);
-    expect(empty.missing).toHaveLength(6);
+    expect(empty.missing).toHaveLength(7);
 
     const full = computeBrandCompleteness({
       id: "b1",
       brand_name: "Kitefy",
       website_url: "https://www.kitefy.com.br",
       icp_description: "PMEs brasileiras que produzem conteúdo orgânico",
-      tone_of_voice: { formality: "direto" },
+      tone_of_voice: {
+        formality: "direto",
+        audience_study: { personas: [{ name: "Decisor Pragmático" }] },
+      },
       visual_tokens: { logo_path: "t1/b1/brand/logo.png" },
       entity_facts: [{ claim: "120 créditos", source_url: "https://www.kitefy.com.br/pricing" }],
       google_verification_token: "abc123",

@@ -201,13 +201,24 @@ export async function strategyOrchestratorNode(
     recentAssetCount = 0;
   }
 
+  const brandForStrategy =
+    state.visualStyle && state.visualStyle !== "auto"
+      ? {
+          ...state.brandContext,
+          tone_of_voice: {
+            ...state.brandContext.tone_of_voice,
+            visual_style_preference: state.visualStyle,
+          },
+        }
+      : state.brandContext;
+
   const strategyBrief = crossReferenceAdvertisingContext({
     assetType: state.assetType,
     angleType: state.selectedArm.angle_type,
     framework: state.selectedArm.framework,
     objective: state.objective,
     productInput: state.productInput,
-    brand: state.brandContext,
+    brand: brandForStrategy,
     recentAssetCount,
     seed: state.threadId,
   });

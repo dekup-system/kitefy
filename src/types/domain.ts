@@ -314,6 +314,8 @@ export interface VisualTokens {
   font_body?: string;
   font_mono?: string;
   logo_path?: string;
+  /** Variações de paleta extraídas automaticamente da logomarca enviada. */
+  logo_palettes?: { label: string; primary: string; background: string; accent: string }[];
   /** Raio de borda em px usado nos cards. */
   radius?: number;
   /** "light" | "dark" — define contraste base do template. */

@@ -572,11 +572,36 @@ export async function crawlBrandSite(
     warnings.push("Nenhuma página pôde ser lida (site fora do ar, bloqueio ou HTML vazio).");
   }
 
+  // Fallback para perfis de redes sociais (quando a marca não tem site próprio
+  // e informa Instagram, LinkedIn, TikTok, YouTube ou Facebook).
+  const socialHosts = ["instagram.com", "linkedin.com", "tiktok.com", "youtube.com", "facebook.com"];
+  const hostLower = entry.hostname.toLowerCase();
+  const isSocialUrl = socialHosts.some((domain) => hostLower === domain || hostLower.endsWith(`.${domain}`));
+
+  let derivedBrandName = homeProfile ? deriveBrandName(homeProfile, entry) : "";
+  let derivedDescription = description;
+  if (isSocialUrl && !derivedBrandName) {
+    const segments = entry.pathname
+      .split("/")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !["company", "in", "channel", "c", "user", "p", "reel"].includes(s.toLowerCase()));
+    const handle = (segments[0] ?? "").replace(/^@/, "").replace(/[._-]+/g, " ").trim();
+    if (handle.length >= 2) {
+      derivedBrandName = handle
+        .split(" ")
+        .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ""))
+        .join(" ");
+    }
+    if (!derivedDescription) {
+      derivedDescription = `Perfil oficial em ${hostLower.replace(/^www\./, "")} (${entry.toString()}).`;
+    }
+  }
+
   return {
     source_url: entry.toString(),
     pages: pages.map(({ links: _links, ...rest }) => rest),
-    brand_name: homeProfile ? deriveBrandName(homeProfile, entry) : "",
-    description,
+    brand_name: derivedBrandName,
+    description: derivedDescription,
     topics,
     facts,
     json_ld_types: unique(pages.flatMap((page) => page.jsonLdTypes)),

@@ -6,7 +6,6 @@ import { BrandCreateForm } from "./brand-create-form";
 import { BrandLogoForm } from "./brand-logo-form";
 import { BrandDeleteForm } from "./brand-delete-form";
 import { AudienceStudyCard } from "./audience-study-card";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -15,7 +14,7 @@ import { signBrandLogo } from "@/lib/brand/logo-storage";
 import { PLANS } from "@/lib/pricing";
 import type { BrandProfileRow } from "@/types/domain";
 
-export const metadata: Metadata = { title: "Marca e voz" };
+export const metadata: Metadata = { title: "Marcas e Personas" };
 
 export default async function BrandSettingsPage({
   searchParams,
@@ -44,8 +43,8 @@ export default async function BrandSettingsPage({
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <PageHeader
-        title="Marca e voz"
-        description="O contexto da marca é o que faz o conteúdo parecer escrito por uma pessoa, não por um gerador."
+        title="Marcas e Personas"
+        description="Configure identidade visual, DNA estratégico, tom de voz e estudo de público/personas (IBGE + ABEP). Tudo é cruzado automaticamente antes de gerar cada anúncio."
       />
 
       <Card>
@@ -113,17 +112,6 @@ export default async function BrandSettingsPage({
                   hasLogo={Boolean(logoPath)}
                 />
                 <BrandForm key={`form-${selected.id}`} brand={selected} />
-
-                <div className="border-t border-border pt-4">
-                  <p className="text-sm font-medium">Pacote Google</p>
-                  <p className="text-sm text-muted-foreground">
-                    ZIP com sitemap.xml, robots.txt liberando crawlers de IA e index.html com
-                    canonical, Open Graph e JSON-LD.
-                  </p>
-                  <Button asChild variant="outline" size="sm" className="mt-2">
-                    <Link href={`/google?brand=${selected.id}`}>Abrir Pacote Google</Link>
-                  </Button>
-                </div>
 
                 <div className="border-t border-border pt-4">
                   <BrandDeleteForm

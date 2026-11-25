@@ -70,14 +70,14 @@ export function BrandCreateForm({
         </Field>
         <Field
           htmlFor="newBrandWebsite"
-          label="Site (opcional)"
-          hint="Ajuda a manter o contexto e o pacote Google coerentes."
+          label="Site oficial ou rede social (opcional)"
+          hint="Cole o site ou perfil público (Instagram, LinkedIn, TikTok, YouTube) para extrair o contexto automaticamente."
         >
           <Input
             id="newBrandWebsite"
             name="websiteUrl"
             type="url"
-            placeholder="https://suamarca.com.br"
+            placeholder="https://suamarca.com.br ou https://instagram.com/suamarca"
             disabled={pending}
           />
         </Field>

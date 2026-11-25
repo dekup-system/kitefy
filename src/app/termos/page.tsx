@@ -21,7 +21,7 @@ const SECTIONS = [
   },
   {
     title: "3. Conta e créditos",
-    body: "Cada ativo consome créditos conforme a tabela vigente. O débito ocorre somente após a aprovação do ativo, e falhas técnicas geram estorno automático. Créditos não são convertidos em dinheiro e expiram conforme o ciclo do plano contratado.",
+    body: "Cada ativo consome créditos conforme a tabela vigente no momento da geração, com estorno 100% automático em caso de falha técnica. Créditos não são convertidos em dinheiro e expiram conforme o ciclo do plano contratado.",
   },
   {
     title: "4. Assinatura e pagamento",
