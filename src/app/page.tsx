@@ -21,16 +21,16 @@ import { KITEFY_PACKAGES } from "@/lib/marketing/packages";
 import { CREDIT_COSTS } from "@/lib/pricing";
 
 export const metadata: Metadata = {
-  title: "Kitefy — Estúdio de Marketing Orgânico, Carrosséis, Roteiros e Artigos GEO com IA",
+  title: "Kitefy — Marketing Orgânico Científico com IA: Posts, Carrosséis, Roteiros, Artigos GEO e Radar de Concorrentes",
   description:
-    "Roteiros com 3 ganchos A/B, carrosséis prontos e artigos GEO entregues com padrão de marca e aprendizado por telemetria. Escolha um pacote, aprove e exporte. Sem OAuth social, sem avatar, sem fidelidade.",
+    "IA treinada em biblioteca científica de marketing de alto nível cruzada com o DNA da sua marca, público-alvo, dados demográficos IBGE, radar de concorrentes e revisão CONAR automática.",
   alternates: {
     canonical: "https://www.kitefy.com.br/",
   },
   openGraph: {
-    title: "Kitefy — Estúdio de Marketing Orgânico, Carrosséis, Roteiros e Artigos GEO",
+    title: "Kitefy — Marketing Orgânico Científico com IA e Cruzamento de Dados",
     description:
-      "Conteúdo orgânico com padrão de marca e prova em dado. Pacotes Start, Lift e Flow.",
+      "Estruture sua marca, monitore concorrentes e gere posts, carrosséis ilustrados, roteiros, artigos GEO e páginas de vendas revisados pelo CONAR.",
     url: "https://www.kitefy.com.br",
     locale: "pt_BR",
     type: "website",
@@ -38,68 +38,68 @@ export const metadata: Metadata = {
 };
 
 const HERO_STATS = [
-  { value: "90s", label: "para extrair o perfil da sua marca a partir da URL" },
-  { value: "1", label: "crédito por roteiro com 3 ganchos A/B" },
-  { value: "5", label: "créditos por artigo GEO com Schema.org validado" },
-  { value: "0", label: "redes sociais conectadas ou tokens armazenados" },
+  { value: "90s", label: "para estruturar marca, personas, cores e DNA estratégico" },
+  { value: "IBGE", label: "dados demográficos reais cruzados no estudo do público-alvo" },
+  { value: "CONAR", label: "revisão publicitária automática com correção em 1 clique" },
+  { value: "GA4", label: "telemetria e aprendizado contínuo nos pacotes Lift e Flow" },
 ];
 
 const PAINS = [
   {
-    title: "Calendário cheio, resultado invisível",
-    body: "Publica-se muito e aprende-se pouco: sem registro do que funcionou, cada semana recomeça do zero.",
+    title: "Conteúdo genérico que não converte",
+    body: "Textos soltos sem cruzamento com o DNA da marca, dores reais do público e dados demográficos viram ruído no feed — e não geram vendas.",
   },
   {
-    title: "Cada post parece de uma marca diferente",
-    body: "Sem padrão de voz e de cor, o feed vira colagem — e a percepção de profissionalismo cai junto.",
+    title: "Decisões no escuro, sem olhar concorrentes",
+    body: "Sem radar de concorrentes nem leitura de performance, cada semana recomeça no improviso, repetindo formatos que já saturaram.",
   },
   {
-    title: "Conteúdo bom, mas não citável",
-    body: "Texto sem fato direto, sem fonte e sem dado verificável não é aproveitado por buscadores nem por assistentes de IA.",
+    title: "Risco publicitário e baixa visibilidade no Google e em IAs",
+    body: "Promessas sem revisão CONAR expõem a marca, enquanto textos sem estrutura GEO ficam invisíveis no Google e nas respostas do ChatGPT.",
   },
 ];
 
 const STEPS = [
   {
     step: "01",
-    title: "Diagnóstico em 90 segundos",
-    body: "Você cola a URL do site ou descreve o produto. A Kitefy extrai tom de voz, público, cores e fatos verificáveis — sem formulário de 20 campos.",
+    title: "Estruturação da Marca e DNA do Público",
+    body: "Informe seu site ou rede social e envie a logomarca. A Kitefy extrai paleta, tom de voz, personas (JTBD), estudo de consumo e dados demográficos reais (IBGE).",
   },
   {
     step: "02",
-    title: "Pacote e primeiro ativo no mesmo dia",
-    body: "Escolha Start, Lift ou Flow. O estúdio cruza seu contexto com pesquisa de busca e seleciona o ângulo por Thompson Sampling, não por opinião.",
+    title: "Biblioteca Científica + Radar de Concorrentes",
+    body: "Nossa IA cruza frameworks consagrados de Marketing de Alto Nível com o DNA da sua marca e ideias extraídas do Radar de Concorrentes para gerar peças sob medida.",
   },
   {
     step: "03",
-    title: "Revisão rápida e exportação",
-    body: "Você revisa em uma tela, escolhe o gancho principal e salva na biblioteca. Sai em PNG, texto limpo, HTML, JSON-LD ou ZIP — e a publicação continua sendo sua.",
+    title: "Revisão CONAR, Agenda e Exportação",
+    body: "Todo texto passa por revisão publicitária CONAR com reescrita em 1 clique. Baixe em PNG, texto limpo, HTML, JSON-LD ou ZIP e organize na grade semanal.",
   },
 ];
 
 const DELIVERABLES = [
   {
     icon: Layers,
-    title: "Carrossel pronto",
-    detail: "7 a 10 slides, título ≤ 8 palavras, corpo ≤ 35 palavras.",
+    title: "Posts e Carrosséis com IA",
+    detail: "Carrosséis tipográficos ou ilustrados com IA (5 ou 7 slides) e diagramação exclusiva na identidade da marca.",
     cost: CREDIT_COSTS.typo_carousel,
   },
   {
     icon: Sparkles,
-    title: "Roteiro gravável",
-    detail: "3 ganchos A/B, corpo de 30 a 60s e guia de cena — para gravação humana.",
+    title: "Roteiros de Vídeo Curto",
+    detail: "3 ganchos A/B, roteiro falado natural (30–60s) e guia de cena para gravação humana.",
     cost: CREDIT_COSTS.short_script_kit,
   },
   {
     icon: Search,
-    title: "Artigo GEO",
-    detail: "1.500 a 2.500 palavras em fato direto, contexto e dado verificável.",
+    title: "Artigos GEO para Blogs",
+    detail: "1.500 a 2.500 palavras estruturadas para ranquear no Google e ser citado por IAs, com Schema.org.",
     cost: CREDIT_COSTS.geo_article,
   },
   {
     icon: FileJson,
-    title: "Landing page",
-    detail: "Pack completo de copy: hero, problema, solução, prova e FAQ.",
+    title: "Textos para Páginas de Vendas",
+    detail: "Copy completa de alta conversão: hero, problema, mecanismo único, provas, FAQ e CTA.",
     cost: CREDIT_COSTS.lp_copy,
   },
 ];
@@ -107,45 +107,45 @@ const DELIVERABLES = [
 const WHY = [
   {
     icon: BarChart3,
-    title: "O ângulo é escolhido por dado",
-    body: "Cada telemetria registrada atualiza o Thompson Sampling. O que retém atenção na sua marca ganha prioridade; o que ainda não foi testado entra obrigatoriamente em exploração.",
+    title: "Biblioteca Científica de Marketing + Cruzamento de Dados",
+    body: "Nada de prompts genéricos: cada conteúdo cruza psicologia da persuasão, DNA estratégico da marca, personas, dados demográficos IBGE e telemetria real (incluindo GA4).",
   },
   {
     icon: Gauge,
-    title: "Padrão de marca, não genérico",
-    body: "Tom de voz, cores e fatos verificáveis entram em todo ativo. O resultado parece escrito por uma pessoa que conhece o negócio — porque o contexto vem dele.",
+    title: "Radar de Concorrentes e Revisão CONAR",
+    body: "Monitore sites e redes sociais de concorrentes para extrair ideias em 1 clique — e publique com tranquilidade graças à revisão automática CONAR com reescrita sugerida.",
   },
   {
     icon: Lock,
-    title: "Entrega, não publicação",
-    body: "Nenhuma conexão com Instagram, TikTok, LinkedIn, X ou YouTube. Nenhum token social guardado. Você recebe o arquivo e decide onde publicar.",
+    title: "Identidade preservada e controle total",
+    body: "Sem conectar redes sociais nem guardar senhas. Você gera, revisa, agenda na grade semanal e exporta tudo pronto em PNG, ZIP, HTML e JSON-LD.",
   },
 ];
 
 const FAQ = [
   {
     q: "O que exatamente eu recebo em cada pacote?",
-    a: "Cada pacote entrega ativos exportáveis: roteiros com 3 ganchos A/B, carrosséis de 7 a 10 slides, criativos com imagem editorial, artigos GEO com JSON-LD e packs de landing page. O consumo é por crédito (1 por roteiro ou carrossel, 2 por post único, 3 por carrossel ilustrado ou LP, 5 por artigo GEO), com estorno automático em caso de erro técnico.",
+    a: "Estruturação de marca e personas com dados demográficos IBGE, Radar de Concorrentes, revisão CONAR automática, agendamentos e geração de roteiros (1 cr), carrosséis tipográficos (1 cr), posts únicos (2 cr), páginas de vendas (3 cr), carrosséis ilustrados com IA (4 ou 6 cr) e artigos GEO com Schema.org (5 cr).",
+  },
+  {
+    q: "Como funciona a integração com Google Analytics 4 (GA4)?",
+    a: "Nos pacotes Lift e Flow, você recebe um endpoint de webhook GA4 pronto na página de Resultados (Telemetria) para enviar métricas reais de artigos e páginas direto para o motor de aprendizado da Kitefy.",
   },
   {
     q: "Preciso conectar minhas redes sociais?",
-    a: "Não. A Kitefy não usa OAuth social, não publica em seu nome e não armazena tokens de plataforma. Todo conteúdo é entregue para cópia em 1 clique, download em PNG/JPEG, Markdown, HTML, JSON-LD ou webhook para o CMS da sua empresa.",
-  },
-  {
-    q: "Existe avatar falante, locução ou clonagem de voz?",
-    a: "Não. Os roteiros são feitos para gravação humana, com a sua voz. Não há TTS, lip-sync, avatar digital nem coleta de dados biométricos faciais ou vocais.",
+    a: "Não. A Kitefy não usa OAuth social, não publica em seu nome e não armazena senhas de plataformas. Todo conteúdo é entregue para cópia em 1 clique, download em PNG, ZIP, HTML e JSON-LD.",
   },
   {
     q: "Como funciona o consumo de créditos e estorno?",
-    a: "Os créditos são debitados no momento da geração conforme a tabela de cada formato. Caso ocorra qualquer erro técnico na API ou no pipeline sem entrega do conteúdo, o sistema estorna os créditos 100% automaticamente na hora.",
+    a: "Os créditos são debitados na geração conforme a tabela de cada formato. Caso ocorra qualquer erro técnico na API ou no pipeline sem entrega do conteúdo, o sistema estorna os créditos 100% automaticamente na hora.",
   },
   {
     q: "Meus dados são usados para treinar modelos?",
-    a: "Não. O conteúdo é gerado apenas para a sua marca e não é usado para treinar modelos. Você pode exportar tudo em JSON e solicitar exclusão definitiva na área de privacidade, com remoção de arquivos e histórico do agente.",
+    a: "Não. O conteúdo é gerado exclusivamente para a sua marca e nunca é usado para treinar modelos. Você pode exportar ou excluir seus dados definitivamente a qualquer momento.",
   },
   {
     q: "Dá para começar pequeno?",
-    a: "Sim. O pacote Start foi desenhado para validar o orgânico com risco baixo: 1 marca, 120 créditos por mês e o primeiro ativo no mesmo dia. Você sobe para Lift ou Flow quando o processo já estiver rodando.",
+    a: "Sim. O pacote Start (1 marca, 120 créditos/mês) permite estruturar sua marca e gerar os primeiros ativos no mesmo dia. Quando quiser escalar com Radar ampliado e integração GA4, basta migrar para Lift ou Flow.",
   },
 ];
 
@@ -161,16 +161,16 @@ const faqSchema = {
 
 export default function KitefyLandingPage() {
   return (
-    <div data-surface="kitefy-light" className="min-h-dvh bg-background">
+    <div data-surface="kitefy-light" className="min-h-dvh overflow-x-hidden bg-background">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
       {/* ---------------- Header (60% claro) ---------------- */}
       <header className="sticky top-0 z-30 border-b border-brand-border bg-brand-canvas/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-5">
+        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-5">
           <Link href="/" aria-label="Kitefy — página inicial" className="shrink-0">
-            <KitefyLogo height={34} priority />
+            <KitefyLogo height={51} priority />
           </Link>
 
           <nav aria-label="Navegação principal" className="hidden items-center gap-7 text-sm text-brand-navy-soft md:flex">
@@ -211,21 +211,22 @@ export default function KitefyLandingPage() {
             <div>
               <p className="kitefy-eyebrow">
                 <span aria-hidden="true" className="inline-block size-1.5 rounded-full bg-brand-signal" />
-                Pacotes ágeis de marketing orgânico
+                IA + Biblioteca Científica de Marketing de Alto Nível
               </p>
 
               <h1
                 id="hero-title"
-                className="mt-5 text-balance text-[2.5rem] font-semibold leading-[1.06] tracking-[-0.03em] text-brand-navy sm:text-[3.25rem] lg:text-[3.75rem]"
+                className="mt-5 text-balance text-[2.25rem] font-semibold leading-[1.08] tracking-[-0.03em] text-brand-navy sm:text-[3.25rem] lg:text-[3.75rem]"
               >
-                Destrave o marketing orgânico da sua marca e{" "}
-                <span className="text-brand-signal">voe alto</span>.
+                Transforme os dados da sua marca em conteúdo que{" "}
+                <span className="text-brand-signal">atrai e converte</span>.
               </h1>
 
               <p className="mt-5 max-w-xl text-pretty text-[1.0625rem] leading-relaxed text-brand-navy-soft">
-                A Kitefy transforma a sua marca em um fluxo de roteiros, carrosséis e artigos que
-                buscadores e assistentes de IA conseguem citar. Você escolhe o pacote, aprova o ativo
-                e exporta. Sem agência no meio do caminho e sem rede social conectada.
+                A Kitefy cruza o DNA estratégico da sua marca, personas, dados demográficos reais (IBGE)
+                e o Radar de Concorrentes com uma biblioteca científica de publicidade para criar posts,
+                carrosséis ilustrados com IA, artigos GEO para blogs, roteiros e páginas de vendas — tudo
+                revisado pelas normas do CONAR.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

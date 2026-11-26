@@ -109,9 +109,17 @@ export function buildContentMarkdown(
   return lines.join("\n");
 }
 
+function formatHashtagLine(tags: string[]): string {
+  return tags
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .map((tag) => (tag.startsWith("#") ? tag : `#${tag.replace(/^#+/, "")}`))
+    .join(" ");
+}
+
 /**
- * Formatação limpa e editorial (sem `#`, `**`, `---`, crases nem rodapé técnico)
- * pronta para copiar e colar direto no Instagram, WhatsApp, LinkedIn ou blog.
+ * Formatação limpa e editorial (sem `#`, `**`, `---`, crases nem rodapé técnico no corpo)
+ * preservando o símbolo `#` nas hashtags finais — pronta para copiar e colar.
  */
 export function buildCleanCopyText(payload: ContentPayload, title: string): string {
   const cleanTitle = title.trim();
@@ -133,7 +141,7 @@ export function buildCleanCopyText(payload: ContentPayload, title: string): stri
       }
       lines.push("", "LEGENDA PRONTA PARA POSTAR", "", payload.caption.seo);
       if (payload.caption.hashtags.length > 0) {
-        lines.push("", payload.caption.hashtags.join(" "));
+        lines.push("", formatHashtagLine(payload.caption.hashtags));
       }
       break;
     }
@@ -144,7 +152,7 @@ export function buildCleanCopyText(payload: ContentPayload, title: string): stri
       });
       lines.push("LEGENDA PRONTA PARA POSTAR", "", payload.caption.seo);
       if (payload.caption.hashtags.length > 0) {
-        lines.push("", payload.caption.hashtags.join(" "));
+        lines.push("", formatHashtagLine(payload.caption.hashtags));
       }
       break;
     }
@@ -152,7 +160,7 @@ export function buildCleanCopyText(payload: ContentPayload, title: string): stri
       lines.push(payload.headline, payload.subheadline, "", payload.body, "", `Chamada para ação: ${payload.cta}`);
       lines.push("", "LEGENDA PRONTA PARA POSTAR", "", payload.caption.seo);
       if (payload.caption.hashtags.length > 0) {
-        lines.push("", payload.caption.hashtags.join(" "));
+        lines.push("", formatHashtagLine(payload.caption.hashtags));
       }
       break;
     }

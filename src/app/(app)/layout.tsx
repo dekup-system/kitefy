@@ -69,11 +69,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     tenant.credit_balance <= Math.max(5, Math.round(plan.monthlyCredits * 0.15));
 
   return (
-    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[248px_1fr]">
+    <div className="grid min-h-dvh grid-cols-1 overflow-x-hidden lg:grid-cols-[248px_1fr]">
       <aside className="hidden flex-col gap-5 border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground lg:flex">
         <div className="flex items-center justify-between gap-2 px-1">
           <Link href="/app" aria-label="Kitefy — início">
-            <KitefyLogo variant="onDark" height={30} />
+            <KitefyLogo variant="onDark" height={45} />
           </Link>
         </div>
 
@@ -127,9 +127,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           />
 
           <a
-            href="mailto:suporte@m3dmultidev.com.br"
+            href="https://www.m3dmultidev.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-2.5 rounded-xl border border-sidebar-border/80 bg-black/25 px-2.5 py-2 transition-colors hover:border-white/25 hover:bg-black/40"
-            title="Falar com o suporte M3D Multidev"
+            title="Visitar M3D Multidev"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -148,10 +150,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-col bg-background">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-card/90 px-4 backdrop-blur lg:px-8">
-          <Link href="/app" aria-label="Kitefy — início" className="inline-flex lg:hidden">
-            <KitefyLogoThemeAware height={28} />
+      <div className="flex min-w-0 flex-col overflow-x-hidden bg-background">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-border bg-card/90 px-3 backdrop-blur sm:gap-3 sm:px-4 lg:px-8">
+          <Link href="/app" aria-label="Kitefy — início" className="inline-flex shrink-0 lg:hidden">
+            <KitefyLogoThemeAware height={42} />
           </Link>
 
           <TopbarSectionTitle />
@@ -190,9 +192,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 lg:px-8 lg:py-8">{children}</main>
 
-        <MobileBottomNav />
+        <MobileBottomNav isAdmin={session.isPlatformAdmin} />
       </div>
     </div>
   );

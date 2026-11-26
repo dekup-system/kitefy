@@ -292,35 +292,94 @@ export function NewRunForm({
 
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium">1. Qual é o seu objetivo hoje?</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {ASSET_OPTIONS.map((option) => {
-            const active = assetType === option.type;
-            return (
-              <button
-                key={option.type}
-                type="button"
-                onClick={() => setAssetType(option.type)}
-                aria-pressed={active}
-                className={`flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors ${
-                  active ? "border-foreground/40 bg-accent" : "border-border bg-card hover:bg-accent/40"
-                }`}
-              >
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {option.intent}
-                </span>
-                <span className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    <option.icon className="size-4 shrink-0" aria-hidden="true" />
-                    {option.label}
-                  </span>
-                  <Badge variant="outline" className="font-mono text-[11px]">
-                    {option.type === "hybrid_carousel" ? "4–6 cr" : `${CREDIT_COSTS[option.type]} cr`} · {option.eta}
-                  </Badge>
-                </span>
-                <span className="text-xs text-muted-foreground">{option.description}</span>
-              </button>
-            );
-          })}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {/* Coluna 1: Geração de Imagens (fundo laranja claro) */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-orange-800 dark:text-orange-300">
+              Criação visual (imagens e carrosséis)
+            </p>
+            <div className="flex flex-col gap-2">
+              {ASSET_OPTIONS.filter(
+                (o) =>
+                  o.type === "typo_carousel" ||
+                  o.type === "hybrid_carousel" ||
+                  o.type === "single_creative",
+              ).map((option) => {
+                const active = assetType === option.type;
+                return (
+                  <button
+                    key={option.type}
+                    type="button"
+                    onClick={() => setAssetType(option.type)}
+                    aria-pressed={active}
+                    className={`flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors ${
+                      active
+                        ? "border-orange-500 bg-orange-100/90 ring-1 ring-orange-400 dark:border-orange-500 dark:bg-orange-950/50"
+                        : "border-orange-200/90 bg-orange-50/75 hover:bg-orange-100/70 dark:border-orange-900/50 dark:bg-orange-950/25 dark:hover:bg-orange-950/40"
+                    }`}
+                  >
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-orange-900/80 dark:text-orange-300/90">
+                      {option.intent}
+                    </span>
+                    <span className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <option.icon className="size-4 shrink-0 text-orange-700 dark:text-orange-400" aria-hidden="true" />
+                        {option.label}
+                      </span>
+                      <Badge variant="outline" className="border-orange-300 bg-white/80 font-mono text-[11px] dark:border-orange-800 dark:bg-background/60">
+                        {option.type === "hybrid_carousel" ? "4–6 cr" : `${CREDIT_COSTS[option.type]} cr`} · {option.eta}
+                      </Badge>
+                    </span>
+                    <span className="text-xs text-muted-foreground">{option.description}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Coluna 2: Geração de Textos (fundo azul marinho claro) */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-950 dark:text-indigo-300">
+              Criação textual (roteiros, blog e vendas)
+            </p>
+            <div className="flex flex-col gap-2">
+              {ASSET_OPTIONS.filter(
+                (o) =>
+                  o.type === "short_script_kit" ||
+                  o.type === "geo_article" ||
+                  o.type === "lp_copy",
+              ).map((option) => {
+                const active = assetType === option.type;
+                return (
+                  <button
+                    key={option.type}
+                    type="button"
+                    onClick={() => setAssetType(option.type)}
+                    aria-pressed={active}
+                    className={`flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors ${
+                      active
+                        ? "border-indigo-700 bg-indigo-100/90 ring-1 ring-indigo-500 dark:border-indigo-500 dark:bg-indigo-950/55"
+                        : "border-indigo-200/90 bg-indigo-50/75 hover:bg-indigo-100/70 dark:border-indigo-900/50 dark:bg-indigo-950/25 dark:hover:bg-indigo-950/40"
+                    }`}
+                  >
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-indigo-950/80 dark:text-indigo-300/90">
+                      {option.intent}
+                    </span>
+                    <span className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <option.icon className="size-4 shrink-0 text-indigo-900 dark:text-indigo-400" aria-hidden="true" />
+                        {option.label}
+                      </span>
+                      <Badge variant="outline" className="border-indigo-300 bg-white/80 font-mono text-[11px] dark:border-indigo-800 dark:bg-background/60">
+                        {CREDIT_COSTS[option.type]} cr · {option.eta}
+                      </Badge>
+                    </span>
+                    <span className="text-xs text-muted-foreground">{option.description}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </fieldset>
 
@@ -462,7 +521,7 @@ export function NewRunForm({
         </Field>
       </FieldGroup>
 
-      <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
+      <div className="flex items-start justify-between gap-4 rounded-lg border border-orange-200/90 bg-orange-50/75 p-3.5 dark:border-orange-900/50 dark:bg-orange-950/25">
         <div className="space-y-0.5">
           <Label htmlFor="research" className="text-sm font-medium">
             Incluir dúvidas reais do Google sobre este assunto

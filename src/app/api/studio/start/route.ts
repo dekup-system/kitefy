@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import { startStudioRun } from "@/lib/agent/runner";
+import { resumeStudioRun, startStudioRun } from "@/lib/agent/runner";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { totalRunCreditCost } from "@/lib/pricing";
@@ -198,11 +198,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Auto-salva imediatamente na Biblioteca com os PNGs recém-renderizados (incluindo
+    // ilustrações IA), já que o débito atômico ocorreu no início ("gerou, cobrou").
+    let finalRun = run;
+    if (run.status === "awaiting_approval" && run.view.draft) {
+      try {
+        finalRun = await resumeStudioRun({
+          threadId,
+          decision: {
+            approved: true,
+            selected_hook_index: 0,
+          },
+        });
+      } catch (persistErr) {
+        log.warn("Falha ao auto-persistir ativo após geração (mantido no checkpointer)", {
+          threadId,
+          message: persistErr instanceof Error ? persistErr.message : String(persistErr),
+        });
+      }
+    }
+
     return NextResponse.json({
       threadId,
-      status: run.status,
-      view: run.view,
-      interrupt: run.interrupt,
+      status: finalRun.status,
+      view: finalRun.view,
+      interrupt: finalRun.interrupt,
       creditsCharged: cost,
       mockMode: getServerEnv().LLM_PROVIDER_MODE === "mock",
     });

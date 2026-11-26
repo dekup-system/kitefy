@@ -535,7 +535,8 @@ async function persistApprovedAsset(input: PersistInput): Promise<string> {
         );
       }
 
-      // Só debita aqui se o run for legado (não debitado na geração em /api/studio/start).
+      // Só debita aqui se o run for legado (não debitado na geração em /api/studio/start)
+      // e se o custo for > 0 (contas admin têm créditos ilimitados).
       const alreadyDebited = await client.query<{ id: string }>(
         `select id from public.credit_ledger
           where tenant_id = $1 and reference_id = $2 and delta < 0
@@ -543,7 +544,7 @@ async function persistApprovedAsset(input: PersistInput): Promise<string> {
         [input.tenantId, input.threadId],
       );
 
-      if (alreadyDebited.rows.length === 0) {
+      if (input.credits > 0 && alreadyDebited.rows.length === 0) {
         await client.query(`select public.consume_credits($1,$2,$3,$4)`, [
           input.tenantId,
           -input.credits,

@@ -6,28 +6,6 @@ import { LoginForm } from "./login-form";
 import { KitefyLogo } from "@/components/brand/kitefy-logo";
 import { getSessionContext } from "@/lib/supabase/server";
 
-/**
- * O botão de Google só aparece se o provedor estiver habilitado no projeto
- * Supabase (Authentication > Providers). Sem isso, o CTA levaria a um erro.
- */
-async function isGoogleEnabled(): Promise<boolean> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) return false;
-
-  try {
-    const response = await fetch(`${url}/auth/v1/settings`, {
-      headers: { apikey: anon, Authorization: `Bearer ${anon}` },
-      next: { revalidate: 300 },
-    });
-    if (!response.ok) return false;
-    const settings = (await response.json()) as { external?: { google?: boolean } };
-    return Boolean(settings.external?.google);
-  } catch {
-    return false;
-  }
-}
-
 export const metadata: Metadata = {
   title: "Entrar",
   description: "Acesse o estúdio orgânico e GEO da sua marca.",
@@ -35,8 +13,8 @@ export const metadata: Metadata = {
 
 const HIGHLIGHTS = [
   { icon: Zap, text: "Primeiro ativo em menos de 90 segundos, sem tour bloqueante." },
-  { icon: CheckCircle2, text: "Roteiros, carrosséis e artigos GEO com padrão de marca." },
-  { icon: ShieldCheck, text: "Sem OAuth social, sem avatar, sem narração sintética." },
+  { icon: CheckCircle2, text: "Roteiros, carrosséis ilustrados com IA e artigos GEO com padrão de marca." },
+  { icon: ShieldCheck, text: "Revisão CONAR automática, sem conectar redes sociais." },
 ];
 
 export default async function LoginPage({
@@ -49,14 +27,13 @@ export default async function LoginPage({
 
   const params = await searchParams;
   const error = params.error ? decodeURIComponent(params.error) : undefined;
-  const googleEnabled = await isGoogleEnabled();
   const next = params.next ?? "/app";
 
   return (
     <div data-surface="kitefy-light" className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
       <div className="hidden flex-col justify-between border-r border-border bg-muted/30 p-12 lg:flex">
         <Link href="/" aria-label="Kitefy — página inicial">
-          <KitefyLogo height={36} />
+          <KitefyLogo height={54} />
         </Link>
 
         <div className="max-w-md space-y-8">
@@ -89,15 +66,15 @@ export default async function LoginPage({
         <div className="w-full max-w-sm space-y-8">
           <div className="space-y-2 text-center lg:text-left">
             <Link href="/" aria-label="Kitefy — página inicial" className="inline-flex lg:hidden">
-              <KitefyLogo height={36} />
+              <KitefyLogo height={54} />
             </Link>
             <h2 className="text-2xl font-semibold tracking-tight">Entrar no estúdio</h2>
             <p className="text-sm text-muted-foreground">
-              Um campo de e-mail e uma senha. O resto a gente resolve.
+              Informe seu e-mail e senha para acessar sua conta.
             </p>
           </div>
 
-          <LoginForm next={next} oauthError={error} googleEnabled={googleEnabled} />
+          <LoginForm next={next} oauthError={error} />
 
           <p className="text-center text-xs text-muted-foreground">
             Ainda não conhece?{" "}

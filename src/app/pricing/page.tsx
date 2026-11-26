@@ -37,9 +37,9 @@ export default function PricingPage() {
   return (
     <div data-surface="kitefy-light" className="min-h-dvh bg-background">
       <header className="border-b border-brand-border bg-brand-canvas">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
+        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-4 px-5">
           <Link href="/" aria-label="Kitefy — página inicial">
-            <KitefyLogo height={36} />
+            <KitefyLogo height={54} />
           </Link>
           <Link
             href="/"

@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, CheckCircle2, Lock, Webhook } from "lucide-react";
 import { TelemetryForms } from "./telemetry-forms";
 import { TelemetryCharts } from "./telemetry-charts";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CopyButton } from "@/components/ui/copy-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,8 +20,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
+import { PLANS } from "@/lib/pricing";
 import { formatDateTimeBR, formatPercent } from "@/lib/utils";
-import type { BanditArmStatRow, PerformanceTelemetryRow } from "@/types/domain";
+import type { BanditArmStatRow, PerformanceTelemetryRow, PlanTier } from "@/types/domain";
 
 export const metadata: Metadata = { title: "Resultados" };
 
@@ -28,7 +32,12 @@ export default async function TelemetryPage() {
 
   const supabase = await createSupabaseServerClient();
 
-  const [brands, assets, rows, arms] = await Promise.all([
+  const [tenantQuery, brands, assets, rows, arms] = await Promise.all([
+    supabase
+      .from("tenants")
+      .select("plan_tier")
+      .eq("id", session.tenantId)
+      .single<{ plan_tier: PlanTier }>(),
     supabase
       .from("brand_profiles")
       .select("id, brand_name")
@@ -71,6 +80,27 @@ export default async function TelemetryPage() {
     | "recorded_at"
   >[];
   const armRows = (arms.data ?? []) as Pick<BanditArmStatRow, "arm_key" | "alpha" | "beta" | "pulls">[];
+  const planTier: PlanTier = tenantQuery.data?.plan_tier ?? "essential";
+  const ga4Included = session.isPlatformAdmin || PLANS[planTier].includes.ga4Webhook;
+  const ga4Endpoint = "https://www.kitefy.com.br/api/webhooks/ga4";
+  const firstBrandId = brandOptions[0]?.id ?? "<BRAND_ID>";
+  const ga4SamplePayload = JSON.stringify(
+    {
+      tenantId: session.tenantId,
+      brandId: firstBrandId,
+      events: [
+        {
+          channel_label: "blog-geo",
+          impressions: 1200,
+          views_3s: 680,
+          saves_or_clicks: 94,
+          ai_citations_count: 3,
+        },
+      ],
+    },
+    null,
+    2,
+  );
 
   return (
     <div className="space-y-6">
@@ -113,18 +143,111 @@ export default async function TelemetryPage() {
         <>
           <TelemetryCharts rows={telemetryRows} arms={armRows} />
           <Tabs defaultValue="registrar" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex h-auto flex-wrap gap-1">
             <TabsTrigger value="registrar">Registrar</TabsTrigger>
+            <TabsTrigger value="ga4">Integração GA4</TabsTrigger>
             <TabsTrigger value="historico">Histórico</TabsTrigger>
             <TabsTrigger value="aprendizado">Aprendizado</TabsTrigger>
           </TabsList>
 
           <TabsContent value="registrar">
             <TelemetryForms brands={brandOptions} assets={assetOptions} />
-            <p className="mt-3 text-xs text-muted-foreground">
-              Integração GA4 disponível nos pacotes Lift e Flow via{" "}
-              <code className="font-mono">/api/webhooks/ga4</code> usando a chave da sua conta.
-            </p>
+          </TabsContent>
+
+          <TabsContent value="ga4" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Webhook className="size-4 text-brand-signal" aria-hidden="true" />
+                    Integração automática com Google Analytics 4 (GA4)
+                  </CardTitle>
+                  <Badge variant={ga4Included ? "success" : "warning"}>
+                    {ga4Included ? "Liberada no seu pacote" : "Disponível no Lift e Flow"}
+                  </Badge>
+                </div>
+                <CardDescription>
+                  Envie métricas reais de artigos GEO e páginas de vendas diretamente do GA4 (via Google Tag Manager, Make ou n8n) para alimentar o aprendizado automático da Kitefy.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {ga4Included ? (
+                  <>
+                    <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 text-xs text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-200">
+                      <CheckCircle2 className="size-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                      <span>
+                        Sua conta possui acesso completo ao webhook GA4. Copie os identificadores abaixo para conectar sua automação.
+                      </span>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">Endpoint POST</span>
+                          <CopyButton value={ga4Endpoint} label="Copiar URL" size="sm" />
+                        </div>
+                        <p className="break-all font-mono text-xs text-foreground">{ga4Endpoint}</p>
+                      </div>
+
+                      <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">ID da Conta (tenantId)</span>
+                          <CopyButton value={session.tenantId} label="Copiar ID" size="sm" />
+                        </div>
+                        <p className="break-all font-mono text-xs text-foreground">{session.tenantId}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+                      <p className="text-xs font-medium text-foreground">IDs das suas marcas (brandId)</p>
+                      <div className="space-y-2">
+                        {brandOptions.map((brand) => (
+                          <div
+                            key={brand.id}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs"
+                          >
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground">{brand.brand_name}</p>
+                              <p className="break-all font-mono text-[11px] text-muted-foreground">{brand.id}</p>
+                            </div>
+                            <CopyButton value={brand.id} label="Copiar brandId" size="sm" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-medium text-foreground">
+                          Exemplo de payload JSON (Header: <code className="font-mono">x-ga4-secret</code>)
+                        </p>
+                        <CopyButton value={ga4SamplePayload} label="Copiar JSON" size="sm" />
+                      </div>
+                      <pre className="overflow-x-auto rounded-lg border border-border bg-muted/40 p-3 font-mono text-xs text-foreground">
+                        {ga4SamplePayload}
+                      </pre>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 p-4 text-sm dark:border-amber-900/50 dark:bg-amber-950/20">
+                    <div className="flex items-start gap-2.5">
+                      <Lock className="mt-0.5 size-4 shrink-0 text-amber-700" aria-hidden="true" />
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">
+                          Recurso exclusivo dos pacotes Kitefy Lift e Kitefy Flow
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Faça upgrade para receber automaticamente impressões, retenção e citações de IA do Google Analytics 4 direto na sua telemetria.
+                        </p>
+                      </div>
+                    </div>
+                    <Button asChild size="sm">
+                      <Link href="/settings/billing">Conhecer pacotes Lift e Flow</Link>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="historico">
@@ -135,7 +258,7 @@ export default async function TelemetryPage() {
                 description="Registre manualmente ou importe um CSV para começar o aprendizado."
               />
             ) : (
-              <Card className="overflow-hidden">
+              <Card className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>

@@ -74,7 +74,10 @@ function extractReadyCaption(payload: ContentPayload | null): {
     payload.kind === "single_creative"
   ) {
     const captionOnly = payload.caption.seo.trim();
-    const hashtags = payload.caption.hashtags;
+    const hashtags = payload.caption.hashtags
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .map((tag) => (tag.startsWith("#") ? tag : `#${tag.replace(/^#+/, "")}`));
     const hashtagLine = hashtags.join(" ");
     const fullText = hashtagLine ? `${captionOnly}\n\n${hashtagLine}` : captionOnly;
     return {
