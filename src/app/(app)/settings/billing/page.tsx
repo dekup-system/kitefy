@@ -12,6 +12,7 @@ import { PLANS, PLAN_ORDER, formatBRL } from "@/lib/pricing";
 import { packageDisplayName } from "@/lib/ui/workspace-insights";
 import { nextDaytimeBillingWindow } from "@/lib/billing/subscription-sync";
 import { subscribeToPlanAction } from "@/lib/billing/actions";
+import { TopUpPacksCard } from "./topup-packs-card";
 import { Button } from "@/components/ui/button";
 import { formatDateTimeBR } from "@/lib/utils";
 import type { MpSubscriptionRow } from "@/types/domain";
@@ -168,21 +169,30 @@ export default async function BillingPage() {
         })}
       </div>
 
+      <TopUpPacksCard mpConfigured={Boolean(env.MP_ACCESS_TOKEN)} />
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm">
             <ShieldCheck className="size-4 text-brand-signal" aria-hidden="true" />
-            Pagamento transparente e protegido
+            Política de créditos, pagamento e cancelamento
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>
-            Pagamentos processados pelo Mercado Pago com proteção automática contra cobrança
-            duplicada. Os créditos entram na sua conta assim que a confirmação é recebida.
+            <strong>Liberação após pagamento:</strong> tanto os créditos mensais do pacote quanto as
+            recargas avulsas (+50 ou +100 créditos) são creditados automaticamente somente após a
+            confirmação de pagamento aprovado pelo Mercado Pago.
           </p>
           <p>
-            Renovações recorrentes acontecem em horário comercial (08h–18h BRT) para evitar
-            bloqueios de limite noturno em contas pessoa física.
+            <strong>Cancelamento sem fidelidade e sem estorno de saldo não usado:</strong> você pode
+            cancelar sua assinatura a qualquer momento para interromper a próxima renovação. Valores
+            já pagos e créditos não utilizados no ciclo vigente não são reembolsáveis.
+          </p>
+          <p>
+            <strong>Garantia técnica:</strong> caso ocorra qualquer erro técnico na API ou falha de
+            geração sem entrega do ativo, os créditos daquela execução são estornados 100%
+            automaticamente para o seu saldo.
           </p>
         </CardContent>
       </Card>

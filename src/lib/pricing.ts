@@ -54,19 +54,49 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
     name: "Kitefy Flow",
     tagline: "Para operar vários clientes sem perder padrão.",
     priceCents: 29990,
-    monthlyCredits: 1000,
+    monthlyCredits: 800,
     maxBrands: 10,
     includes: { csvImport: true, ga4Webhook: true, approvalLinks: true },
     features: [
-      "10 marcas e 1.000 créditos/mês",
-      "Links externos de aprovação (senha + expiração)",
-      "Pack completo de Landing Page",
+      "10 marcas e 800 créditos/mês",
+      "Integração automática com Google Analytics 4 (GA4)",
+      "Pack completo de Landing Page e Agenda semanal",
       "Prioridade de fila nas gerações longas",
     ],
   },
 };
 
 export const PLAN_ORDER: PlanTier[] = ["essential", "pro", "agency"];
+
+/** Pacotes extras de créditos avulsos (Pix) para quando o saldo acabar antes da renovação. */
+export type CreditTopUpPackId = "extra_50" | "extra_100";
+
+export interface CreditTopUpPack {
+  id: CreditTopUpPackId;
+  name: string;
+  credits: number;
+  priceCents: number;
+  tagline: string;
+}
+
+export const CREDIT_TOPUP_PACKS: Record<CreditTopUpPackId, CreditTopUpPack> = {
+  extra_50: {
+    id: "extra_50",
+    name: "Pacote Extra +50 créditos",
+    credits: 50,
+    priceCents: 3000,
+    tagline: "Recarga rápida para continuar produzindo sem esperar a renovação.",
+  },
+  extra_100: {
+    id: "extra_100",
+    name: "Pacote Extra +100 créditos",
+    credits: 100,
+    priceCents: 5000,
+    tagline: "Melhor custo por crédito avulso (R$ 0,50/crédito) para picos de campanha.",
+  },
+};
+
+export const CREDIT_TOPUP_ORDER: CreditTopUpPackId[] = ["extra_50", "extra_100"];
 
 /** Preset do Carrossel Ilustrado (quantidade de slides e imagens geradas por IA). */
 export type HybridCarouselPreset = "5_slides_2_ai" | "7_slides_3_ai";

@@ -3,7 +3,9 @@ import type { QueryResultRow } from "pg";
 import { TestDatabase, createUserWithTenant } from "../db/harness";
 import {
   applyPaymentCredit,
+  applyTopUpCredit,
   grantPlanCredits,
+  TOPUP_CREDIT_REASON,
   type CreditQuery,
   type CreditStore,
 } from "@/lib/billing/credit-grants";
@@ -13,7 +15,8 @@ import {
   newIdempotencyKey,
   withIdempotency,
 } from "@/lib/billing/idempotency";
-import { PLANS } from "@/lib/pricing";
+import { CREDIT_TOPUP_PACKS, PLANS } from "@/lib/pricing";
+import { parseTopUpFromExternalReference } from "@/lib/billing/subscription-sync";
 
 /**
  * Idempotência do crédito de pagamento + memoização de curta duração.
@@ -151,6 +154,34 @@ describe("applyPaymentCredit (idempotência no banco)", () => {
     );
     expect(Number(ledger[0]?.delta)).toBe(PLANS.agency.monthlyCredits);
     expect(ledger[0]?.reason).toBe("subscription_renewal");
+  });
+
+  it("applyTopUpCredit credita pacote avulso (+50 / +100) uma única vez com idempotência e Flow tem 800 créditos", async () => {
+    expect(PLANS.agency.monthlyCredits).toBe(800);
+    expect(CREDIT_TOPUP_PACKS.extra_50).toMatchObject({ credits: 50, priceCents: 3000 });
+    expect(CREDIT_TOPUP_PACKS.extra_100).toMatchObject({ credits: 100, priceCents: 5000 });
+
+    const parsed = parseTopUpFromExternalReference(`topup:${tenantId}:extra_50:abc123`);
+    expect(parsed).toEqual({ tenantId, packId: "extra_50" });
+
+    const initialBalance = await balanceOf();
+    const paymentId = "mp-topup-50-001";
+
+    const first = await applyTopUpCredit(tenantId, paymentId, 50, store);
+    expect(first.credited).toBe(true);
+    expect(first.balance).toBe(initialBalance + 50);
+
+    const duplicate = await applyTopUpCredit(tenantId, paymentId, 50, store);
+    expect(duplicate.credited).toBe(false);
+    expect(duplicate.balance).toBe(initialBalance + 50);
+
+    const ledger = await db.asSuperuser<{ delta: number; reason: string }>(
+      "select delta, reason from public.credit_ledger where reference_id = $1",
+      [paymentId],
+    );
+    expect(ledger).toHaveLength(1);
+    expect(Number(ledger[0]?.delta)).toBe(50);
+    expect(ledger[0]?.reason).toBe(TOPUP_CREDIT_REASON);
   });
 
   it("lança quando o tenant não existe (nada é creditado)", async () => {

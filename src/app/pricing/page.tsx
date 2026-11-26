@@ -4,7 +4,13 @@ import { ArrowLeft, Check, ShieldCheck } from "lucide-react";
 import { KitefyLogo } from "@/components/brand/kitefy-logo";
 import { PackageCard } from "@/components/marketing/package-card";
 import { KITEFY_PACKAGES } from "@/lib/marketing/packages";
-import { CREDIT_COSTS, formatBRL, PLANS } from "@/lib/pricing";
+import {
+  CREDIT_COSTS,
+  CREDIT_TOPUP_ORDER,
+  CREDIT_TOPUP_PACKS,
+  formatBRL,
+  PLANS,
+} from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Pacotes e créditos — Start, Lift e Flow",
@@ -71,7 +77,35 @@ export default function PricingPage() {
           ))}
         </div>
 
-        <section aria-labelledby="creditos-title" className="mt-16">
+        <section aria-labelledby="recargas-title" className="mt-14">
+          <h2 id="recargas-title" className="text-xl font-semibold tracking-tight text-brand-navy">
+            Pacotes extras de créditos (recarga avulsa via Pix)
+          </h2>
+          <p className="mt-2 text-sm text-brand-navy-soft">
+            Acabou o saldo antes da renovação mensal? Você pode comprar pacotes extras a qualquer momento dentro da sua conta. Liberação imediata após aprovação do pagamento.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {CREDIT_TOPUP_ORDER.map((id) => {
+              const pack = CREDIT_TOPUP_PACKS[id];
+              return (
+                <div
+                  key={pack.id}
+                  className="flex items-center justify-between gap-4 rounded-xl border border-brand-border bg-white p-5"
+                >
+                  <div>
+                    <p className="font-semibold text-brand-navy">{pack.name}</p>
+                    <p className="mt-1 text-xs text-brand-navy-soft">{pack.tagline}</p>
+                  </div>
+                  <p className="shrink-0 font-mono text-xl font-semibold text-brand-navy">
+                    {formatBRL(pack.priceCents)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section aria-labelledby="creditos-title" className="mt-14">
           <h2 id="creditos-title" className="text-xl font-semibold tracking-tight text-brand-navy">
             Custo por tipo de ativo
           </h2>

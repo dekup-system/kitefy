@@ -20,12 +20,12 @@ const SECTIONS = [
     body: "Não há publicação automática em redes sociais, não há conexão via OAuth com Meta, Instagram, TikTok, LinkedIn, X ou YouTube, não há armazenamento de tokens sociais, e não há geração de avatar, vídeo falado, síntese ou clonagem de voz. A publicação e a veiculação são responsabilidade do cliente.",
   },
   {
-    title: "3. Conta e créditos",
-    body: "Cada ativo consome créditos conforme a tabela vigente no momento da geração, com estorno 100% automático em caso de falha técnica. Créditos não são convertidos em dinheiro e expiram conforme o ciclo do plano contratado.",
+    title: "3. Conta, créditos mensais e pacotes extras",
+    body: "Os créditos mensais do plano contratado (Start: 120, Lift: 360, Flow: 800) e os pacotes avulsos de recarga (+50 créditos por R$ 30,00 ou +100 créditos por R$ 50,00) são liberados exclusivamente após a confirmação de pagamento aprovado pelo Mercado Pago. Cada ativo consome créditos conforme a tabela vigente no momento da geração, com estorno 100% automático dos créditos na plataforma apenas em caso de falha técnica comprovada sem entrega do conteúdo. Créditos não são convertidos em dinheiro.",
   },
   {
-    title: "4. Assinatura e pagamento",
-    body: "A cobrança é feita em BRL pelo Mercado Pago, em assinatura mensal recorrente. A renovação é automática até o cancelamento, que pode ser solicitado a qualquer momento e passa a valer no fim do ciclo vigente.",
+    title: "4. Assinatura, pagamento e política de cancelamento",
+    body: "A cobrança é pré-paga em reais (BRL) via Mercado Pago. A renovação mensal é automática até que o cliente solicite o cancelamento, que pode ser feito a qualquer momento sem multa de fidelidade, interrompendo exclusivamente as cobranças futuras. Não há estorno financeiro de mensalidades já pagas nem reembolso proporcional caso o usuário não utilize integralmente seus créditos dentro do ciclo vigente. Os créditos do ciclo já quitado permanecem disponíveis para uso na plataforma até o encerramento do período.",
   },
   {
     title: "5. Responsabilidade editorial",

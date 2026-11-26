@@ -305,6 +305,76 @@ function assertIdempotencyKey(key: string): string {
 }
 
 /**
+ * `external_reference` dos pacotes extras de créditos: `topup:tenantId:packId:uuid`.
+ */
+export function buildTopUpExternalReference(tenantId: string, packId: string): string {
+  return `topup:${tenantId.trim()}:${packId.trim()}:${randomUUID()}`;
+}
+
+export interface TopUpPixPaymentInput {
+  tenantId: string;
+  packId: string;
+  description: string;
+  payerEmail: string;
+  amountCents: number;
+  idempotencyKey: string;
+  expiresInMinutes?: number;
+}
+
+/**
+ * Cria cobrança Pix avulsa para pacote extra de créditos (+50 ou +100).
+ * Os créditos só entram após confirmação de pagamento aprovado via webhook.
+ */
+export async function createTopUpPixPayment(input: TopUpPixPaymentInput): Promise<PixPaymentResult> {
+  const tenantId = assertNonEmpty(input.tenantId, "tenantId");
+  const packId = assertNonEmpty(input.packId, "packId");
+  const payerEmail = assertPayerEmail(input.payerEmail);
+  const amountCents = assertAmountCents(input.amountCents);
+  const idempotencyKey = assertIdempotencyKey(input.idempotencyKey);
+  const expiresInMinutes = input.expiresInMinutes ?? 30;
+
+  const externalReference = buildTopUpExternalReference(tenantId, packId);
+  const expiresAt = new Date(Date.now() + expiresInMinutes * 60_000).toISOString();
+
+  const body = {
+    transaction_amount: centsToAmount(amountCents),
+    description: input.description,
+    external_reference: externalReference,
+    notification_url: notificationUrl(),
+    payment_method_id: "pix",
+    date_of_expiration: expiresAt,
+    payer: { email: payerEmail },
+    metadata: {
+      tenant_id: tenantId,
+      topup_pack: packId,
+      source: "kitefy_credit_topup",
+    },
+  };
+
+  try {
+    const response = await new Payment(getMpClient()).create({
+      body,
+      requestOptions: { idempotencyKey },
+    });
+
+    const base = toPaymentResult(response, externalReference, amountCents);
+    const transactionData = response.point_of_interaction?.transaction_data;
+
+    return {
+      ...base,
+      qrCode: typeof transactionData?.qr_code === "string" ? transactionData.qr_code : null,
+      qrCodeBase64:
+        typeof transactionData?.qr_code_base64 === "string" ? transactionData.qr_code_base64 : null,
+      ticketUrl: typeof transactionData?.ticket_url === "string" ? transactionData.ticket_url : null,
+      expiresAt:
+        typeof response.date_of_expiration === "string" ? response.date_of_expiration : expiresAt,
+    };
+  } catch (error) {
+    throw toMercadoPagoError(error, "createTopUpPixPayment");
+  }
+}
+
+/**
  * `external_reference` dos pagamentos avulsos: `tenantId:planTier:uuid`.
  * O UUID torna a referência única por tentativa, o que permite reconciliar
  * pagamentos duplicados sem depender do id do Mercado Pago.

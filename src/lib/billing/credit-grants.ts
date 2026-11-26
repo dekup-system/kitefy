@@ -44,6 +44,8 @@ export const pgCreditStore: CreditStore = {
 
 /** Motivo registrado no ledger quando um pagamento avulso é aprovado. */
 export const PAYMENT_CREDIT_REASON = "payment_approved";
+/** Motivo registrado no ledger quando uma recarga avulsa de créditos é aprovada. */
+export const TOPUP_CREDIT_REASON = "credit_topup_approved";
 
 function assertNonEmpty(value: string, field: string): string {
   const normalized = typeof value === "string" ? value.trim() : "";
@@ -156,6 +158,64 @@ export async function applyPaymentCredit(
     const balance = granted[0]?.balance;
     if (balance === undefined) {
       throw new Error("Falha ao creditar pagamento: consume_credits não retornou saldo.");
+    }
+
+    return { credited: true, balance: Number(balance) };
+  });
+}
+
+/**
+ * Aplica créditos de pacote avulso (recarga +50 ou +100) de forma IDEMPOTENTE
+ * após confirmação de pagamento aprovado pelo Mercado Pago.
+ */
+export async function applyTopUpCredit(
+  tenantId: string,
+  paymentId: string,
+  credits: number,
+  store: CreditStore = pgCreditStore,
+): Promise<PaymentCreditResult> {
+  const normalizedTenantId = assertNonEmpty(tenantId, "tenantId");
+  const normalizedPaymentId = assertNonEmpty(paymentId, "paymentId");
+  if (!Number.isInteger(credits) || credits <= 0) {
+    throw new Error("Quantidade de créditos do pacote avulso inválida.");
+  }
+
+  return store.transaction(async (run) => {
+    const tenantRows = await run<{ credit_balance: number }>(
+      "select credit_balance from public.tenants where id = $1 for update",
+      [normalizedTenantId],
+    );
+
+    if (tenantRows.length === 0) {
+      throw new Error(`Tenant ${normalizedTenantId} não encontrado: recarga não aplicada.`);
+    }
+
+    await run("select pg_advisory_xact_lock(hashtext($1))", [`mp_payment:${normalizedPaymentId}`]);
+
+    const existing = await run<{ id: string }>(
+      "select id from public.credit_ledger where reference_id = $1 limit 1",
+      [normalizedPaymentId],
+    );
+
+    if (existing.length > 0) {
+      const current = await run<{ credit_balance: number }>(
+        "select credit_balance from public.tenants where id = $1",
+        [normalizedTenantId],
+      );
+      return {
+        credited: false,
+        balance: Number(current[0]?.credit_balance ?? tenantRows[0]?.credit_balance ?? 0),
+      };
+    }
+
+    const granted = await run<{ balance: number }>(
+      "select public.consume_credits($1, $2, $3, $4) as balance",
+      [normalizedTenantId, credits, TOPUP_CREDIT_REASON, normalizedPaymentId],
+    );
+
+    const balance = granted[0]?.balance;
+    if (balance === undefined) {
+      throw new Error("Falha ao creditar pacote avulso: consume_credits não retornou saldo.");
     }
 
     return { credited: true, balance: Number(balance) };

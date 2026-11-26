@@ -1,7 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createLogger } from "@/lib/logger";
-import { PLANS, PLAN_ORDER } from "@/lib/pricing";
-import { grantPlanCredits, pgCreditStore } from "@/lib/billing/credit-grants";
+import { CREDIT_TOPUP_PACKS, PLANS, PLAN_ORDER, type CreditTopUpPackId } from "@/lib/pricing";
 import { normalizeCouponCode } from "@/lib/billing/coupons";
 import { confirmCouponRedemption } from "@/lib/billing/coupon-store";
 import type { PaymentMethod, PlanTier } from "@/types/domain";
@@ -216,6 +215,27 @@ export function parseTenantFromExternalReference(
   return { tenantId, planHint, couponCode };
 }
 
+/**
+ * Interpreta `external_reference` de recarga avulsa de créditos:
+ * formato `topup:<tenantId>:<packId>:<uuid>`.
+ */
+export function parseTopUpFromExternalReference(
+  externalReference: string | null | undefined,
+): { tenantId: string; packId: CreditTopUpPackId } | null {
+  if (typeof externalReference !== "string") return null;
+  const trimmed = externalReference.trim();
+  if (!trimmed.startsWith("topup:")) return null;
+
+  const [, tenantPart, packPart] = trimmed.split(":");
+  const tenantId = (tenantPart ?? "").trim();
+  const packCandidate = (packPart ?? "").trim() as CreditTopUpPackId;
+
+  if (!UUID_PATTERN.test(tenantId)) return null;
+  if (!(packCandidate in CREDIT_TOPUP_PACKS)) return null;
+
+  return { tenantId, packId: packCandidate };
+}
+
 const LEGACY_PLAN_REASON_ALIASES: Record<PlanTier, string[]> = {
   essential: ["essencial"],
   pro: ["crescimento pro"],
@@ -393,42 +413,10 @@ export async function syncSubscriptionFromPreapproval(
       });
     }
 
-    // Concede os créditos do mês uma única vez por competência.
-    // A referência é determinística (assinatura + AAAA-MM), então reentregas do
-    // webhook não duplicam crédito.
-    const period = new Date().toISOString().slice(0, 7);
-    const referenceId = `subscription:${row.mp_preapproval_id}:${period}`;
-
-    try {
-      const existing = await pgCreditStore.query<{ id: string }>(
-        "select id from public.credit_ledger where tenant_id = $1 and reference_id = $2 limit 1",
-        [row.tenant_id, referenceId],
-      );
-
-      if (existing.length === 0) {
-        const balance = await grantPlanCredits(
-          row.tenant_id,
-          row.plan_tier,
-          "subscription_credit",
-          referenceId,
-          pgCreditStore,
-        );
-        log.info("Créditos da assinatura concedidos", {
-          tenantId: row.tenant_id,
-          planTier: row.plan_tier,
-          period,
-          balance,
-        });
-      }
-    } catch (grantError) {
-      // Falha de crédito não invalida a assinatura: o evento fica pendente e
-      // pode ser reprocessado sem duplicar (a referência protege).
-      log.warn("Falha ao conceder créditos da assinatura", {
-        tenantId: row.tenant_id,
-        period,
-        message: grantError instanceof Error ? grantError.message : "erro",
-      });
-    }
+    // REGRA ANTI-FRAUDE: créditos mensais NUNCA são liberados apenas pela
+    // autorização do PreApproval. Eles são creditados exclusivamente após a
+    // liquidação financeira confirmada no webhook `subscription_authorized_payment`
+    // ou `payment` (status `approved`), impedindo uso de créditos sem pagamento.
 
     // Cupom: o external_reference carrega o código aplicado no checkout.
     // A confirmação é idempotente e nunca derruba a assinatura já autorizada.

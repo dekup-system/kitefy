@@ -3,12 +3,14 @@ import { z } from "zod";
 import { getServerEnv } from "@/lib/env";
 import { createLogger } from "@/lib/logger";
 import { query } from "@/lib/db/pg";
-import { applyPaymentCredit } from "@/lib/billing/credit-grants";
+import { applyPaymentCredit, applyTopUpCredit } from "@/lib/billing/credit-grants";
 import { getPaymentById, getPreApprovalById, MercadoPagoError } from "@/lib/billing/mercadopago";
 import {
   parseTenantFromExternalReference,
+  parseTopUpFromExternalReference,
   syncSubscriptionFromPreapproval,
 } from "@/lib/billing/subscription-sync";
+import { CREDIT_TOPUP_PACKS } from "@/lib/pricing";
 import { constantTimeEquals } from "@/lib/billing/webhook-signature";
 import {
   chargePeriod,
@@ -107,10 +109,57 @@ function classifyTopic(
   return "other";
 }
 
-/** Pagamento avulso/recorrente: confirma na API e credita se aprovado. */
+/** Pagamento avulso/recorrente/recarga: confirma na API e credita SOMENTE se aprovado. */
 async function handlePaymentJob(dataId: string, eventId: string): Promise<JobResult> {
   const payment = await getPaymentById(dataId);
 
+  // 1) Recarga avulsa de créditos (+50 ou +100)
+  const topUpRef = parseTopUpFromExternalReference(payment.externalReference);
+  if (topUpRef) {
+    if (payment.status !== "approved") {
+      log.info("Recarga avulsa não aprovada: nenhum crédito aplicado", {
+        eventId,
+        paymentId: payment.paymentId,
+        status: payment.status,
+      });
+      await markEventProcessed(eventId);
+      return { eventId, outcome: "skipped", paymentId: payment.paymentId, reason: `status_${payment.status}` };
+    }
+
+    const pack = CREDIT_TOPUP_PACKS[topUpRef.packId];
+    const applied = await applyTopUpCredit(topUpRef.tenantId, payment.paymentId, pack.credits);
+
+    if (payment.amountCents !== null) {
+      await recordRevenueEvent({
+        source: "payment",
+        externalId: payment.paymentId,
+        tenantId: topUpRef.tenantId,
+        planTier: null,
+        amountCents: payment.amountCents,
+      });
+    }
+
+    await markEventProcessed(eventId);
+
+    log.info("Recarga avulsa de créditos processada", {
+      eventId,
+      paymentId: payment.paymentId,
+      tenantId: topUpRef.tenantId,
+      packId: topUpRef.packId,
+      credits: pack.credits,
+      credited: applied.credited,
+      balance: applied.balance,
+    });
+
+    return {
+      eventId,
+      outcome: applied.credited ? "credited" : "skipped",
+      paymentId: payment.paymentId,
+      reason: applied.credited ? undefined : "already_credited",
+    };
+  }
+
+  // 2) Pagamento de plano mensal
   const reference = parseTenantFromExternalReference(payment.externalReference);
   if (!reference || !reference.planHint) {
     log.warn("Pagamento sem external_reference utilizável: crédito não aplicado", {
