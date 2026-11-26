@@ -19,7 +19,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { emailConfigured } from "@/lib/email/client";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
 import {
-  sendScheduleReminderNowAction,
   unscheduleAssetAction,
   type AssetScheduleMeta,
 } from "@/lib/schedule/actions";
@@ -265,25 +264,13 @@ export default async function SchedulePage({
                           <CheckCircle2 className="size-2.5" aria-hidden="true" />
                           E-mail enviado
                         </span>
-                      ) : isEmailReady ? (
-                        <form action={sendScheduleReminderNowAction}>
-                          <input type="hidden" name="assetId" value={item.id} />
-                          <button
-                            type="submit"
-                            className="inline-flex items-center gap-1 rounded border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-[10px] font-medium text-orange-950 hover:bg-orange-100"
-                            title="Disparar aviso agora para o seu e-mail"
-                          >
-                            <Mail className="size-2.5 text-brand-signal" aria-hidden="true" />
-                            Enviar e-mail
-                          </button>
-                        </form>
                       ) : (
                         <span
-                          className="inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground"
-                          title="O e-mail será enviado automaticamente 30 minutos antes quando o serviço de e-mail estiver ativo"
+                          className="inline-flex items-center gap-1 rounded border border-orange-200 bg-orange-50/70 px-1.5 py-0.5 text-[10px] font-medium text-orange-950"
+                          title="Lembrete automático será enviado por e-mail 30 minutos antes do horário agendado"
                         >
                           <Mail className="size-2.5 text-brand-signal" aria-hidden="true" />
-                          E-mail 30m
+                          Aviso 30m antes
                         </span>
                       )}
                       <form action={unscheduleAssetAction}>
