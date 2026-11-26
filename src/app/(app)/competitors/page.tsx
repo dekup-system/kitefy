@@ -6,10 +6,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { CompetitorForm } from "./competitor-form";
 import { CompetitorRadar } from "./competitor-radar";
 import { DirectCompetitorsCard } from "./direct-competitors-card";
-import { formatTargetRegions } from "@/lib/brand/regions";
 import type { ToneOfVoice } from "@/types/domain";
 
-export const metadata = { title: "Concorrentes" };
+export const metadata = { title: "Radar de Concorrentes" };
 
 interface BrandItem {
   id: string;
@@ -41,8 +40,8 @@ export default async function CompetitorsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Concorrentes & Radar"
-        description="Monitore concorrentes de cada marca (site ou rede social), extraia ideias em 1 clique e descubra lacunas de busca."
+        title="Radar de Concorrentes"
+        description="Defina a região de atuação da marca, encontre empresas e profissionais concorrentes (sites e redes sociais), analise com IA e aplique conceitos nos seus conteúdos."
       />
 
       {brands.length === 0 ? (
@@ -77,7 +76,7 @@ export default async function CompetitorsPage({
                 key={`direct-${selected.id}`}
                 brandId={selected.id}
                 brandName={selected.brand_name}
-                regionLabel={formatTargetRegions(selected.tone_of_voice?.target_regions)}
+                initialRegions={selected.tone_of_voice?.target_regions ?? ["Todo o Brasil"]}
               />
 
               <CompetitorRadar

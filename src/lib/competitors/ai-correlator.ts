@@ -17,6 +17,8 @@ export interface DirectCompetitorCandidate {
   name: string;
   url: string;
   domain: string;
+  channel: "site" | "social";
+  channelLabel: string;
   snippet: string;
   regionLabel: string;
 }
@@ -46,20 +48,94 @@ export interface DirectCompetitorAiReport {
   generatedAt: string;
 }
 
-const IGNORED_DOMAINS = new Set([
+const BLOCKED_NON_COMPETITOR_DOMAINS = [
   "wikipedia.org",
-  "pt.wikipedia.org",
-  "youtube.com",
   "gov.br",
   "reclameaqui.com.br",
   "jusbrasil.com.br",
   "mercadolivre.com.br",
   "amazon.com.br",
-  "linkedin.com",
-  "facebook.com",
-  "instagram.com",
-  "tiktok.com",
-]);
+  "olx.com.br",
+  "shopee.com.br",
+  "indeed.com",
+  "indeed.com.br",
+  "gupy.io",
+  "catho.com.br",
+  "infojobs.com.br",
+  "vagas.com.br",
+  "glassdoor.com.br",
+  "glassdoor.com",
+  "99freelas.com.br",
+  "workana.com",
+  "getninjas.com.br",
+  "freelancer.com",
+  "fiverr.com",
+  "upwork.com",
+  "trampos.co",
+  "empregos.com.br",
+  "jooble.org",
+  "bne.com.br",
+  "solides.com.br",
+  "udemy.com",
+  "coursera.org",
+  "hotmart.com",
+  "alura.com.br",
+  "youtube.com",
+];
+
+const NON_COMPETITOR_TITLE_REGEX =
+  /\b(vaga|vagas|emprego|empregos|freelance|freela|freelancer|contrata-se|est[áa]gio|sal[áa]rio|curr[íi]culo|processo seletivo|curso de|cursos online|faculdade|wikipedia|o que [ée]|como fazer|significado|melhores sites de vagas)\b/i;
+
+const SOCIAL_CHANNEL_MAP: { match: string; label: string }[] = [
+  { match: "instagram.com", label: "Instagram" },
+  { match: "tiktok.com", label: "TikTok" },
+  { match: "facebook.com", label: "Facebook" },
+  { match: "linkedin.com", label: "LinkedIn" },
+];
+
+function classifyChannel(rawUrl: string): {
+  channel: "site" | "social";
+  channelLabel: string;
+  uniqueKey: string;
+  validProfile: boolean;
+} {
+  try {
+    const u = new URL(rawUrl);
+    const domain = u.hostname.replace(/^www\./, "").toLowerCase();
+    const path = u.pathname.toLowerCase();
+
+    for (const s of SOCIAL_CHANNEL_MAP) {
+      if (domain === s.match || domain.endsWith(`.${s.match}`)) {
+        // Rejeita posts avulsos, vagas ou páginas de busca dentro das redes sociais
+        if (
+          /^\/(p|reel|reels|stories|explore|jobs|job|discover|hashtag|tag|watch|groups|marketplace|login|signup|accounts)(\/|$)/.test(
+            path,
+          ) ||
+          path === "/" ||
+          path.length < 2
+        ) {
+          return { channel: "social", channelLabel: s.label, uniqueKey: "", validProfile: false };
+        }
+        const firstSeg = path.split("/").filter(Boolean)[0] ?? "";
+        const secondSeg = path.split("/").filter(Boolean)[1] ?? "";
+        const handleKey =
+          s.match === "linkedin.com" && (firstSeg === "company" || firstSeg === "in")
+            ? `${s.match}/${firstSeg}/${secondSeg}`
+            : `${s.match}/${firstSeg}`;
+        return {
+          channel: "social",
+          channelLabel: s.label,
+          uniqueKey: handleKey,
+          validProfile: Boolean(firstSeg),
+        };
+      }
+    }
+
+    return { channel: "site", channelLabel: "Site oficial", uniqueKey: domain, validProfile: true };
+  } catch {
+    return { channel: "site", channelLabel: "Site oficial", uniqueKey: "", validProfile: false };
+  }
+}
 
 function extractDomain(rawUrl: string): string {
   try {
@@ -69,51 +145,139 @@ function extractDomain(rawUrl: string): string {
   }
 }
 
+async function deriveCommercialSearchTerms(input: {
+  brandName: string;
+  icpDescription?: string | null;
+  uvp?: string | null;
+  entityFacts?: EntityFact[];
+}): Promise<{ siteQueryA: string; siteQueryB: string; socialQuery: string }> {
+  const facts = (input.entityFacts ?? []).map((f) => f.claim).filter(Boolean).slice(0, 3);
+  const fallbackCore =
+    input.uvp?.trim().slice(0, 55) ||
+    facts[0]?.slice(0, 55) ||
+    input.icpDescription?.trim().slice(0, 55) ||
+    input.brandName;
+
+  if (isMockMode()) {
+    return {
+      siteQueryA: `${fallbackCore} empresa serviços`,
+      siteQueryB: `${facts[1] || fallbackCore} especialista atendimento`,
+      socialQuery: `${fallbackCore}`,
+    };
+  }
+
+  try {
+    const env = getServerEnv();
+    const model = getLanguageModel(env.MODEL_ROUTER);
+    const res = await generateText({
+      model,
+      temperature: 0.2,
+      maxOutputTokens: 220,
+      maxRetries: 0,
+      prompt: [
+        "Extraia 3 termos curtos de busca comercial no Google (3 a 6 palavras cada) para encontrar EMPRESAS ou PROFISSIONAIS concorrentes diretos desta marca no Brasil.",
+        "NUNCA use palavras como 'vaga', 'emprego', 'freelance', 'curso' ou 'concorrentes'. Foque no serviço/produto principal que o cliente contrata.",
+        `Marca: ${input.brandName}`,
+        `ICP: ${input.icpDescription ?? ""}`,
+        `Proposta de valor: ${input.uvp ?? ""}`,
+        `Diferenciais/serviços: ${facts.join(" | ")}`,
+        'Responda APENAS JSON: {"siteQueryA":"...","siteQueryB":"...","socialQuery":"..."}',
+      ].join("\n"),
+    });
+    const obj = parseJsonObject(res.text) as Partial<{
+      siteQueryA: string;
+      siteQueryB: string;
+      socialQuery: string;
+    }>;
+    if (obj.siteQueryA && obj.siteQueryB && obj.socialQuery) {
+      return {
+        siteQueryA: obj.siteQueryA.slice(0, 90),
+        siteQueryB: obj.siteQueryB.slice(0, 90),
+        socialQuery: obj.socialQuery.slice(0, 90),
+      };
+    }
+  } catch {
+    // fallback silencioso abaixo
+  }
+
+  return {
+    siteQueryA: `${fallbackCore} empresa serviços`,
+    siteQueryB: `${facts[1] || fallbackCore} especialista`,
+    socialQuery: `${fallbackCore}`,
+  };
+}
+
 export async function discoverDirectCompetitors(input: {
   brandName: string;
   websiteUrl?: string | null;
   icpDescription?: string | null;
+  uvp?: string | null;
   entityFacts?: EntityFact[];
   targetRegions?: string[];
 }): Promise<DirectCompetitorCandidate[]> {
   const regionLabel = formatTargetRegions(input.targetRegions);
   const ownDomain = input.websiteUrl ? extractDomain(input.websiteUrl) : "";
-
-  const nicheTerm =
-    input.entityFacts?.[0]?.claim?.slice(0, 60) ||
-    input.icpDescription?.slice(0, 60) ||
-    input.brandName;
-
   const regionQuery =
-    regionLabel === "Todo o Brasil" ? "Brasil" : `região ${regionLabel} Brasil`;
+    regionLabel === "Todo o Brasil" ? "Brasil" : `${regionLabel} Brasil`;
 
-  const query = `${nicheTerm} empresas concorrentes ${regionQuery}`.trim().slice(0, 180);
-
-  const serp = await searchWithCache({
-    query,
-    locale: "pt-BR",
-    num: 10,
+  const terms = await deriveCommercialSearchTerms({
+    brandName: input.brandName,
+    icpDescription: input.icpDescription,
+    uvp: input.uvp,
+    entityFacts: input.entityFacts,
   });
 
-  const seenDomains = new Set<string>();
+  const queries = [
+    `${terms.siteQueryA} ${regionQuery} -vagas -emprego -freelance -curso`.slice(0, 180),
+    `${terms.siteQueryB} ${regionQuery} orçamento contato -vagas -emprego -curso`.slice(0, 180),
+    `(site:instagram.com OR site:facebook.com OR site:tiktok.com OR site:linkedin.com/company) ${terms.socialQuery} ${regionQuery}`.slice(
+      0,
+      180,
+    ),
+  ];
+
+  const serpResults = await Promise.all(
+    queries.map((query) =>
+      searchWithCache({ query, locale: "pt-BR", num: 10 }).catch(() => null),
+    ),
+  );
+
+  const seenKeys = new Set<string>();
   const candidates: DirectCompetitorCandidate[] = [];
 
-  for (const gap of serp.competitor_gaps) {
-    const domain = extractDomain(gap.url);
-    if (!domain || domain === ownDomain) continue;
-    if (seenDomains.has(domain)) continue;
-    if ([...IGNORED_DOMAINS].some((d) => domain === d || domain.endsWith(`.${d}`))) continue;
+  for (const serp of serpResults) {
+    if (!serp) continue;
+    for (const gap of serp.competitor_gaps) {
+      const domain = extractDomain(gap.url);
+      if (!domain || domain === ownDomain) continue;
+      if (BLOCKED_NON_COMPETITOR_DOMAINS.some((d) => domain === d || domain.endsWith(`.${d}`))) {
+        continue;
+      }
+      if (NON_COMPETITOR_TITLE_REGEX.test(gap.title)) continue;
 
-    seenDomains.add(domain);
-    const cleanTitle = gap.title.split(/\s*[|•·—–-]\s*/)[0]?.trim() || domain;
-    candidates.push({
-      name: cleanTitle.slice(0, 80),
-      url: gap.url,
-      domain,
-      snippet: gap.title.slice(0, 180),
-      regionLabel,
-    });
-    if (candidates.length >= 6) break;
+      const info = classifyChannel(gap.url);
+      if (!info.validProfile || !info.uniqueKey) continue;
+      if (seenKeys.has(info.uniqueKey)) continue;
+
+      seenKeys.add(info.uniqueKey);
+      const cleanTitle = gap.title
+        .replace(/\s*\(@[^)]+\).*$/i, "")
+        .split(/\s*[|•·—–-]\s*/)[0]
+        ?.trim() || domain;
+
+      candidates.push({
+        name: cleanTitle.slice(0, 80),
+        url: gap.url,
+        domain,
+        channel: info.channel,
+        channelLabel: info.channelLabel,
+        snippet: gap.title.slice(0, 180),
+        regionLabel,
+      });
+
+      if (candidates.length >= 10) break;
+    }
+    if (candidates.length >= 10) break;
   }
 
   return candidates;

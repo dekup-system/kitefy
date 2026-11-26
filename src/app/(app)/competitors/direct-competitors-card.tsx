@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Compass, ExternalLink, Loader2, MapPin, Sparkles } from "lucide-react";
+import { ArrowRight, Compass, ExternalLink, Globe, Loader2, MapPin, Share2, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BRAZIL_REGIONS, formatTargetRegions } from "@/lib/brand/regions";
 import type {
   DirectCompetitorAiReport,
   DirectCompetitorCandidate,
@@ -23,17 +24,37 @@ const ASSET_LABEL: Record<string, string> = {
 export function DirectCompetitorsCard({
   brandId,
   brandName,
-  regionLabel,
+  initialRegions,
 }: {
   brandId: string;
   brandName: string;
-  regionLabel: string;
+  initialRegions: string[];
 }) {
+  const [selectedRegions, setSelectedRegions] = useState<string[]>(
+    initialRegions.length > 0 ? initialRegions : ["Todo o Brasil"],
+  );
   const [candidates, setCandidates] = useState<DirectCompetitorCandidate[]>([]);
   const [discovering, setDiscovering] = useState(false);
   const [analyzingUrl, setAnalyzingUrl] = useState<string | null>(null);
   const [report, setReport] = useState<DirectCompetitorAiReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const regionLabel = formatTargetRegions(selectedRegions);
+
+  function toggleRegion(regionId: string) {
+    if (regionId === "Todo o Brasil") {
+      setSelectedRegions(["Todo o Brasil"]);
+      return;
+    }
+    setSelectedRegions((prev) => {
+      const withoutNational = prev.filter((r) => r !== "Todo o Brasil");
+      const exists = withoutNational.includes(regionId);
+      const next = exists
+        ? withoutNational.filter((r) => r !== regionId)
+        : [...withoutNational, regionId];
+      return next.length === 0 ? ["Todo o Brasil"] : next;
+    });
+  }
 
   async function discover() {
     setError(null);
@@ -42,7 +63,7 @@ export function DirectCompetitorsCard({
       const res = await fetch("/api/competitors/direct", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "discover", brandId }),
+        body: JSON.stringify({ action: "discover", brandId, targetRegions: selectedRegions }),
       });
       const data = (await res.json()) as {
         candidates?: DirectCompetitorCandidate[];
@@ -106,22 +127,54 @@ export function DirectCompetitorsCard({
               <MapPin className="size-3" aria-hidden="true" />
               {regionLabel}
             </Badge>
-            <Link
-              href={`/settings/brand?brand=${brandId}`}
-              className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
-            >
-              Alterar regiões
-            </Link>
           </div>
         </div>
         <CardDescription>
-          Pesquisa automática de concorrentes diretos cruzando o perfil salvo de {brandName} com sua
-          região de atuação ({regionLabel}). Clique em <strong>Analisar (2 créditos)</strong> para o
-          Agente de IA gerar o comparativo e conceitos criativos aplicáveis.
+          Defina a área de atuação de <strong>{brandName}</strong> no Brasil e pesquise sites e
+          redes sociais de empresas e profissionais compatíveis. Clique em{" "}
+          <strong>Analisar (2 créditos)</strong> para o Agente de IA gerar o comparativo e conceitos
+          criativos aplicáveis.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
+        <div className="space-y-2.5 rounded-lg border border-border bg-muted/20 p-3.5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
+              Área de atuação no Brasil · {brandName}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Marque as regiões de interesse (IBGE) ou Todo o Brasil. A escolha é salva automaticamente na marca ao pesquisar.
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {BRAZIL_REGIONS.map((region) => {
+              const checked = selectedRegions.includes(region.id);
+              return (
+                <label
+                  key={region.id}
+                  className={`flex cursor-pointer items-start gap-2.5 rounded-lg border p-2.5 text-xs transition-colors ${
+                    checked
+                      ? "border-brand-navy bg-brand-navy/5 text-foreground"
+                      : "border-border bg-background text-muted-foreground hover:bg-accent/40"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleRegion(region.id)}
+                    className="mt-0.5 size-4 rounded border-input accent-brand-navy"
+                  />
+                  <span className="min-w-0 leading-tight">
+                    <span className="block font-semibold text-foreground">{region.label}</span>
+                    <span className="block text-[11px] text-muted-foreground">{region.states}</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center gap-3">
           <Button type="button" onClick={discover} disabled={discovering}>
             {discovering ? (
@@ -154,6 +207,17 @@ export function DirectCompetitorsCard({
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-semibold text-foreground">{candidate.name}</p>
+                      <Badge
+                        variant={candidate.channel === "social" ? "secondary" : "outline"}
+                        className="gap-1 text-[10px]"
+                      >
+                        {candidate.channel === "social" ? (
+                          <Share2 className="size-2.5" aria-hidden="true" />
+                        ) : (
+                          <Globe className="size-2.5" aria-hidden="true" />
+                        )}
+                        {candidate.channelLabel}
+                      </Badge>
                       <Badge variant="outline" className="font-mono text-[10px]">
                         {candidate.domain}
                       </Badge>

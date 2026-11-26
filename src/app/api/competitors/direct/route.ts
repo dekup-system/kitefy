@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { CREDIT_COSTS } from "@/lib/pricing";
+import { VALID_REGION_IDS } from "@/lib/brand/regions";
 import {
   analyzeCompetitorWithAi,
   discoverDirectCompetitors,
@@ -20,6 +21,7 @@ const log = createLogger("api.competitors.direct");
 const discoverSchema = z.object({
   action: z.literal("discover"),
   brandId: z.string().uuid(),
+  targetRegions: z.array(z.string().trim().min(2).max(40)).optional(),
 });
 
 const analyzeSchema = z.object({
@@ -73,14 +75,36 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (parsed.data.action === "discover") {
     try {
+      // Se o usuário selecionou regiões na página Radar de Concorrentes, persiste na marca antes de buscar.
+      let effectiveRegions = brand.tone_of_voice?.target_regions;
+      if (parsed.data.targetRegions && parsed.data.targetRegions.length > 0) {
+        const cleanRegions = parsed.data.targetRegions.filter((r) => VALID_REGION_IDS.has(r));
+        if (cleanRegions.length > 0) {
+          effectiveRegions = cleanRegions.includes("Todo o Brasil")
+            ? ["Todo o Brasil"]
+            : [...new Set(cleanRegions)];
+          await supabase
+            .from("brand_profiles")
+            .update({
+              tone_of_voice: {
+                ...(brand.tone_of_voice ?? {}),
+                target_regions: effectiveRegions,
+              },
+            })
+            .eq("id", brand.id)
+            .eq("tenant_id", session.tenantId);
+        }
+      }
+
       const candidates = await discoverDirectCompetitors({
         brandName: brand.brand_name,
         websiteUrl: brand.website_url,
         icpDescription: brand.icp_description,
+        uvp: brand.tone_of_voice?.uvp,
         entityFacts: brand.entity_facts ?? [],
-        targetRegions: brand.tone_of_voice?.target_regions,
+        targetRegions: effectiveRegions,
       });
-      return NextResponse.json({ candidates });
+      return NextResponse.json({ candidates, targetRegions: effectiveRegions ?? ["Todo o Brasil"] });
     } catch (err) {
       log.warn("Falha ao buscar concorrentes diretos", {
         message: err instanceof Error ? err.message : String(err),

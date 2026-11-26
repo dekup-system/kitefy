@@ -33,7 +33,7 @@ const NAV_GROUPS = [
     label: "Inteligência",
     items: [
       { href: "/settings/brand", label: "Marcas e Personas", icon: Palette },
-      { href: "/competitors", label: "Concorrentes", icon: Radar },
+      { href: "/competitors", label: "Radar de Concorrentes", icon: Radar },
       { href: "/telemetry", label: "Resultados", icon: TrendingUp },
       { href: "/google", label: "Pacote Google", icon: Globe },
     ],
@@ -264,7 +264,7 @@ export function TopbarSectionTitle() {
             : pathname.startsWith("/schedule")
               ? "Agendamentos"
               : pathname.startsWith("/competitors")
-                ? "Concorrentes"
+                ? "Radar de Concorrentes"
                 : pathname.startsWith("/telemetry")
                   ? "Resultados"
                   : pathname.startsWith("/google")
