@@ -8,6 +8,7 @@ import { Field, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { updateBrandAction, type BrandFormState } from "@/lib/onboarding/actions";
+import { BRAZIL_REGIONS } from "@/lib/brand/regions";
 import type { BrandProfileRow } from "@/types/domain";
 
 const initialState: BrandFormState = {};
@@ -26,6 +27,26 @@ export function BrandForm({ brand }: { brand: BrandProfileRow }) {
   const [primaryColor, setPrimaryColor] = useState(brand.visual_tokens?.primary ?? "#1f1f23");
   const [backgroundColor, setBackgroundColor] = useState(brand.visual_tokens?.background ?? "#fdfdfd");
   const [accentColor, setAccentColor] = useState(brand.visual_tokens?.accent ?? "#3f3f46");
+  const [selectedRegions, setSelectedRegions] = useState<string[]>(
+    brand.tone_of_voice?.target_regions?.length
+      ? brand.tone_of_voice.target_regions
+      : ["Todo o Brasil"],
+  );
+
+  function toggleRegion(regionId: string) {
+    if (regionId === "Todo o Brasil") {
+      setSelectedRegions(["Todo o Brasil"]);
+      return;
+    }
+    setSelectedRegions((prev) => {
+      const withoutNational = prev.filter((r) => r !== "Todo o Brasil");
+      const exists = withoutNational.includes(regionId);
+      const next = exists
+        ? withoutNational.filter((r) => r !== regionId)
+        : [...withoutNational, regionId];
+      return next.length === 0 ? ["Todo o Brasil"] : next;
+    });
+  }
 
   const defaultFactsText = (brand.entity_facts ?? [])
     .map((fact) => (fact.source_url ? `${fact.claim} | ${fact.source_url}` : fact.claim))
@@ -78,6 +99,43 @@ export function BrandForm({ brand }: { brand: BrandProfileRow }) {
           />
         </Field>
       </FieldGroup>
+
+      <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-4">
+        <div>
+          <p className="text-sm font-medium">Regiões de atuação no Brasil</p>
+          <p className="text-xs text-muted-foreground">
+            Marque as regiões de interesse desta marca (divisão oficial IBGE). Usamos isso para calibrar o estudo de público e encontrar concorrentes diretos na sua área.
+          </p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {BRAZIL_REGIONS.map((region) => {
+            const checked = selectedRegions.includes(region.id);
+            return (
+              <label
+                key={region.id}
+                className={`flex cursor-pointer items-start gap-2.5 rounded-lg border p-2.5 text-xs transition-colors ${
+                  checked
+                    ? "border-brand-navy bg-brand-navy/5 text-foreground"
+                    : "border-border bg-background text-muted-foreground hover:bg-accent/40"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  name="targetRegions"
+                  value={region.id}
+                  checked={checked}
+                  onChange={() => toggleRegion(region.id)}
+                  className="mt-0.5 size-4 rounded border-input accent-brand-navy"
+                />
+                <span className="min-w-0 leading-tight">
+                  <span className="block font-semibold text-foreground">{region.label}</span>
+                  <span className="block text-[11px] text-muted-foreground">{region.states}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-4">
         <div>

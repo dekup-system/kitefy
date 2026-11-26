@@ -52,9 +52,7 @@ export interface BrandCompletenessResult {
 export function computeBrandCompleteness(brand: BrandCompletenessInput): BrandCompletenessResult {
   const brandHref = `/settings/brand?brand=${brand.id}`;
   const googleHref = `/google?brand=${brand.id}`;
-  const verifiedFacts = (brand.entity_facts ?? []).filter(
-    (fact) => Boolean(fact.claim?.trim()) && Boolean(fact.source_url?.trim()),
-  );
+  const verifiedFacts = (brand.entity_facts ?? []).filter((fact) => Boolean(fact.claim?.trim()));
 
   const items: BrandCompletenessItem[] = [
     {
@@ -105,7 +103,7 @@ export function computeBrandCompleteness(brand: BrandCompletenessInput): BrandCo
     },
     {
       key: "facts",
-      label: "Fatos verificáveis com fonte (GEO)",
+      label: "Diferenciais e fatos da marca cadastrados",
       done: verifiedFacts.length > 0,
       href: brandHref,
       weight: 15,

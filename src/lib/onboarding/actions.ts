@@ -9,6 +9,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { extractBrandDraft } from "@/lib/onboarding/extract";
 import { generateBrandAudienceStudy } from "@/lib/audience/persona-generator";
 import { CREDIT_COSTS, PLANS } from "@/lib/pricing";
+import { VALID_REGION_IDS } from "@/lib/brand/regions";
 import { createLogger } from "@/lib/logger";
 import type { AbepClass, PlanTier } from "@/types/domain";
 
@@ -239,6 +240,17 @@ export async function updateBrandAction(
           .slice(0, 6)
       : undefined;
 
+  const rawRegions = formData
+    .getAll("targetRegions")
+    .map((v) => String(v).trim())
+    .filter((v) => VALID_REGION_IDS.has(v));
+  const targetRegions =
+    rawRegions.length > 0
+      ? rawRegions.includes("Todo o Brasil")
+        ? ["Todo o Brasil"]
+        : [...new Set(rawRegions)]
+      : undefined;
+
   const update = await supabase
     .from("brand_profiles")
     .update({
@@ -248,6 +260,7 @@ export async function updateBrandAction(
       tone_of_voice: {
         ...(existing.data?.tone_of_voice ?? {}),
         ...(descriptors.length > 0 ? { descriptors } : {}),
+        ...(targetRegions !== undefined ? { target_regions: targetRegions } : {}),
         ...(parsed.data.uvp !== undefined ? { uvp: parsed.data.uvp || undefined } : {}),
         ...(parsed.data.contrarianThesis !== undefined
           ? { contrarian_thesis: parsed.data.contrarianThesis || undefined }
@@ -439,4 +452,54 @@ export async function generateAudienceStudyAction(
   return {
     notice: `Estudo gerado com dados demográficos (${study.ibge.regionLabel}) e ${study.personas.length} personas baseadas em evidência.`,
   };
+}
+
+/** Edita, recusa/remove ou adiciona um diferencial/fato diretamente na caixa de fatos da marca. */
+export async function manageBrandFactAction(formData: FormData): Promise<void> {
+  const session = await requireSessionContext();
+  const brandId = String(formData.get("brandId") ?? "").trim();
+  const mode = String(formData.get("mode") ?? "").trim();
+  const index = Number(formData.get("index"));
+  const claim = String(formData.get("claim") ?? "").trim().slice(0, 220);
+  const rawUrl = String(formData.get("sourceUrl") ?? "").trim();
+  const sourceUrl = rawUrl && /^https?:\/\/.+/i.test(rawUrl) ? rawUrl.slice(0, 400) : undefined;
+
+  if (!brandId) return;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: brand } = await supabase
+    .from("brand_profiles")
+    .select("entity_facts")
+    .eq("id", brandId)
+    .eq("tenant_id", session.tenantId)
+    .maybeSingle<{ entity_facts: { claim: string; source_url?: string }[] | null }>();
+
+  if (!brand) return;
+  const current = Array.isArray(brand.entity_facts) ? [...brand.entity_facts] : [];
+
+  if (mode === "delete" && Number.isInteger(index) && index >= 0 && index < current.length) {
+    current.splice(index, 1);
+  } else if (
+    mode === "update" &&
+    Number.isInteger(index) &&
+    index >= 0 &&
+    index < current.length &&
+    claim.length >= 3
+  ) {
+    current[index] = { claim, ...(sourceUrl ? { source_url: sourceUrl } : {}) };
+  } else if (mode === "add" && claim.length >= 3 && current.length < 12) {
+    current.push({ claim, ...(sourceUrl ? { source_url: sourceUrl } : {}) });
+  } else {
+    return;
+  }
+
+  await supabase
+    .from("brand_profiles")
+    .update({ entity_facts: current })
+    .eq("id", brandId)
+    .eq("tenant_id", session.tenantId);
+
+  revalidatePath("/settings/brand");
+  revalidatePath("/app");
+  revalidatePath("/studio/new");
 }

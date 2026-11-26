@@ -5,6 +5,7 @@ import { BrandForm } from "./brand-form";
 import { BrandCreateForm } from "./brand-create-form";
 import { BrandLogoForm } from "./brand-logo-form";
 import { BrandDeleteForm } from "./brand-delete-form";
+import { BrandFactsCard } from "./brand-facts-card";
 import { AudienceStudyCard } from "./audience-study-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -126,43 +127,13 @@ export default async function BrandSettingsPage({
 
           {selected ? <AudienceStudyCard key={`audience-${selected.id}`} brand={selected} /> : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Diferenciais e fatos da marca (usados nos textos e GEO)</CardTitle>
-              <CardDescription>
-                Termos próprios, recursos e diferenciais da sua marca entram automaticamente nos conteúdos gerados. O link de fonte é opcional (recomendado apenas para pesquisas ou dados numéricos externos).
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {(selected?.entity_facts ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Nenhum diferencial ou fato cadastrado ainda. Adicione os principais recursos e provas da sua marca acima para enriquecer todos os conteúdos.
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {(selected?.entity_facts ?? []).map((fact, index) => (
-                    <li key={`${fact.claim}-${index}`} className="rounded-md border border-border p-3 text-sm">
-                      <p className="font-medium text-foreground">{fact.claim}</p>
-                      {fact.source_url ? (
-                        <a
-                          href={fact.source_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-1 inline-block text-xs text-muted-foreground underline underline-offset-4"
-                        >
-                          Fonte externa: {fact.source_url}
-                        </a>
-                      ) : (
-                        <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">
-                          Diferencial próprio da marca — incluído automaticamente nos conteúdos.
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+          {selected ? (
+            <BrandFactsCard
+              key={`facts-${selected.id}`}
+              brandId={selected.id}
+              facts={selected.entity_facts ?? []}
+            />
+          ) : null}
         </>
       )}
     </div>

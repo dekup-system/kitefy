@@ -5,6 +5,8 @@ import { createSupabaseServerClient, getSessionContext } from "@/lib/supabase/se
 import { EmptyState } from "@/components/ui/empty-state";
 import { CompetitorForm } from "./competitor-form";
 import { CompetitorRadar } from "./competitor-radar";
+import { DirectCompetitorsCard } from "./direct-competitors-card";
+import { formatTargetRegions } from "@/lib/brand/regions";
 import type { ToneOfVoice } from "@/types/domain";
 
 export const metadata = { title: "Concorrentes" };
@@ -71,6 +73,13 @@ export default async function CompetitorsPage({
 
           {selected ? (
             <div className="space-y-6">
+              <DirectCompetitorsCard
+                key={`direct-${selected.id}`}
+                brandId={selected.id}
+                brandName={selected.brand_name}
+                regionLabel={formatTargetRegions(selected.tone_of_voice?.target_regions)}
+              />
+
               <CompetitorRadar
                 key={`radar-${selected.id}`}
                 brandId={selected.id}

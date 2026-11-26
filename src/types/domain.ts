@@ -317,6 +317,8 @@ export interface ToneOfVoice {
   visual_style_preference?: "auto" | VisualThemeId;
   /** Estudo completo de público, personas (JTBD + VoC) e demografia IBGE/ABEP. */
   audience_study?: BrandAudienceStudy;
+  /** Regiões de atuação no Brasil (IBGE: Todo o Brasil, Norte, Nordeste, Centro-Oeste, Sudeste, Sul). */
+  target_regions?: string[];
   /** Radar de concorrentes observados por marca (site ou rede social). */
   competitor_radar?: CompetitorRadarEntry[];
 }

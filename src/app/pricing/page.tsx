@@ -34,6 +34,7 @@ const ASSET_LABEL: Record<string, string> = {
   typo_carousel: "Carrossel tipográfico (7–10 slides)",
   serp_analysis: "Análise SERP/GEO avulsa",
   brand_analysis: "Análise completa de marca e estudo de público (IBGE + Personas)",
+  competitor_analysis: "Análise comparativa de concorrente direto com IA + conceitos aplicáveis",
   single_creative: "Criativo único com imagem",
   hybrid_carousel: "Carrossel ilustrado (5 slides · 2 IA / 7 slides · 3 IA = 6 cr)",
   lp_copy: "Pack de landing page",
