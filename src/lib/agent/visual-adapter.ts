@@ -13,6 +13,7 @@ import {
 import { generateEditorialImageDataUrl, isLiveImageGenerationEnabled } from "@/lib/visual/image-gen";
 import type { CarouselOutput, SingleCreativeOutput } from "@/lib/ai/content-schemas";
 import type { HybridCarouselPreset } from "@/lib/pricing";
+import type { CreativeVisualUniverse } from "@/lib/ai/marketing-knowledge";
 
 /**
  * Adaptador fino entre o grafo e o motor visual.
@@ -32,7 +33,9 @@ export interface RenderVisualInput {
   format?: RenderFormat;
   /** Tema visual escolhido pelo Orquestrador Estratégico (4 estilos distintos). */
   visualTheme?: VisualThemeId;
-  /** Preset do carrossel ilustrado (5 slides / 2 IA ou 7 slides / 3 IA). */
+  /** Universo fotográfico rotacionado diariamente pelo Orquestrador para evitar imagens repetitivas. */
+  visualUniverse?: CreativeVisualUniverse;
+  /** Preset do carrossel ilustrado (5 slides / 2 IA, 7 slides / 3 IA ou 6 slides Storytelling). */
   carouselPreset?: HybridCarouselPreset;
   payload: ContentPayload;
   brand: BrandContext;
@@ -108,10 +111,13 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
 
   if (input.assetType === "single_creative") {
     const payload = input.payload as SingleCreativeOutput;
+    const universeHint = input.visualUniverse?.promptDirective
+      ? ` Visual direction: ${input.visualUniverse.promptDirective}.`
+      : "";
     const generatedUrl =
       payload.image_prompt && isLiveImageGenerationEnabled()
         ? await generateEditorialImageDataUrl({
-            prompt: payload.image_prompt,
+            prompt: `${payload.image_prompt}.${universeHint}`,
             aspectRatio: "4:3",
             brandPrimaryHex: tokens.primary,
           })
@@ -190,8 +196,11 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
             "Close-up conceptual visual metaphor, refined textures, contemporary luxury editorial aesthetic",
           ];
 
-      // Geração sequencial para evitar rate-limit (HTTP 429) no provedor de imagem IA
-      // quando o carrossel pede 2 ou 3 ilustrações na mesma requisição.
+      // Geração sequencial para evitar rate-limit (HTTP 429) no provedor de imagem IA.
+      // Incorpora o universo visual rotacionado pelo Orquestrador para evitar imagens repetidas.
+      const universePrefix = input.visualUniverse?.promptDirective
+        ? `${input.visualUniverse.promptDirective}. `
+        : "";
       let slotOrder = 0;
       const enrichedSlides = [];
       for (let idx = 0; idx < slides.length; idx += 1) {
@@ -203,7 +212,7 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
         const direction = artDirectionBySlot[slotOrder % artDirectionBySlot.length]!;
         slotOrder += 1;
         const img = await generateEditorialImageDataUrl({
-          prompt: `${slide.title}. ${slide.body}. ${direction}. Brand: ${input.brand.brand_name}`,
+          prompt: `${slide.title}. ${slide.body}. ${universePrefix}${direction}. Brand: ${input.brand.brand_name}`,
           aspectRatio: idx === 0 ? "3:4" : "4:3",
           brandPrimaryHex: tokens.primary,
         });

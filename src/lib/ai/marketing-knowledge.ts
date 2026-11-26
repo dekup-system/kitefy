@@ -632,6 +632,126 @@ function designDirectiveForAsset(assetType: AssetType, visualTheme: VisualThemeI
   }
 }
 
+export interface CreativeVisualUniverse {
+  id: string;
+  label: string;
+  promptDirective: string;
+}
+
+/**
+ * 8 lentes narrativas distintas rotacionadas pelo Agente Orquestrador para impedir
+ * que publicações diárias sobre a mesma marca repitam estrutura, abertura ou clichês.
+ */
+export const CREATIVE_LENSES: readonly { id: string; label: string; directive: string }[] = [
+  {
+    id: "cena_cotidiana",
+    label: "Cena Cotidiana Real",
+    directive:
+      "Abra descrevendo uma cena concreta e reconhecível do dia a dia do cliente (horário, gesto, situação prática) antes de apresentar o insight.",
+  },
+  {
+    id: "mito_vs_realidade",
+    label: "Inversão de Crença (Mito vs. Realidade)",
+    directive:
+      "Confronte um conselho popular do mercado que parece certo mas custa caro na prática, revelando o critério real que diferencia o resultado.",
+  },
+  {
+    id: "bastidores_metodo",
+    label: "Bastidores do Método",
+    directive:
+      "Mostre os bastidores de como o serviço/produto funciona por dentro (etapas, cuidados técnicos, decisões que o cliente normalmente não vê).",
+  },
+  {
+    id: "custo_oculto",
+    label: "Custo Oculto da Inação",
+    directive:
+      "Evidencie o tempo, energia ou oportunidade desperdiçada quando o problema é empurrado com a barriga — de forma ética e sem terrorismo emocional.",
+  },
+  {
+    id: "micro_transformacao",
+    label: "Micro-História de Transformação",
+    directive:
+      "Conduza como uma pequena história real de antes, ponto de virada e alívio prático, colocando o cliente como protagonista e a marca como guia.",
+  },
+  {
+    id: "criterio_descomplicado",
+    label: "Critério Técnico Descomplicado",
+    directive:
+      "Traduza 1 conceito técnico ou critério de escolha do nicho em linguagem cristalina de conversa, ensinando o público a avaliar qualidade.",
+  },
+  {
+    id: "voz_literal_cliente",
+    label: "Voz Literal do Cliente (VoC)",
+    directive:
+      "Parta de uma dúvida ou desabafo real que o cliente fala no WhatsApp/atendimento e responda com franqueza, empatia e solução objetiva.",
+  },
+  {
+    id: "comparativo_antes_depois",
+    label: "Comparativo Prático (Jeito Comum vs. Método Certo)",
+    directive:
+      "Contraste lado a lado a abordagem improvisada que gera retrabalho com o processo estruturado da marca, destacando clareza e previsibilidade.",
+  },
+];
+
+/**
+ * 6 universos fotográficos/visuais distintos para variar os comandos de geração de
+ * imagem por IA nas publicações diárias mantendo coerência com a paleta da marca.
+ */
+export const VISUAL_UNIVERSES: readonly CreativeVisualUniverse[] = [
+  {
+    id: "editorial_natural_light",
+    label: "Editorial Luz Natural & Arquitetura Limpa",
+    promptDirective:
+      "Bright editorial photography with natural window daylight, clean architectural lines, authentic textures, generous negative space, no text",
+  },
+  {
+    id: "warm_documentary_lifestyle",
+    label: "Documental Cotidiano & Luz Quente",
+    promptDirective:
+      "Authentic warm-toned documentary lifestyle scene, golden hour ambient light, shallow depth of field, candid editorial framing, no text",
+  },
+  {
+    id: "minimalist_studio_object",
+    label: "Estúdio Minimalista & Metáfora Conceitual",
+    promptDirective:
+      "Minimalist modern studio composition with conceptual visual metaphor, sculpted soft shadows, refined tactile surfaces, crisp focus, no text",
+  },
+  {
+    id: "dramatic_chiaroscuro_premium",
+    label: "Contraste Dramático & Editorial Sofisticado",
+    promptDirective:
+      "High-contrast editorial photography with directional side lighting, moody refined atmosphere, deep focal depth, contemporary luxury aesthetic, no text",
+  },
+  {
+    id: "overhead_craft_workspace",
+    label: "Plano Superior / Bastidores de Processo",
+    promptDirective:
+      "Clean overhead flat-lay or 45-degree editorial shot of craft and organized workspace, balanced geometric arrangement, crisp natural shadows, no text",
+  },
+  {
+    id: "urban_modern_motion",
+    label: "Contemporâneo Urbano & Dinamismo Sutil",
+    promptDirective:
+      "Contemporary urban editorial photography, subtle sense of momentum and clarity, clean modern backdrop, balanced negative space, no text",
+  },
+];
+
+function stableHash(input: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h >>> 0);
+}
+
+export interface AntiRepetitionDirective {
+  creativeLens: { id: string; label: string; directive: string };
+  focusPersonaLabel: string | null;
+  visualUniverse: CreativeVisualUniverse;
+  recentOutputsToAvoid: string[];
+}
+
 export interface AdvertisingCrossReferenceInput {
   assetType: AssetType;
   angleType: AngleType;
@@ -640,6 +760,8 @@ export interface AdvertisingCrossReferenceInput {
   productInput: string;
   brand?: Pick<BrandContext, "brand_name" | "icp_description" | "tone_of_voice" | "visual_tokens">;
   recentAssetCount?: number;
+  /** Títulos e aberturas recentes da marca para proibir repetição em gerações diárias. */
+  recentTitlesAndHooks?: string[];
   seed?: string;
 }
 
@@ -652,6 +774,7 @@ export interface AdvertisingCrossReference {
   marketingDigitalDirective: string;
   persuasionDirective: string;
   brandDnaDirective: string;
+  antiRepetition: AntiRepetitionDirective;
 }
 
 /**
@@ -696,6 +819,26 @@ export function crossReferenceAdvertisingContext(
 
   const brandDnaDirective = buildToneVectorDirective(input.brand?.tone_of_voice);
 
+  // Motor Anti-Repetição & Diversidade Criativa Diária:
+  // Combina contagem histórica + entropia do seed (threadId) para rotacionar lente
+  // narrativa, persona prioritária do dia e universo fotográfico das imagens IA.
+  const count = input.recentAssetCount ?? 0;
+  const seedHash = stableHash(input.seed ?? `${input.objective}:${input.productInput}:${count}`);
+  const lensIndex = (count + seedHash) % CREATIVE_LENSES.length;
+  const universeIndex = (count + Math.floor(seedHash / 7)) % VISUAL_UNIVERSES.length;
+  const personas = input.brand?.tone_of_voice?.audience_study?.personas ?? [];
+  const focusPersona =
+    personas.length > 0 ? personas[(count + (seedHash % personas.length)) % personas.length] : null;
+
+  const antiRepetition: AntiRepetitionDirective = {
+    creativeLens: CREATIVE_LENSES[lensIndex]!,
+    focusPersonaLabel: focusPersona
+      ? `${focusPersona.name} (${focusPersona.ageRange}, ABEP ${focusPersona.abepClass} — gatilho: "${focusPersona.buyingTrigger}")`
+      : null,
+    visualUniverse: VISUAL_UNIVERSES[universeIndex]!,
+    recentOutputsToAvoid: (input.recentTitlesAndHooks ?? []).slice(0, 10),
+  };
+
   return {
     version: MARKETING_LIBRARY_VERSION,
     visualTheme,
@@ -705,6 +848,7 @@ export function crossReferenceAdvertisingContext(
     marketingDigitalDirective,
     persuasionDirective,
     brandDnaDirective,
+    antiRepetition,
   };
 }
 
@@ -831,6 +975,24 @@ export function buildAdvertisingSynthesisBlock(
     awarenessStage: matrix.audienceAnalysis.awarenessStage,
   });
 
+  const antiRepBlock = matrix.antiRepetition
+    ? [
+        "",
+        "## REGRA PRIMORDIAL ANTI-REPETIÇÃO & ORIGINALIDADE DIÁRIA (Agente Orquestrador)",
+        `- NUNCA entregue um resultado idêntico ou reciclado de publicações anteriores da marca. Crie uma abordagem inédita, novos exemplos concretos, nova metáfora e novo ritmo editorial.`,
+        `- Lente Criativa obrigatória desta peça (${matrix.antiRepetition.creativeLens.label}): ${matrix.antiRepetition.creativeLens.directive}`,
+        matrix.antiRepetition.focusPersonaLabel
+          ? `- Persona prioritária desta publicação (rotação diária): ${matrix.antiRepetition.focusPersonaLabel}`
+          : "",
+        `- Direção Visual para comandos de imagem/cena IA (${matrix.antiRepetition.visualUniverse.label}): ${matrix.antiRepetition.visualUniverse.promptDirective}`,
+        matrix.antiRepetition.recentOutputsToAvoid.length > 0
+          ? `- PROIBIDO repetir títulos, ganchos, estruturas de abertura ou ângulos já usados recentemente nesta marca:\n${matrix.antiRepetition.recentOutputsToAvoid.map((item, i) => `  ${i + 1}. ${item}`).join("\n")}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : "";
+
   return [
     `## MATRIZ CIENTÍFICA CRUZADA DE REFERÊNCIAS PUBLICITÁRIAS (${matrix.version}) — aplique todos os vetores antes de redigir`,
     `1. Marketing Digital, DBA & STEPPS: ${matrix.marketingDigitalDirective}`,
@@ -843,6 +1005,7 @@ export function buildAdvertisingSynthesisBlock(
     !input.omitBrandDna && matrix.brandDnaDirective
       ? `8. DNA Estratégico & Vetor de Tom de Voz (Kapferer / NN/g): ${matrix.brandDnaDirective}`
       : "",
+    antiRepBlock,
   ]
     .filter(Boolean)
     .join("\n");

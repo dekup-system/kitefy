@@ -249,14 +249,44 @@ export async function strategyOrchestratorNode(
   if (!state.selectedArm) throw new Error("banditSelectorNode não executou antes do orquestrador.");
 
   let recentAssetCount = 0;
+  const recentTitlesAndHooks: string[] = [];
   try {
     const supabase = createSupabaseAdminClient();
-    const { count } = await supabase
-      .from("campaigns_and_assets")
-      .select("id", { count: "exact", head: true })
-      .eq("tenant_id", state.tenantId)
-      .eq("brand_id", state.brandId);
-    recentAssetCount = count ?? 0;
+    const [countQuery, recentQuery] = await Promise.all([
+      supabase
+        .from("campaigns_and_assets")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", state.tenantId)
+        .eq("brand_id", state.brandId),
+      supabase
+        .from("campaigns_and_assets")
+        .select("title, asset_type, content_payload")
+        .eq("tenant_id", state.tenantId)
+        .eq("brand_id", state.brandId)
+        .order("created_at", { ascending: false })
+        .limit(12),
+    ]);
+    recentAssetCount = countQuery.count ?? 0;
+
+    for (const row of (recentQuery.data ?? []) as {
+      title: string;
+      asset_type: string;
+      content_payload: Record<string, unknown> | null;
+    }[]) {
+      const p = row.content_payload ?? {};
+      let opening = "";
+      if (Array.isArray(p.slides) && p.slides[0] && typeof (p.slides[0] as { title?: string }).title === "string") {
+        opening = (p.slides[0] as { title: string }).title;
+      } else if (Array.isArray(p.hooks) && p.hooks[0] && typeof (p.hooks[0] as { hook_text?: string }).hook_text === "string") {
+        opening = (p.hooks[0] as { hook_text: string }).hook_text;
+      } else if (typeof p.headline === "string") {
+        opening = p.headline;
+      }
+      const entry = opening && opening !== row.title ? `${row.title} — abertura: "${opening}"` : row.title;
+      if (entry && recentTitlesAndHooks.length < 10) {
+        recentTitlesAndHooks.push(entry.slice(0, 140));
+      }
+    }
   } catch {
     recentAssetCount = 0;
   }
@@ -280,12 +310,16 @@ export async function strategyOrchestratorNode(
     productInput: state.productInput,
     brand: brandForStrategy,
     recentAssetCount,
+    recentTitlesAndHooks,
     seed: state.threadId,
   });
 
   log.info("Orquestração estratégica concluída", {
     threadId: state.threadId,
     visualTheme: strategyBrief.visualTheme,
+    creativeLens: strategyBrief.antiRepetition.creativeLens.id,
+    visualUniverse: strategyBrief.antiRepetition.visualUniverse.id,
+    recentHistoryChecked: recentTitlesAndHooks.length,
     segment: strategyBrief.audienceAnalysis.segment,
     awarenessStage: strategyBrief.audienceAnalysis.awarenessStage,
     elmRoute: strategyBrief.audienceAnalysis.elmRoute,
@@ -402,6 +436,7 @@ export async function visualRenderNode(
       assetType: state.assetType,
       format: state.visualFormat ?? "4:5",
       visualTheme: state.strategyBrief?.visualTheme,
+      visualUniverse: state.strategyBrief?.antiRepetition?.visualUniverse,
       carouselPreset: state.carouselPreset ?? undefined,
       payload: state.draftPayload,
       brand: state.brandContext,

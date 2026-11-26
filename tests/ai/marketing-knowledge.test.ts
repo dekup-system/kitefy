@@ -282,4 +282,54 @@ describe("marketing-knowledge library", () => {
     expect(storyVideoPrompt).toContain("3 VÍDEOS POR IA DE 10 SEGUNDOS");
     expect(storyVideoPrompt).toContain("PROMPT CINEMATOGRÁFICO PRONTO");
   });
+
+  it("aplica regra anti-repetição diária com rotação de lente criativa, universo visual e histórico recente", () => {
+    const run1 = crossReferenceAdvertisingContext({
+      assetType: "hybrid_carousel",
+      angleType: "contrarian_frame",
+      framework: "pas",
+      objective: "Vender planejamento tributário",
+      productInput: "Diagnóstico Atlas",
+      brand: SAMPLE_B2B_BRAND,
+      recentAssetCount: 1,
+      recentTitlesAndHooks: ["Post antigo 1 — abertura: \"Você está pagando imposto demais\""],
+      seed: "thread-day-1",
+    });
+
+    const run2 = crossReferenceAdvertisingContext({
+      assetType: "hybrid_carousel",
+      angleType: "contrarian_frame",
+      framework: "pas",
+      objective: "Vender planejamento tributário",
+      productInput: "Diagnóstico Atlas",
+      brand: SAMPLE_B2B_BRAND,
+      recentAssetCount: 2,
+      recentTitlesAndHooks: [
+        "Post antigo 1 — abertura: \"Você está pagando imposto demais\"",
+        "Post antigo 2 — abertura: \"O erro invisível no regime tributário\"",
+      ],
+      seed: "thread-day-2",
+    });
+
+    expect(
+      run1.antiRepetition.creativeLens.id !== run2.antiRepetition.creativeLens.id ||
+        run1.antiRepetition.visualUniverse.id !== run2.antiRepetition.visualUniverse.id,
+    ).toBe(true);
+
+    const prompt = buildUserPrompt({
+      assetType: "hybrid_carousel",
+      objective: "Vender planejamento tributário",
+      productInput: "Diagnóstico Atlas",
+      selectedArm: { angle_type: "contrarian_frame", framework: "pas" },
+      explorationArms: [{ angle_type: "outcome_anchored", framework: "bab" }],
+      serpInsights: null,
+      brand: SAMPLE_B2B_BRAND,
+      strategyBrief: run2,
+    });
+    expect(prompt).toContain("REGRA PRIMORDIAL ANTI-REPETIÇÃO");
+    expect(prompt).toContain("Post antigo 1");
+    expect(prompt).toContain("Post antigo 2");
+    expect(prompt).toContain(run2.antiRepetition.creativeLens.label);
+    expect(prompt).toContain(run2.antiRepetition.visualUniverse.label);
+  });
 });

@@ -220,7 +220,7 @@ export async function generateAssetContent(input: GenerateAssetInput): Promise<G
     const userPrompt = buildUserPrompt({ ...promptInput, previousErrors });
     const attemptMessages = messages(userPrompt);
     const maxOutputTokens = input.assetType === "geo_article" ? 8000 : 2600;
-    const temperature = input.assetType === "geo_article" ? 0.4 : 0.7;
+    const temperature = input.assetType === "geo_article" ? 0.45 : 0.82;
 
     try {
       if (structured) {
