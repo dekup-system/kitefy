@@ -105,13 +105,24 @@ const quickFeedbackSchema = z.object({
   threadId: z.string().optional(),
 });
 
+export type QuickFeedbackRating = "great" | "average" | "weak";
+
+export interface QuickFeedbackState {
+  error?: string;
+  notice?: string;
+  rating?: QuickFeedbackRating;
+}
+
 /**
  * Feedback de resultado em 1 clique para pequenos empreendedores:
- * - "great" (🔥 Bombou) -> hook_rate 0.45 (sucesso no bandit + reindexa como winning_post)
- * - "average" (👍 Na média) -> hook_rate 0.35 (sucesso leve)
- * - "weak" (👎 Fraco) -> hook_rate 0.15 (incrementa beta para explorar outros ângulos)
+ * - "great" (🔥 Bombou) -> hook_rate 0.48 (sucesso no bandit + reindexa como winning_post + memória positiva)
+ * - "average" (👍 Foi bem) -> hook_rate 0.32 (registra desempenho regular sem inflar campeões)
+ * - "weak" (👎 Fraco) -> hook_rate 0.15 (incrementa beta no bandit + entra na memória negativa do agente)
  */
-export async function recordQuickFeedbackAction(formData: FormData): Promise<void> {
+export async function recordQuickFeedbackAction(
+  _prev: QuickFeedbackState,
+  formData: FormData,
+): Promise<QuickFeedbackState> {
   const session = await requireSessionContext();
   const supabase = await createSupabaseServerClient();
 
@@ -122,17 +133,40 @@ export async function recordQuickFeedbackAction(formData: FormData): Promise<voi
     threadId: formData.get("threadId") || undefined,
   });
 
-  if (!parsed.success) return;
+  if (!parsed.success) {
+    return { error: "Não foi possível identificar o anúncio para salvar o feedback." };
+  }
 
   const metricsByRating = {
-    great: { impressions: 1000, views3s: 450, saves: 35, hookRate: 0.45 },
-    average: { impressions: 1000, views3s: 350, saves: 12, hookRate: 0.35 },
-    weak: { impressions: 1000, views3s: 150, saves: 2, hookRate: 0.15 },
+    great: {
+      impressions: 1000,
+      views3s: 480,
+      saves: 42,
+      hookRate: 0.48,
+      notice:
+        "Feedback 'Bombou' salvo! Este gancho e ângulo foram promovidos na memória do agente para guiar os próximos anúncios.",
+    },
+    average: {
+      impressions: 1000,
+      views3s: 320,
+      saves: 14,
+      hookRate: 0.32,
+      notice:
+        "Feedback 'Foi bem' salvo! O agente registrou o resultado e continuará testando variações ainda mais fortes.",
+    },
+    weak: {
+      impressions: 1000,
+      views3s: 150,
+      saves: 2,
+      hookRate: 0.15,
+      notice:
+        "Feedback 'Fraco' salvo! O agente reduziu a prioridade deste ângulo e evitará repetir esse padrão nas próximas criações.",
+    },
   } as const;
 
   const metrics = metricsByRating[parsed.data.rating];
 
-  await supabase.from("performance_telemetry").insert({
+  const { error: insertErr } = await supabase.from("performance_telemetry").insert({
     tenant_id: session.tenantId,
     brand_id: parsed.data.brandId,
     asset_id: parsed.data.assetId,
@@ -144,6 +178,10 @@ export async function recordQuickFeedbackAction(formData: FormData): Promise<voi
     source_mode: "manual",
   });
 
+  if (insertErr) {
+    return { error: `Não foi possível salvar o feedback agora: ${insertErr.message}` };
+  }
+
   await distillFor(parsed.data.assetId, session.tenantId, parsed.data.brandId, metrics.hookRate);
 
   if (parsed.data.threadId) {
@@ -152,6 +190,11 @@ export async function recordQuickFeedbackAction(formData: FormData): Promise<voi
   revalidatePath("/campaigns");
   revalidatePath("/telemetry");
   revalidatePath("/app");
+
+  return {
+    rating: parsed.data.rating,
+    notice: metrics.notice,
+  };
 }
 
 export async function importTelemetryCsvAction(

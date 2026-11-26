@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Check, ShieldCheck } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -19,9 +20,14 @@ import type { MpSubscriptionRow } from "@/types/domain";
 
 export const metadata: Metadata = { title: "Plano e cobrança" };
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mp?: string }>;
+}) {
   const session = await getSessionContext();
   if (!session) redirect("/login");
+  const query = await searchParams;
 
   const supabase = await createSupabaseServerClient();
   const subscription = await supabase
@@ -48,6 +54,14 @@ export default async function BillingPage() {
           </Button>
         }
       />
+
+      {query.mp === "erro" ? (
+        <Alert variant="destructive">
+          <AlertDescription>
+            Não foi possível iniciar o pagamento no Mercado Pago agora. Verifique os dados da conta e tente novamente em instantes.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard

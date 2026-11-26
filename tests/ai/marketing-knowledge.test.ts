@@ -207,13 +207,46 @@ describe("marketing-knowledge library", () => {
       abepClass: "B1",
       entityFacts: [{ claim: "Planejamento tributário legal para PMEs" }],
     });
-    expect(study.personas.length).toBeGreaterThanOrEqual(2);
+    expect(study.personas.length).toBe(3);
     expect(study.personas[0]?.vocPhrases.length).toBeGreaterThanOrEqual(2);
     expect(study.consumptionAnalysis.buyingTriggers.length).toBeGreaterThanOrEqual(2);
 
     const vector = buildToneVectorDirective({ audience_study: study });
     expect(vector).toContain("Demografia IBGE");
-    expect(vector).toContain("Persona ativa");
-    expect(vector).toContain("VoC literal");
+    expect(vector).toContain("Personas reais da marca (3)");
+    expect(vector).toContain("P1 (");
+    expect(vector).toContain("P2 (");
+    expect(vector).toContain("P3 (");
+    expect(vector).toContain("VoC:");
+
+    const sudeste = await fetchIbgeDemographics("Sudeste");
+    expect(sudeste.uf).toBe("SE-REG");
+    expect(sudeste.population).toBeGreaterThan(80_000_000);
+  });
+
+  it("injeta memória de desempenho real (Bombou vs Fraco) e cânone de autores clássicos nos prompts", () => {
+    const brandBlock = buildBrandContextBlock({
+      ...SAMPLE_B2B_BRAND,
+      performance_memory: {
+        winners: ["3 erros tributários que drenam o caixa (typo_carousel)"],
+        weak: ["Dicas genéricas de contabilidade (single_creative)"],
+      },
+    });
+    expect(brandBlock).toContain("Memória de desempenho real desta marca");
+    expect(brandBlock).toContain("PADRÕES QUE BOMBARAM");
+    expect(brandBlock).toContain("PADRÕES QUE FORAM FRACOS");
+
+    const userPrompt = buildUserPrompt({
+      assetType: "geo_article",
+      objective: "Atrair empresas do Sudeste",
+      productInput: "Planejamento Tributário",
+      selectedArm: { angle_type: "contrarian_frame", framework: "pas" },
+      explorationArms: [{ angle_type: "outcome_anchored", framework: "bab" }],
+      serpInsights: null,
+      brand: SAMPLE_B2B_BRAND,
+    });
+    expect(userPrompt).toContain("David Ogilvy");
+    expect(userPrompt).toContain("Claude Hopkins");
+    expect(userPrompt).toContain("Philip Kotler");
   });
 });

@@ -513,17 +513,35 @@ export function buildToneVectorDirective(tone?: ToneOfVoice): string {
         .join(" | ")}`,
     );
   }
+  if (tone.target_regions && tone.target_regions.length > 0) {
+    dna.push(`Regiões de atuação da marca: ${tone.target_regions.join(", ")}`);
+  }
   if (tone.audience_study) {
     const study = tone.audience_study;
-    const primaryPersona = study.personas[0];
     dna.push(
-      `Demografia IBGE (${study.ibge.regionLabel}): renda per capita R$ ${study.ibge.perCapitaIncomeBrl}/mês, classes ${study.ibge.dominantAbepClasses.join("/")}; consumo: ${study.consumptionAnalysis.priceSensitivity}`,
+      `Demografia IBGE (${study.ibge.regionLabel}): pop. ${study.ibge.population.toLocaleString("pt-BR")}, renda per capita R$ ${study.ibge.perCapitaIncomeBrl}/mês, classes ${study.ibge.dominantAbepClasses.join("/")}; sensibilidade a preço: ${study.consumptionAnalysis.priceSensitivity}; ciclo de decisão: ${study.consumptionAnalysis.decisionCycle}; fricção: ${study.consumptionAnalysis.marketFriction}`,
     );
-    if (primaryPersona) {
-      dna.push(
-        `Persona ativa (${primaryPersona.name}, ${primaryPersona.ageRange}, ABEP ${primaryPersona.abepClass}): dor/fricção "${primaryPersona.triedAndFailed}"; gatilho "${primaryPersona.buyingTrigger}"; VoC literal: ${primaryPersona.vocPhrases.slice(0, 2).map((p) => `"${p}"`).join(" / ")}`,
-      );
+    if (study.consumptionAnalysis.buyingTriggers?.length) {
+      dna.push(`Gatilhos de compra do mercado: ${study.consumptionAnalysis.buyingTriggers.slice(0, 4).join("; ")}`);
     }
+    if (study.personas && study.personas.length > 0) {
+      const personaSummaries = study.personas.slice(0, 3).map((p, idx) => {
+        const voc = p.vocPhrases.slice(0, 2).map((v) => `"${v}"`).join(" / ");
+        const obj = p.hiddenObjections?.slice(0, 2).join("; ");
+        return `P${idx + 1} (${p.name}, ${p.ageRange}, ABEP ${p.abepClass}): dor "${p.triedAndFailed}"; gatilho "${p.buyingTrigger}"${obj ? `; objeções ocultas: ${obj}` : ""}${voc ? `; VoC: ${voc}` : ""}`;
+      });
+      dna.push(`Personas reais da marca (${study.personas.length}): ${personaSummaries.join(" || ")}`);
+    }
+  }
+  if (tone.competitor_radar && tone.competitor_radar.length > 0) {
+    const radarSummary = tone.competitor_radar
+      .slice(0, 3)
+      .map((c) => {
+        const diff = c.ideas?.[0]?.title || c.topics?.slice(0, 3).join(", ") || "";
+        return `${c.name}${diff ? ` (diferenciar em relação a: ${diff.slice(0, 110)})` : ""}`;
+      })
+      .join("; ");
+    dna.push(`Radar de Concorrentes (diferencie-se sem copiar): ${radarSummary}`);
   }
 
   return [
@@ -691,11 +709,57 @@ export function crossReferenceAdvertisingContext(
 }
 
 /**
- * Serializa a matriz científica cruzada dos 6 pilares + Brand DNA em bloco denso
+ * Seleciona os princípios exatos dos grandes autores de Marketing, Comunicação Social
+ * e Publicidade & Propaganda (Ogilvy, Schwartz, Hopkins, Kotler, Ries & Trout,
+ * Bernbach, Sharp, Godin, Berger, Cialdini, Kahneman, Christensen) conforme o formato
+ * e o estágio de consciência — garantindo que a biblioteca científica oriente cada peça.
+ */
+export function selectClassicAuthorsDirective(input: {
+  assetType: AssetType;
+  angleType: AngleType;
+  awarenessStage: AudienceAndAwarenessAnalysis["awarenessStage"];
+}): string {
+  const principles: string[] = [
+    "David Ogilvy (Confessions of an Advertising Man): a headline carrega 80% do resultado — use especificidade factual e benefício concreto, nunca adjetivo vazio.",
+    "Al Ries & Jack Trout (Posicionamento): ocupe 1 posição clara e diferenciada na mente do cliente; não tente falar tudo para todos.",
+  ];
+
+  if (input.assetType === "geo_article" || input.assetType === "lp_copy") {
+    principles.push(
+      "Claude Hopkins (Scientific Advertising): substitua elogios genéricos por mecanismo específico, critérios verificáveis e prova concreta.",
+      "Philip Kotler (Marketing 5.0/6.0): conecte valor funcional, experiência prática e autoridade educacional para reduzir atrito na jornada de decisão.",
+    );
+  } else if (input.assetType === "short_script_kit") {
+    principles.push(
+      "Bill Bernbach (DDB): combine uma verdade humana reconhecível nos 3 primeiros segundos com simplicidade memorável e ritmo falado natural.",
+      "Seth Godin (Isso é Marketing): fale diretamente com a menor audiência viável que sente essa dor hoje, criando tensão construtiva para ação.",
+    );
+  } else {
+    principles.push(
+      "Eugene Schwartz (Breakthrough Advertising): encontre o leitor exatamente no nível de consciência atual antes de apresentar a oferta.",
+      "Clayton Christensen (Jobs to be Done): enquadre o produto pelo progresso prático e emocional que o cliente 'contrata' para resolver sua rotina.",
+    );
+  }
+
+  return principles.join(" ");
+}
+
+/**
+ * Serializa a matriz científica cruzada dos 6 pilares + Cânone de Autores Clássicos
  * para injeção direta pelo Agente Orquestrador antes da geração do material.
  */
-export function buildAdvertisingSynthesisBlock(input: AdvertisingCrossReferenceInput): string {
-  const matrix = crossReferenceAdvertisingContext(input);
+export function buildAdvertisingSynthesisBlock(
+  input: AdvertisingCrossReferenceInput & {
+    precomputedMatrix?: AdvertisingCrossReference;
+    omitBrandDna?: boolean;
+  },
+): string {
+  const matrix = input.precomputedMatrix ?? crossReferenceAdvertisingContext(input);
+  const classicAuthors = selectClassicAuthorsDirective({
+    assetType: input.assetType,
+    angleType: input.angleType,
+    awarenessStage: matrix.audienceAnalysis.awarenessStage,
+  });
 
   return [
     `## MATRIZ CIENTÍFICA CRUZADA DE REFERÊNCIAS PUBLICITÁRIAS (${matrix.version}) — aplique todos os vetores antes de redigir`,
@@ -705,7 +769,10 @@ export function buildAdvertisingSynthesisBlock(input: AdvertisingCrossReferenceI
     `4. Design & Diagramação Profissional (Tema ${matrix.visualTheme}): ${matrix.designDirective}`,
     `5. Público-Alvo, JTBD & Critério Brasil (${matrix.audienceAnalysis.segment.toUpperCase()}): ${matrix.audienceAnalysis.consumerDirective}`,
     `6. Linguagem, Sistema 1/2, Cialdini & Ganchos: ${matrix.persuasionDirective}`,
-    matrix.brandDnaDirective ? `7. DNA Estratégico & Vetor de Tom de Voz (Kapferer / NN/g): ${matrix.brandDnaDirective}` : "",
+    `7. Fundamentos dos Grandes Autores (Marketing, Comunicação & Publicidade): ${classicAuthors}`,
+    !input.omitBrandDna && matrix.brandDnaDirective
+      ? `8. DNA Estratégico & Vetor de Tom de Voz (Kapferer / NN/g): ${matrix.brandDnaDirective}`
+      : "",
   ]
     .filter(Boolean)
     .join("\n");

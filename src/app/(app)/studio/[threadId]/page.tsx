@@ -7,10 +7,7 @@ import {
   CheckCircle2,
   Download,
   ExternalLink,
-  Flame,
   ShieldCheck,
-  ThumbsDown,
-  ThumbsUp,
   XCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -29,8 +26,9 @@ import {
 } from "@/lib/studio/actions";
 import { describeComplianceRule, suggestComplianceRewrite } from "@/lib/compliance/rewrite";
 import { ScheduleAssetCard } from "./schedule-asset-card";
+import { QuickFeedbackCard } from "./quick-feedback-card";
 import type { AssetScheduleMeta } from "@/lib/schedule/actions";
-import { recordQuickFeedbackAction } from "@/lib/telemetry/actions";
+import type { QuickFeedbackRating } from "@/lib/telemetry/actions";
 import { signVisualPaths } from "@/lib/agent/visual-adapter";
 import { buildCleanCopyText } from "@/lib/export/pack";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
@@ -151,6 +149,24 @@ export default async function StudioPage({
   }
 
   const asset = persisted.data ?? null;
+
+  // Último feedback rápido registrado para este ativo (Bombou / Foi bem / Fraco)
+  let initialFeedbackRating: QuickFeedbackRating | null = null;
+  if (asset) {
+    const fbQuery = await supabase
+      .from("performance_telemetry")
+      .select("channel_label")
+      .eq("tenant_id", session.tenantId)
+      .eq("asset_id", asset.id)
+      .like("channel_label", "feedback_%")
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ channel_label: string }>();
+    const raw = fbQuery.data?.channel_label?.replace("feedback_", "");
+    if (raw === "great" || raw === "average" || raw === "weak") {
+      initialFeedbackRating = raw;
+    }
+  }
 
   // Se o ativo já foi aprovado e o checkpoint não está em memória, recupera os ganchos do banco.
   let persistedHooks: HookVariantRow[] = [];
@@ -371,10 +387,10 @@ export default async function StudioPage({
         </Alert>
       ) : null}
 
-      {query.erro ? (
+      {query.erro || query.error ? (
         <Alert variant="destructive">
           <AlertTriangle className="size-4" aria-hidden="true" />
-          <AlertDescription>{decodeURIComponent(query.erro)}</AlertDescription>
+          <AlertDescription>{decodeURIComponent(query.erro ?? query.error ?? "")}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -644,48 +660,15 @@ export default async function StudioPage({
         />
       ) : null}
 
-      {/* Feedback de resultado em 1 clique (F1) para alimentar o aprendizado da marca */}
+      {/* Feedback de resultado em 1 clique (F1) para alimentar o aprendizado real do agente */}
       {approved && asset && brandId ? (
-        <Card className="bg-muted/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Já publicou? Conte em 1 clique como esse post foi</CardTitle>
-            <CardDescription>
-              Sua resposta ensina o estúdio a repetir o estilo de abertura que mais traz clientes para a {brandName}.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            <form action={recordQuickFeedbackAction}>
-              <input type="hidden" name="assetId" value={asset.id} />
-              <input type="hidden" name="brandId" value={brandId} />
-              <input type="hidden" name="threadId" value={threadId} />
-              <input type="hidden" name="rating" value="great" />
-              <Button type="submit" variant="outline" size="sm">
-                <Flame className="size-3.5 text-orange-600" aria-hidden="true" />
-                Bombou (Muito engajamento)
-              </Button>
-            </form>
-            <form action={recordQuickFeedbackAction}>
-              <input type="hidden" name="assetId" value={asset.id} />
-              <input type="hidden" name="brandId" value={brandId} />
-              <input type="hidden" name="threadId" value={threadId} />
-              <input type="hidden" name="rating" value="average" />
-              <Button type="submit" variant="outline" size="sm">
-                <ThumbsUp className="size-3.5" aria-hidden="true" />
-                Foi bem (Na média)
-              </Button>
-            </form>
-            <form action={recordQuickFeedbackAction}>
-              <input type="hidden" name="assetId" value={asset.id} />
-              <input type="hidden" name="brandId" value={brandId} />
-              <input type="hidden" name="threadId" value={threadId} />
-              <input type="hidden" name="rating" value="weak" />
-              <Button type="submit" variant="ghost" size="sm">
-                <ThumbsDown className="size-3.5" aria-hidden="true" />
-                Fraco (Tentar outro estilo no próximo)
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <QuickFeedbackCard
+          assetId={asset.id}
+          brandId={brandId}
+          threadId={threadId}
+          brandName={brandName}
+          initialRating={initialFeedbackRating}
+        />
       ) : null}
 
       {/* Detalhes completos e exportação técnica (Progressive Disclosure) */}

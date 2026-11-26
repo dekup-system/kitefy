@@ -3,6 +3,7 @@ import {
   analyzeBrandColorPalette,
   buildAdvertisingSynthesisBlock,
   buildToneVectorDirective,
+  type AdvertisingCrossReference,
 } from "@/lib/ai/marketing-knowledge";
 
 /**
@@ -71,6 +72,21 @@ export function buildBrandContextBlock(brand: BrandContext): string {
     "",
     "## Conhecimento interno (trechos vencedores e documentos da marca)",
     chunks || "Nenhum trecho indexado ainda — ancore-se fortemente no ICP, no objetivo e no produto/serviço informado.",
+    brand.performance_memory &&
+    (brand.performance_memory.winners.length > 0 || brand.performance_memory.weak.length > 0)
+      ? [
+          "",
+          "## Memória de desempenho real desta marca (feedback de publicações anteriores — OBRIGATÓRIO respeitar)",
+          brand.performance_memory.winners.length > 0
+            ? `- PADRÕES QUE BOMBARAM (replique este nível de clareza, especificidade e tensão): ${brand.performance_memory.winners.join(" | ")}`
+            : "",
+          brand.performance_memory.weak.length > 0
+            ? `- PADRÕES QUE FORAM FRACOS (NÃO repita estes títulos, ângulos ou abordagens): ${brand.performance_memory.weak.join(" | ")}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -170,6 +186,7 @@ export interface GenerationPromptInput {
   brand?: Pick<BrandContext, "brand_name" | "icp_description" | "tone_of_voice" | "visual_tokens">;
   previousErrors?: string[];
   carouselPreset?: "5_slides_2_ai" | "7_slides_3_ai";
+  strategyBrief?: AdvertisingCrossReference;
 }
 
 export function buildUserPrompt(input: GenerationPromptInput): string {
@@ -179,11 +196,18 @@ export function buildUserPrompt(input: GenerationPromptInput): string {
         "## Pesquisa de busca real (SERP) — responda essas dúvidas reais sem copiar concorrentes",
         `Consulta: ${input.serpInsights.query}`,
         "Perguntas reais do público (People Also Ask):",
-        ...input.serpInsights.people_also_ask.slice(0, 8).map((item) => `- ${item.question}`),
+        ...input.serpInsights.people_also_ask.slice(0, 8).map((item) =>
+          item.answer ? `- ${item.question} (contexto real: ${item.answer.slice(0, 140)})` : `- ${item.question}`,
+        ),
         input.serpInsights.competitor_gaps.length > 0
           ? `Lacunas de concorrentes para explorar: ${input.serpInsights.competitor_gaps
               .slice(0, 5)
-              .map((gap) => `${gap.title} (${gap.url})`)
+              .map((gap) => {
+                const missing = gap.missing_topics?.length
+                  ? ` — tópicos faltantes: ${gap.missing_topics.slice(0, 3).join(", ")}`
+                  : "";
+                return `${gap.title} (${gap.url})${missing}`;
+              })
               .join("; ")}`
           : "",
         input.serpInsights.recent_facts.length > 0
@@ -215,6 +239,8 @@ export function buildUserPrompt(input: GenerationPromptInput): string {
     objective: input.objective,
     productInput: input.productInput,
     brand: input.brand,
+    precomputedMatrix: input.strategyBrief,
+    omitBrandDna: true,
   });
 
   const hybridDirective =

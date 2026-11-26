@@ -36,6 +36,55 @@ const BRAZIL_TOTAL: StateStats = {
   dominantAbep: ["B2", "C1", "C2"],
 };
 
+/**
+ * Macrorregiões oficiais do IBGE (Censo Demográfico 2022 + PNAD Contínua 2024/2025).
+ * Permite cruzamento preciso quando a marca atua em uma macrorregião brasileira.
+ */
+const IBGE_MACRO_REGIONS: Record<string, StateStats> = {
+  sudeste: {
+    name: "Região Sudeste (SP, RJ, MG, ES)",
+    uf: "SE-REG",
+    population: 84_840_113,
+    perCapitaIncomeBrl: 2450,
+    dominantAbep: ["B1", "B2", "C1"],
+  },
+  sul: {
+    name: "Região Sul (PR, SC, RS)",
+    uf: "S-REG",
+    population: 29_937_706,
+    perCapitaIncomeBrl: 2555,
+    dominantAbep: ["B1", "B2", "C1"],
+  },
+  nordeste: {
+    name: "Região Nordeste (BA, PE, CE, MA, PB, RN, AL, PI, SE)",
+    uf: "NE-REG",
+    population: 54_658_515,
+    perCapitaIncomeBrl: 1350,
+    dominantAbep: ["C1", "C2", "DE"],
+  },
+  "centro-oeste": {
+    name: "Região Centro-Oeste (DF, GO, MT, MS)",
+    uf: "CO-REG",
+    population: 16_289_538,
+    perCapitaIncomeBrl: 2390,
+    dominantAbep: ["B1", "B2", "C1"],
+  },
+  "centro oeste": {
+    name: "Região Centro-Oeste (DF, GO, MT, MS)",
+    uf: "CO-REG",
+    population: 16_289_538,
+    perCapitaIncomeBrl: 2390,
+    dominantAbep: ["B1", "B2", "C1"],
+  },
+  norte: {
+    name: "Região Norte (PA, AM, RO, TO, AC, AP, RR)",
+    uf: "N-REG",
+    population: 17_354_884,
+    perCapitaIncomeBrl: 1390,
+    dominantAbep: ["C1", "C2", "DE"],
+  },
+};
+
 const IBGE_STATES: Record<string, StateStats> = {
   SP: { name: "São Paulo", uf: "SP", population: 44_411_238, perCapitaIncomeBrl: 2662, dominantAbep: ["B1", "B2", "C1"] },
   RJ: { name: "Rio de Janeiro", uf: "RJ", population: 16_055_174, perCapitaIncomeBrl: 2490, dominantAbep: ["B1", "B2", "C1"] },
@@ -78,6 +127,13 @@ function matchStateLocally(query: string): StateStats | null {
   const norm = normalizeRegion(query);
   if (!norm || norm === "brasil" || norm === "nacional" || norm === "todo o brasil") {
     return BRAZIL_TOTAL;
+  }
+
+  // Macrorregiões oficiais IBGE (ex.: "Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte")
+  for (const [key, macro] of Object.entries(IBGE_MACRO_REGIONS)) {
+    if (norm === key || norm.includes(key)) {
+      return macro;
+    }
   }
 
   // Sigla exata ou sufixo ", SP" / "- PR"

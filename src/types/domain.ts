@@ -473,6 +473,13 @@ export interface ComplianceReport {
   requires_transparency_label: boolean;
 }
 
+export interface BrandPerformanceMemory {
+  /** Resumo dos posts/ganchos que tiveram retorno "Bombou" (hook_rate >= 0.40) */
+  winners: string[];
+  /** Resumo dos posts/ganchos que tiveram retorno "Fraco" (hook_rate <= 0.20) */
+  weak: string[];
+}
+
 export interface BrandContext {
   brand_id: string;
   brand_name: string;
@@ -482,6 +489,8 @@ export interface BrandContext {
   top_chunks: { content: string; source_type: SourceType; similarity: number }[];
   icp_description: string | null;
   website_url: string | null;
+  /** Memória viva de feedback real (Bombou vs Fraco) carregada para o agente criativo. */
+  performance_memory?: BrandPerformanceMemory;
 }
 
 export interface TokenUsageEntry {

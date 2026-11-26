@@ -85,6 +85,60 @@ export async function brandContextNode(
 
   const rows = (matches ?? []) as ChunkRow[];
 
+  // Carrega memória viva de desempenho real da marca (Bombou vs Fraco) para orientar o agente criativo.
+  const winners: string[] = [];
+  const weak: string[] = [];
+  try {
+    const { data: telemetryRows } = await supabase
+      .from("performance_telemetry")
+      .select("asset_id, channel_label, hook_rate, saves_or_clicks")
+      .eq("tenant_id", state.tenantId)
+      .eq("brand_id", state.brandId)
+      .order("recorded_at", { ascending: false })
+      .limit(30);
+
+    const tRows = (telemetryRows ?? []) as {
+      asset_id: string | null;
+      channel_label: string;
+      hook_rate: number | null;
+      saves_or_clicks: number | null;
+    }[];
+
+    const assetIds = Array.from(
+      new Set(tRows.map((r) => r.asset_id).filter((id): id is string => Boolean(id))),
+    ).slice(0, 15);
+
+    const assetMap = new Map<string, { title: string; asset_type: string }>();
+    if (assetIds.length > 0) {
+      const { data: assetsData } = await supabase
+        .from("campaigns_and_assets")
+        .select("id, title, asset_type")
+        .eq("tenant_id", state.tenantId)
+        .in("id", assetIds);
+      for (const a of (assetsData ?? []) as { id: string; title: string; asset_type: string }[]) {
+        assetMap.set(a.id, { title: a.title, asset_type: a.asset_type });
+      }
+    }
+
+    const seenAssets = new Set<string>();
+    for (const row of tRows) {
+      if (!row.asset_id || seenAssets.has(row.asset_id)) continue;
+      seenAssets.add(row.asset_id);
+      const assetInfo = assetMap.get(row.asset_id);
+      if (!assetInfo) continue;
+
+      const hr = Number(row.hook_rate ?? 0);
+      const label = `${assetInfo.title} (${assetInfo.asset_type})`;
+      if (row.channel_label === "feedback_great" || hr >= 0.42) {
+        if (winners.length < 5) winners.push(label);
+      } else if (row.channel_label === "feedback_weak" || (hr > 0 && hr <= 0.2)) {
+        if (weak.length < 5) weak.push(label);
+      }
+    }
+  } catch {
+    // Memória de telemetria é enriquecimento best-effort; não bloqueia geração.
+  }
+
   const brandContext: BrandContext = {
     brand_id: data.id,
     brand_name: data.brand_name,
@@ -98,11 +152,14 @@ export async function brandContextNode(
       source_type: row.source_type,
       similarity: Number(row.similarity),
     })),
+    performance_memory: winners.length > 0 || weak.length > 0 ? { winners, weak } : undefined,
   };
 
   log.info("Contexto de marca carregado", {
     threadId: state.threadId,
     chunks: brandContext.top_chunks.length,
+    winners: winners.length,
+    weak: weak.length,
     // Nunca logamos o conteúdo dos chunks (dado do cliente).
   });
 
@@ -121,7 +178,10 @@ export function shouldResearch(state: OrganicStudioStateType): "research" | "ban
 export async function researchSeoGeoNode(
   state: OrganicStudioStateType,
 ): Promise<OrganicStudioUpdate> {
-  const queryText = `${state.objective} ${state.productInput}`.trim();
+  const regions = state.brandContext?.tone_of_voice?.target_regions ?? [];
+  const regionalHint =
+    regions.length > 0 && !regions.includes("Todo o Brasil") ? ` ${regions[0]}` : "";
+  const queryText = `${state.objective} ${state.productInput}${regionalHint}`.trim();
 
   const insights = await searchWithCache({
     query: queryText,
@@ -267,6 +327,7 @@ export async function contentGeneratorNode(
     serpInsights: state.serpInsights,
     complianceFeedback,
     carouselPreset: state.carouselPreset ?? undefined,
+    strategyBrief: state.strategyBrief ?? undefined,
   });
 
   // Guarda o modelo usado nos metadados do ativo (transparência de IA).

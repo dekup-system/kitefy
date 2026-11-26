@@ -19,6 +19,7 @@ import {
 } from "@/lib/ai/prompts";
 import type { AngleType, AssetType, Framework, TokenUsageEntry } from "@/types/domain";
 import type { HybridCarouselPreset } from "@/lib/pricing";
+import type { AdvertisingCrossReference } from "@/lib/ai/marketing-knowledge";
 
 /**
  * Camada única de geração de conteúdo.
@@ -46,6 +47,8 @@ export interface GenerateAssetInput
   complianceFeedback?: string[];
   /** Preset do Carrossel Ilustrado (5 slides · 2 IA ou 7 slides · 3 IA). */
   carouselPreset?: HybridCarouselPreset;
+  /** Matriz científica pré-calculada pelo strategyOrchestratorNode (preserva STEPPS e visualStyle). */
+  strategyBrief?: AdvertisingCrossReference;
 }
 
 export interface GenerateAssetResult {
@@ -190,6 +193,7 @@ export async function generateAssetContent(input: GenerateAssetInput): Promise<G
     serpInsights: input.serpInsights ?? null,
     brand: input.brand,
     carouselPreset: input.carouselPreset,
+    strategyBrief: input.strategyBrief,
   };
 
   const previousErrors: string[] = [...(input.complianceFeedback ?? [])];
