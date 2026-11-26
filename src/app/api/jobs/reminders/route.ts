@@ -2,15 +2,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getServerEnv } from "@/lib/env";
 import { constantTimeEquals } from "@/lib/billing/webhook-signature";
 import { sendWeeklyReminders } from "@/lib/email/weekly-reminder";
+import { sendDueScheduleEmailReminders } from "@/lib/email/schedule-reminders";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api.jobs.reminders");
 
 /**
- * Cron diário do lembrete semanal.
- *
- * A Vercel chama com `Authorization: Bearer $CRON_SECRET`. Só envia na segunda
- * (`?force=1` ignora a checagem, útil para teste manual).
+ * Cron de lembretes por e-mail:
+ * 1) Lembretes de agendamentos (30 min antes) — executa sempre que chamado.
+ * 2) Lembrete semanal de inatividade — executa às segundas (ou com `?force=1`).
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const env = getServerEnv();
@@ -29,11 +29,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
 
-  // 1 = segunda-feira
-  if (!force && new Date().getUTCDay() !== 1) {
-    return NextResponse.json({ ok: true, skipped: "not_monday" });
-  }
+  const scheduledReminders = await sendDueScheduleEmailReminders({ dryRun });
 
-  const result = await sendWeeklyReminders({ dryRun });
-  return NextResponse.json({ ok: true, ...result });
+  // 1 = segunda-feira
+  const weekly =
+    force || new Date().getUTCDay() === 1
+      ? await sendWeeklyReminders({ dryRun })
+      : { skipped: "not_monday" };
+
+  return NextResponse.json({ ok: true, scheduledReminders, weekly });
 }

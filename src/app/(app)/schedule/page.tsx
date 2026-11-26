@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  Bell,
   CalendarDays,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock,
   ExternalLink,
-  MessageCircle,
+  Mail,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -16,8 +16,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { emailConfigured } from "@/lib/email/client";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
-import { unscheduleAssetAction, type AssetScheduleMeta } from "@/lib/schedule/actions";
+import {
+  sendScheduleReminderNowAction,
+  unscheduleAssetAction,
+  type AssetScheduleMeta,
+} from "@/lib/schedule/actions";
 
 export const metadata: Metadata = { title: "Agendamentos" };
 
@@ -58,51 +63,6 @@ function toYmd(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function buildIcsDataUrl(item: ScheduledItem): string {
-  const dtStart = `${item.dateStr.replace(/-/g, "")}T${item.timeStr.replace(":", "")}00`;
-  const [hh = "10", mm = "00"] = item.timeStr.split(":");
-  const endHour = String(Math.min(23, Number(hh) + 1)).padStart(2, "0");
-  const dtEnd = `${item.dateStr.replace(/-/g, "")}T${endHour}${mm}00`;
-
-  const ics = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Kitefy//Agendamentos//PT-BR",
-    "BEGIN:VEVENT",
-    `UID:kitefy-${item.id}@kitefy.com.br`,
-    `DTSTART:${dtStart}`,
-    `DTEND:${dtEnd}`,
-    `SUMMARY:Publicar (${item.schedule.channel}): ${item.title.replace(/[\r\n,;]/g, " ")}`,
-    `DESCRIPTION:Marca: ${item.brand_name}. Abra no Kitefy para baixar e publicar: https://www.kitefy.com.br/studio/${item.thread_id}`,
-    "BEGIN:VALARM",
-    "TRIGGER:-PT30M",
-    "ACTION:DISPLAY",
-    `DESCRIPTION:Faltam 30 minutos para publicar "${item.title.replace(/[\r\n,;]/g, " ")}" (${item.schedule.channel})`,
-    "END:VALARM",
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ].join("\r\n");
-
-  return `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
-}
-
-function buildWhatsAppReminderUrl(item: ScheduledItem): string {
-  const dateBr = item.dateStr.split("-").reverse().join("/");
-  const text = [
-    `⏰ *Lembrete de Publicação Kitefy*`,
-    `• Marca: ${item.brand_name}`,
-    `• Conteúdo: ${item.title}`,
-    `• Canal: ${item.schedule.channel}`,
-    `• Horário agendado: ${dateBr} às ${item.timeStr}`,
-    `• Abrir para baixar/postar: https://www.kitefy.com.br/studio/${item.thread_id}`,
-  ].join("\n");
-
-  const phone = item.schedule.whatsappPhone ? item.schedule.whatsappPhone.replace(/\D/g, "") : "";
-  return phone
-    ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
-    : `https://wa.me/?text=${encodeURIComponent(text)}`;
-}
-
 export default async function SchedulePage({
   searchParams,
 }: {
@@ -110,6 +70,7 @@ export default async function SchedulePage({
 }) {
   const session = await getSessionContext();
   if (!session) redirect("/login");
+  const isEmailReady = emailConfigured();
 
   const params = await searchParams;
   const weekOffset = Number.parseInt(params.week ?? "0", 10) || 0;
@@ -183,7 +144,7 @@ export default async function SchedulePage({
     <div className="space-y-6">
       <PageHeader
         title="Grade Semanal de Agendamentos"
-        description="Organize suas publicações nos 7 dias da semana por horário e ative lembretes com 30 minutos de antecedência."
+        description="Organize suas publicações nos 7 dias da semana por horário e receba lembrete automático por e-mail 30 minutos antes."
         actions={
           <Button asChild size="sm">
             <Link href="/studio/new">
@@ -194,20 +155,19 @@ export default async function SchedulePage({
         }
       />
 
-      {/* Dica objetiva de lembretes */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
+      {/* Aviso de lembretes automáticos por e-mail */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange-200 bg-orange-50/70 px-4 py-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-2">
-          <Bell className="size-3.5 shrink-0 text-brand-signal" aria-hidden="true" />
+          <Mail className="size-4 shrink-0 text-brand-signal" aria-hidden="true" />
           <span>
-            <strong className="text-foreground">Alarme 30m:</strong> salva o aviso na agenda do celular 30 minutos antes.
+            <strong className="text-foreground">Lembrete automático por e-mail:</strong> enviamos um aviso{" "}
+            <strong className="text-foreground">30 minutos antes</strong> de cada publicação para{" "}
+            <strong className="text-foreground">{session.user.email ?? "seu e-mail cadastrado"}</strong> com o link direto para baixar e postar.
           </span>
         </span>
-        <span className="flex items-center gap-2">
-          <MessageCircle className="size-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
-          <span>
-            <strong className="text-foreground">WhatsApp:</strong> envia o lembrete pronto para você ou sua equipe em 1 clique.
-          </span>
-        </span>
+        <Badge variant={isEmailReady ? "success" : "secondary"} className="text-[10px]">
+          {isEmailReady ? "Envio de e-mail ativo" : "Aguardando servidor de e-mail (RESEND)"}
+        </Badge>
       </div>
 
       {/* Navegação da semana */}
@@ -289,7 +249,7 @@ export default async function SchedulePage({
                     <p className="truncate text-[11px] text-muted-foreground">
                       {item.brand_name} · {item.schedule.channel}
                     </p>
-                    <div className="flex flex-wrap gap-1 pt-1">
+                    <div className="flex flex-wrap items-center gap-1 pt-1">
                       <a
                         href={`/studio/${item.thread_id}`}
                         className="inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium hover:bg-accent"
@@ -297,24 +257,35 @@ export default async function SchedulePage({
                         <ExternalLink className="size-2.5" aria-hidden="true" />
                         Abrir
                       </a>
-                      <a
-                        href={buildIcsDataUrl(item)}
-                        download={`lembrete-${item.dateStr}-${item.timeStr.replace(":", "")}.ics`}
-                        className="inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium hover:bg-accent"
-                        title="Adiciona na agenda do celular com alarme de 30 minutos antes"
-                      >
-                        <Bell className="size-2.5 text-brand-signal" aria-hidden="true" />
-                        Alarme 30m
-                      </a>
-                      <a
-                        href={buildWhatsAppReminderUrl(item)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 hover:bg-emerald-100"
-                      >
-                        <MessageCircle className="size-2.5" aria-hidden="true" />
-                        WhatsApp
-                      </a>
+                      {item.schedule.emailReminderSentAt ? (
+                        <span
+                          className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800"
+                          title="Lembrete já enviado por e-mail"
+                        >
+                          <CheckCircle2 className="size-2.5" aria-hidden="true" />
+                          E-mail enviado
+                        </span>
+                      ) : isEmailReady ? (
+                        <form action={sendScheduleReminderNowAction}>
+                          <input type="hidden" name="assetId" value={item.id} />
+                          <button
+                            type="submit"
+                            className="inline-flex items-center gap-1 rounded border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-[10px] font-medium text-orange-950 hover:bg-orange-100"
+                            title="Disparar aviso agora para o seu e-mail"
+                          >
+                            <Mail className="size-2.5 text-brand-signal" aria-hidden="true" />
+                            Enviar e-mail
+                          </button>
+                        </form>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                          title="O e-mail será enviado automaticamente 30 minutos antes quando o serviço de e-mail estiver ativo"
+                        >
+                          <Mail className="size-2.5 text-brand-signal" aria-hidden="true" />
+                          E-mail 30m
+                        </span>
+                      )}
                       <form action={unscheduleAssetAction}>
                         <input type="hidden" name="assetId" value={item.id} />
                         <input type="hidden" name="threadId" value={item.thread_id} />

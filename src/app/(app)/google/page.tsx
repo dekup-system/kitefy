@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Check, Download, Globe, SearchCheck, TriangleAlert } from "lucide-react";
+import { Check, CheckCircle2, Download, Globe, SearchCheck, TriangleAlert } from "lucide-react";
 import { GoogleTokenForm } from "./google-token-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { getSessionContext, createSupabaseServerClient } from "@/lib/supabase/server";
-import { buildRobotsTxt, normalizeSiteUrl } from "@/lib/export/google-pack";
+import { normalizeSiteUrl } from "@/lib/export/google-pack";
+import { markGooglePackInstalledAction } from "@/lib/brand/actions";
 
 export const metadata: Metadata = { title: "Pacote Google" };
 
@@ -190,17 +191,35 @@ export default async function GooglePackPage({
 
                 {siteUrl ? (
                   <div className="space-y-2">
-                    <Button asChild size="lg" className="w-full sm:w-auto">
-                      {/* O download vem do Content-Disposition da rota; sem o atributo
-                          `download`, um redirecionamento de erro navega para o aviso. */}
-                      <a href={`/api/brands/${selected?.id}/google-pack`}>
-                        <Download className="size-4" aria-hidden="true" />
-                        Baixar pacote ZIP
-                      </a>
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <Button asChild size="lg" className="w-full sm:w-auto">
+                        {/* O download vem do Content-Disposition da rota; sem o atributo
+                            `download`, um redirecionamento de erro navega para o aviso. */}
+                        <a href={`/api/brands/${selected?.id}/google-pack`}>
+                          <Download className="size-4" aria-hidden="true" />
+                          Baixar pacote ZIP
+                        </a>
+                      </Button>
+
+                      {selected ? (
+                        <form action={markGooglePackInstalledAction}>
+                          <input type="hidden" name="brandId" value={selected.id} />
+                          <Button
+                            type="submit"
+                            size="lg"
+                            variant="outline"
+                            className="w-full border-orange-300 bg-orange-100/90 font-medium text-orange-950 hover:bg-orange-200/90 sm:w-auto dark:border-orange-800 dark:bg-orange-950/50 dark:text-orange-200"
+                          >
+                            <CheckCircle2 className="size-4 text-orange-700 dark:text-orange-400" aria-hidden="true" />
+                            {selected.google_verification_token
+                              ? "Pacote Instalado ✓"
+                              : "Pacote Instalado"}
+                          </Button>
+                        </form>
+                      ) : null}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      O download é gerado na hora com os dados atuais da marca. Se editar o token ou o
-                      site, baixe novamente.
+                      Após enviar os arquivos para seu site, clique em <strong>Pacote Instalado</strong> para concluir este item na Saúde da Marca.
                     </p>
                   </div>
                 ) : (
@@ -316,23 +335,6 @@ export default async function GooglePackPage({
               </Card>
             </div>
           </div>
-
-          {siteUrl ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Prévia do robots.txt</CardTitle>
-                <CardDescription>
-                  Copiado para o ZIP. Os crawlers de IA aparecem explicitamente para não herdarem
-                  bloqueios genéricos.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <pre className="overflow-x-auto rounded-md border border-border bg-muted/40 p-3 font-mono text-xs leading-relaxed">
-                  {buildRobotsTxt(siteUrl)}
-                </pre>
-              </CardContent>
-            </Card>
-          ) : null}
         </>
       )}
     </div>

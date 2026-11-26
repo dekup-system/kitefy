@@ -51,7 +51,7 @@ export function ScheduleAssetCard({
           </Button>
         </div>
         <CardDescription className="text-xs">
-          Defina dia, horário e canal para organizar este anúncio nos 7 dias da semana (com alarme grátis de 30 min e atalho de WhatsApp na grade).
+          Defina dia, horário e canal para organizar este anúncio nos 7 dias da semana com lembrete automático por e-mail 30 minutos antes.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">

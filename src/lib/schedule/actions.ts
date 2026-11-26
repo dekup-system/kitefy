@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseServerClient, requireSessionContext } from "@/lib/supabase/server";
+import { emailConfigured, sendEmail } from "@/lib/email/client";
+import { buildScheduleReminderEmail } from "@/lib/email/schedule-reminders";
 
 /**
  * Agendamento de publicações em grade semanal (7 dias × horários).
@@ -15,6 +17,8 @@ export interface AssetScheduleMeta {
   /** ISO local ou UTC da data/hora agendada (ex.: "2026-11-26T14:00"). */
   scheduledFor: string;
   channel: string;
+  reminderEmail?: string | null;
+  emailReminderSentAt?: string | null;
   whatsappPhone?: string | null;
   note?: string | null;
 }
@@ -70,6 +74,8 @@ export async function scheduleAssetAction(
   const schedule: AssetScheduleMeta = {
     scheduledFor: `${parsed.data.date}T${parsed.data.time}`,
     channel: parsed.data.channel,
+    reminderEmail: session.user.email ?? null,
+    emailReminderSentAt: null,
     whatsappPhone: cleanPhone.length >= 10 ? cleanPhone : null,
     note: parsed.data.note || null,
   };
@@ -125,4 +131,77 @@ export async function unscheduleAssetAction(formData: FormData): Promise<void> {
   revalidatePath("/schedule");
   revalidatePath("/campaigns");
   if (threadId) revalidatePath(`/studio/${threadId}`);
+}
+
+/**
+ * Dispara o lembrete por e-mail imediatamente para o e-mail da conta logada
+ * e marca `_schedule.emailReminderSentAt` para evitar duplicidade.
+ */
+export async function sendScheduleReminderNowAction(formData: FormData): Promise<void> {
+  const session = await requireSessionContext();
+  const assetId = String(formData.get("assetId") ?? "").trim();
+  if (!assetId || !session.user.email || !emailConfigured()) return;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: asset } = await supabase
+    .from("campaigns_and_assets")
+    .select("id, brand_id, thread_id, title, content_payload")
+    .eq("id", assetId)
+    .eq("tenant_id", session.tenantId)
+    .maybeSingle<{
+      id: string;
+      brand_id: string;
+      thread_id: string;
+      title: string;
+      content_payload: Record<string, unknown> | null;
+    }>();
+
+  if (!asset?.content_payload) return;
+  const sched = asset.content_payload._schedule as AssetScheduleMeta | undefined;
+  if (!sched?.scheduledFor) return;
+
+  const { data: brand } = await supabase
+    .from("brand_profiles")
+    .select("brand_name")
+    .eq("id", asset.brand_id)
+    .eq("tenant_id", session.tenantId)
+    .maybeSingle<{ brand_name: string }>();
+
+  const [dateStr = "", timeStr = "09:00"] = sched.scheduledFor.split("T");
+  const email = buildScheduleReminderEmail({
+    brandName: brand?.brand_name ?? "Sua marca",
+    title: asset.title,
+    channel: sched.channel || "Instagram Feed",
+    dateBr: dateStr.split("-").reverse().join("/"),
+    timeStr: timeStr.slice(0, 5),
+    threadId: asset.thread_id,
+  });
+
+  const targetEmail = sched.reminderEmail?.trim() || session.user.email;
+  try {
+    await sendEmail({
+      to: targetEmail,
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+    });
+
+    const nextPayload = {
+      ...asset.content_payload,
+      _schedule: {
+        ...sched,
+        reminderEmail: targetEmail,
+        emailReminderSentAt: new Date().toISOString(),
+      },
+    };
+    await supabase
+      .from("campaigns_and_assets")
+      .update({ content_payload: nextPayload })
+      .eq("id", asset.id)
+      .eq("tenant_id", session.tenantId);
+  } catch {
+    // Falha silenciosa na ação manual; cron tentará novamente na janela de 30 min.
+  }
+
+  revalidatePath("/schedule");
 }

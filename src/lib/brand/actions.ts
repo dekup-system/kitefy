@@ -451,3 +451,47 @@ export async function deleteBrandAction(
 
   return { deleted: true };
 }
+
+/**
+ * Marca o Pacote Google (sitemap, llms.txt, schema e verificação) como instalado
+ * para a marca, riscando automaticamente o item na caixa "Saúde da Marca".
+ */
+export async function markGooglePackInstalledAction(formData: FormData): Promise<void> {
+  const session = await requireSessionContext();
+  if (!isEditor(session.role)) return;
+
+  const parsedId = brandIdSchema.safeParse(formData.get("brandId"));
+  if (!parsedId.success) return;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: existing } = await supabase
+    .from("brand_profiles")
+    .select("id, google_verification_token")
+    .eq("id", parsedId.data)
+    .eq("tenant_id", session.tenantId)
+    .maybeSingle<{ id: string; google_verification_token: string | null }>();
+
+  if (!existing) return;
+
+  const nextToken =
+    existing.google_verification_token && existing.google_verification_token.trim().length > 0
+      ? existing.google_verification_token
+      : "installed_confirmed";
+
+  const { error } = await supabase
+    .from("brand_profiles")
+    .update({ google_verification_token: nextToken })
+    .eq("id", parsedId.data)
+    .eq("tenant_id", session.tenantId);
+
+  if (error) {
+    log.error("Falha ao marcar Pacote Google como instalado", {
+      brandId: parsedId.data,
+      message: error.message,
+    });
+    return;
+  }
+
+  revalidatePath("/google");
+  revalidatePath("/app");
+}

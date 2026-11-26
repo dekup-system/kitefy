@@ -6,13 +6,35 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   generateAudienceStudyAction,
   type AudienceStudyActionState,
 } from "@/lib/onboarding/actions";
-import type { BrandProfileRow } from "@/types/domain";
+import type { AudiencePersona, BrandProfileRow } from "@/types/domain";
+
+function formatPersonaForCopy(persona: AudiencePersona, brandName: string): string {
+  return [
+    `PERSONA — ${persona.name} (${brandName})`,
+    `Perfil: ${persona.archetype}`,
+    `Faixa etária: ${persona.ageRange} | Classe ABEP: ${persona.abepClass}`,
+    "",
+    `Job Funcional: ${persona.jtbdFunctional}`,
+    `Job Emocional: ${persona.jtbdEmotional}`,
+    `Job Social: ${persona.jtbdSocial}`,
+    "",
+    `Já tentou e frustrou: ${persona.triedAndFailed}`,
+    `Gatilho de compra: ${persona.buyingTrigger}`,
+    "",
+    "Objeções ocultas:",
+    ...persona.hiddenObjections.map((o) => `- ${o}`),
+    "",
+    "Voz do Cliente:",
+    ...persona.vocPhrases.map((p) => `- "${p}"`),
+  ].join("\n");
+}
 
 const initialState: AudienceStudyActionState = {};
 
@@ -155,69 +177,79 @@ export function AudienceStudyCard({ brand }: { brand: BrandProfileRow }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
                 Personas Baseadas em Evidência (Jobs-to-be-Done + Voz do Cliente)
               </p>
-              <div className="grid gap-3 lg:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-3">
                 {study.personas.map((persona) => (
                   <div
                     key={persona.name}
-                    className="space-y-3 rounded-xl border border-border bg-card p-4 text-xs"
+                    className="flex flex-col justify-between gap-3 rounded-xl border border-border bg-card p-3.5 text-xs"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
+                    <div className="space-y-2.5">
+                      <div className="space-y-1">
                         <p className="text-sm font-semibold text-foreground">{persona.name}</p>
                         <p className="text-muted-foreground">{persona.archetype}</p>
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          <Badge variant="outline" className="text-[10px]">
+                            {persona.ageRange}
+                          </Badge>
+                          <Badge variant="secondary" className="font-mono text-[10px]">
+                            ABEP {persona.abepClass}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="flex gap-1.5">
-                        <Badge variant="outline" className="text-[10px]">
-                          {persona.ageRange}
-                        </Badge>
-                        <Badge variant="secondary" className="font-mono text-[10px]">
-                          ABEP {persona.abepClass}
-                        </Badge>
+
+                      <div className="scrollbar-thin max-h-64 space-y-2.5 overflow-y-auto pr-1">
+                        <div className="space-y-1.5 rounded-lg bg-muted/30 p-2.5">
+                          <p>
+                            <strong className="text-foreground">Job Funcional:</strong>{" "}
+                            <span className="text-muted-foreground">{persona.jtbdFunctional}</span>
+                          </p>
+                          <p>
+                            <strong className="text-foreground">Job Emocional:</strong>{" "}
+                            <span className="text-muted-foreground">{persona.jtbdEmotional}</span>
+                          </p>
+                          <p>
+                            <strong className="text-foreground">Job Social:</strong>{" "}
+                            <span className="text-muted-foreground">{persona.jtbdSocial}</span>
+                          </p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <p>
+                            <strong className="text-foreground">Já tentou e frustrou:</strong>{" "}
+                            <span className="text-muted-foreground">{persona.triedAndFailed}</span>
+                          </p>
+                          <p>
+                            <strong className="text-foreground">Gatilho de compra:</strong>{" "}
+                            <span className="text-muted-foreground">{persona.buyingTrigger}</span>
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="font-semibold text-foreground">Objeções ocultas:</p>
+                          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground">
+                            {persona.hiddenObjections.map((obj) => (
+                              <li key={obj}>{obj}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="rounded-lg border border-border/70 bg-muted/20 p-2.5">
+                          <p className="font-semibold text-foreground">Voz do Cliente:</p>
+                          <ul className="mt-1 space-y-1 italic text-muted-foreground">
+                            {persona.vocPhrases.map((phrase) => (
+                              <li key={phrase}>&ldquo;{phrase}&rdquo;</li>
+                            ))}
+                          </ul>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="space-y-1.5 rounded-lg bg-muted/30 p-2.5">
-                      <p>
-                        <strong className="text-foreground">Job Funcional:</strong>{" "}
-                        <span className="text-muted-foreground">{persona.jtbdFunctional}</span>
-                      </p>
-                      <p>
-                        <strong className="text-foreground">Job Emocional:</strong>{" "}
-                        <span className="text-muted-foreground">{persona.jtbdEmotional}</span>
-                      </p>
-                      <p>
-                        <strong className="text-foreground">Job Social:</strong>{" "}
-                        <span className="text-muted-foreground">{persona.jtbdSocial}</span>
-                      </p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <p>
-                        <strong className="text-foreground">Já tentou e frustrou:</strong>{" "}
-                        <span className="text-muted-foreground">{persona.triedAndFailed}</span>
-                      </p>
-                      <p>
-                        <strong className="text-foreground">Gatilho de compra:</strong>{" "}
-                        <span className="text-muted-foreground">{persona.buyingTrigger}</span>
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="font-semibold text-foreground">Objeções ocultas:</p>
-                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground">
-                        {persona.hiddenObjections.map((obj) => (
-                          <li key={obj}>{obj}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="rounded-lg border border-border/70 bg-muted/20 p-2.5">
-                      <p className="font-semibold text-foreground">Voz do Cliente (como fala na prática):</p>
-                      <ul className="mt-1 space-y-1 italic text-muted-foreground">
-                        {persona.vocPhrases.map((phrase) => (
-                          <li key={phrase}>&ldquo;{phrase}&rdquo;</li>
-                        ))}
-                      </ul>
+                    <div className="border-t border-border/70 pt-2">
+                      <CopyButton
+                        value={formatPersonaForCopy(persona, brand.brand_name)}
+                        label="Copiar texto"
+                        size="sm"
+                      />
                     </div>
                   </div>
                 ))}
