@@ -128,22 +128,21 @@ export default async function BrandSettingsPage({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">Fatos verificáveis (GEO)</CardTitle>
+              <CardTitle className="text-sm">Diferenciais e fatos da marca (usados nos textos e GEO)</CardTitle>
               <CardDescription>
-                Cada fato precisa de fonte para poder ser citado por motores de busca e assistentes.
+                Termos próprios, recursos e diferenciais da sua marca entram automaticamente nos conteúdos gerados. O link de fonte é opcional (recomendado apenas para pesquisas ou dados numéricos externos).
               </CardDescription>
             </CardHeader>
             <CardContent>
               {(selected?.entity_facts ?? []).length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Nenhum fato cadastrado. Sem fatos com fonte, artigos GEO evitam números
-                  específicos — o que reduz a chance de citação.
+                  Nenhum diferencial ou fato cadastrado ainda. Adicione os principais recursos e provas da sua marca acima para enriquecer todos os conteúdos.
                 </p>
               ) : (
                 <ul className="space-y-2">
                   {(selected?.entity_facts ?? []).map((fact, index) => (
                     <li key={`${fact.claim}-${index}`} className="rounded-md border border-border p-3 text-sm">
-                      <p>{fact.claim}</p>
+                      <p className="font-medium text-foreground">{fact.claim}</p>
                       {fact.source_url ? (
                         <a
                           href={fact.source_url}
@@ -151,10 +150,12 @@ export default async function BrandSettingsPage({
                           rel="noreferrer"
                           className="mt-1 inline-block text-xs text-muted-foreground underline underline-offset-4"
                         >
-                          {fact.source_url}
+                          Fonte externa: {fact.source_url}
                         </a>
                       ) : (
-                        <p className="mt-1 text-xs text-warning">Sem fonte — não será usado como dado.</p>
+                        <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">
+                          Diferencial próprio da marca — incluído automaticamente nos conteúdos.
+                        </p>
                       )}
                     </li>
                   ))}

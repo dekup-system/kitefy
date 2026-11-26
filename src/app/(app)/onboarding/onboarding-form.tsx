@@ -4,14 +4,12 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Loader2, Sparkles, Wand2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { createBrandFromOnboardingAction, type BrandFormState } from "@/lib/onboarding/actions";
 import { firstAssetSuggestion, NICHE_TEMPLATES } from "@/lib/onboarding/extract";
-import { CREDIT_COSTS } from "@/lib/pricing";
 
 const initialState: BrandFormState = {};
 
@@ -23,12 +21,14 @@ export function OnboardingForm() {
 
   useEffect(() => {
     if (state.brandId) {
-      // Pré-aquece a navegação do próximo passo.
-      router.prefetch("/studio/new");
+      // Fluxo: após criar a primeira marca, conduz direto para Marcas e Personas
+      // para concluir logomarca, DNA estratégico e estudo das 3 personas.
+      router.replace(`/settings/brand?brand=${state.brandId}`);
     }
   }, [state.brandId, router]);
 
   if (state.brandId) {
+    const brandConfigUrl = `/settings/brand?brand=${state.brandId}`;
     const suggestion = firstAssetSuggestion(templateId || "geral");
     const params = new URLSearchParams({
       brand: state.brandId,
@@ -42,36 +42,22 @@ export function OnboardingForm() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="size-4" aria-hidden="true" />
-            Marca criada. Agora o primeiro ativo.
+            Marca criada! Agora finalize sua marca e personas.
           </CardTitle>
           <CardDescription>
             {state.notice ??
-              "Sugerimos um ativo que prova o padrão de voz em menos de um minuto."}
+              "Redirecionando para Marcas e Personas para enviar sua logomarca, revisar o DNA estratégico e gerar as 3 personas."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-lg border border-border bg-muted/40 p-4">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Sugestão
-              </span>
-              <Badge variant="outline" className="font-mono">
-                {CREDIT_COSTS[suggestion.assetType]} crédito
-                {CREDIT_COSTS[suggestion.assetType] > 1 ? "s" : ""}
-              </Badge>
-            </div>
-            <p className="mt-2 text-sm font-medium">{suggestion.objective}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{suggestion.rationale}</p>
-          </div>
-
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button asChild size="lg" className="flex-1">
-              <a href={`/studio/new?${params.toString()}`}>
-                Gerar agora <ArrowRight className="size-4" aria-hidden="true" />
+              <a href={brandConfigUrl}>
+                Configurar marca e personas <ArrowRight className="size-4" aria-hidden="true" />
               </a>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <a href="/app">Explorar depois</a>
+              <a href={`/studio/new?${params.toString()}`}>Ir para criação de conteúdos</a>
             </Button>
           </div>
         </CardContent>

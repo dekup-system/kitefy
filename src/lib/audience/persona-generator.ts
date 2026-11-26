@@ -34,7 +34,7 @@ const audienceStudyOutputSchema = z.object({
     buyingTriggers: z.array(z.string().min(6).max(180)).min(2).max(4),
     marketFriction: z.string().min(8).max(260),
   }),
-  personas: z.array(personaSchema).min(2).max(3),
+  personas: z.array(personaSchema).length(3),
 });
 
 export interface GenerateAudienceStudyInput {
@@ -97,6 +97,25 @@ function buildDeterministicStudy(
         "Preciso de algo que caiba na minha rotina sem complicação.",
       ],
     },
+    {
+      name: "Cliente Exigente / Indicação Qualificada",
+      archetype: `Comprador experiente em ${ibge.regionLabel} que prioriza confiança e padrão de entrega`,
+      ageRange: "35 a 55 anos",
+      abepClass: ibge.dominantAbepClasses[0] ?? abep,
+      jtbdFunctional: `Garantir padrão consistente de qualidade ao contratar ${input.brandName}, sem precisar fiscalizar cada detalhe.`,
+      jtbdEmotional: "Ter a tranquilidade de lidar com especialistas que cumprem o combinado do início ao fim.",
+      jtbdSocial: "Indicar uma marca de alto nível para sua rede de contatos com segurança.",
+      triedAndFailed: "Já contratou fornecedores que prometeram agilidade mas falharam no acabamento e no pós-venda.",
+      hiddenObjections: [
+        "Será que mantém o mesmo padrão de qualidade quando o volume aumenta?",
+        "Como sei que o suporte vai responder rápido se eu precisar ajustar algo?",
+      ],
+      buyingTrigger: "Ver bastidores claros do processo, diferenciais técnicos próprios e comunicação transparente.",
+      vocPhrases: [
+        "Prefiro investir em quem entrega direito na primeira vez.",
+        "Me mostra o processo real — quero segurança no resultado.",
+      ],
+    },
   ];
 
   return {
@@ -134,7 +153,8 @@ export async function generateBrandAudienceStudy(
 
     const prompt = [
       "Você é um estrategista sênior de pesquisa de mercado, comportamento do consumidor e demografia brasileira.",
-      "Gere um estudo estruturado de consumo e 2 a 3 personas baseadas em evidência (Jobs-to-be-Done + Voz do Cliente + IBGE + Critério Brasil ABEP).",
+      "Gere um estudo estruturado de consumo e EXATAMENTE 3 personas distintas baseadas em evidência (1. Decisor Principal, 2. Explorador/Comparador Cauteloso, 3. Cliente Exigente/Recorrente) usando Jobs-to-be-Done + Voz do Cliente + IBGE + Critério Brasil ABEP.",
+      "OBRIGATÓRIO: o array `personas` deve conter exatamente 3 objetos completos e distintos entre si.",
       "PROIBIDO criar personas rasas/clichês ('João, 35 anos, gosta de tecnologia'). Foque em dores reais, fricções, objeções ocultas e frases literais que o brasileiro realmente fala.",
       "",
       `Marca: ${input.brandName}`,

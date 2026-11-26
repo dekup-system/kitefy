@@ -66,8 +66,8 @@ export function buildBrandContextBlock(brand: BrandContext): string {
       ? `Frases aprovadas da marca (espelhe este ritmo e vocabulário):\n${(tone.exemplars ?? []).map((ex) => `- ${ex}`).join("\n")}`
       : "",
     "",
-    "## Fatos verificáveis (use SOMENTE estes para números/provas; nunca invente dados)",
-    facts || "Nenhum fato numérico cadastrado — use exemplos qualitativos concretos do nicho, sem inventar estatísticas.",
+    "## Diferenciais próprios e fatos verificáveis da marca (INCORPORE estes termos, recursos e diferenciais nos textos naturalmente; para números/estatísticas, use apenas os listados aqui)",
+    facts || "Nenhum diferencial cadastrado — use exemplos qualitativos concretos do nicho, sem inventar estatísticas.",
     "",
     "## Conhecimento interno (trechos vencedores e documentos da marca)",
     chunks || "Nenhum trecho indexado ainda — ancore-se fortemente no ICP, no objetivo e no produto/serviço informado.",

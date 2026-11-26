@@ -690,9 +690,14 @@ export default async function StudioPage({
 
       {/* Detalhes completos e exportação técnica (Progressive Disclosure) */}
       <Tabs defaultValue="conteudo" className="space-y-3">
-        <TabsList>
+        <TabsList className="flex h-auto flex-wrap gap-1.5">
           <TabsTrigger value="conteudo">Texto completo</TabsTrigger>
-          <TabsTrigger value="conformidade">Revisão CONAR</TabsTrigger>
+          <TabsTrigger
+            value="conformidade"
+            className="border border-orange-300/90 bg-orange-100/80 font-medium text-orange-950 hover:bg-orange-100 data-[state=active]:border-orange-500 data-[state=active]:bg-orange-200/90 data-[state=active]:text-orange-950 dark:border-orange-800 dark:bg-orange-950/50 dark:text-orange-200 dark:data-[state=active]:bg-orange-900/60"
+          >
+            Revisão CONAR
+          </TabsTrigger>
           {jsonLdText ? <TabsTrigger value="jsonld">Código para Site (Schema.org)</TabsTrigger> : null}
         </TabsList>
 
