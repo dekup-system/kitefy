@@ -114,7 +114,7 @@ export function BrandCreateForm({
         ) : (
           <Plus className="size-4" aria-hidden="true" />
         )}
-        Criar marca
+        Criar e analisar marca (2 créditos)
       </Button>
     </form>
   );

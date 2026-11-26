@@ -1,12 +1,13 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseServerClient, requireSessionContext } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env";
 import { extractBrandDraft } from "@/lib/onboarding/extract";
-import { PLANS } from "@/lib/pricing";
+import { CREDIT_COSTS, PLANS } from "@/lib/pricing";
 import { createLogger } from "@/lib/logger";
 import { MAX_BRAND_LOGO_BYTES, validateBrandLogo } from "./logo";
 import { extractLogoPalettes } from "./logo-colors";
@@ -106,8 +107,25 @@ export async function createBrandAction(
     };
   }
 
-  // Extrai automaticamente contexto inicial (site, ICP, tom de voz, cores e fatos)
-  // sempre que o usuário informa um site ou descrição ao criar nova marca.
+  // Cobrança atômica de 2 créditos pela análise automática da marca (admin tem créditos ilimitados).
+  const analysisCost = session.isPlatformAdmin ? 0 : CREDIT_COSTS.brand_analysis;
+  const chargeRef = `brand_analysis:${randomUUID()}`;
+  const admin = createSupabaseAdminClient();
+  if (analysisCost > 0) {
+    const { error: debitErr } = await admin.rpc("consume_credits", {
+      p_tenant_id: session.tenantId,
+      p_delta: -analysisCost,
+      p_reason: "brand_analysis",
+      p_reference_id: chargeRef,
+    });
+    if (debitErr) {
+      return {
+        error: `Saldo insuficiente: a análise completa da marca custa ${analysisCost} créditos. Recarregue em Plano e créditos.`,
+      };
+    }
+  }
+
+  // Extrai automaticamente contexto inicial (site/rede social, ICP, tom de voz, cores e fatos).
   let extractedIcp: string | null = parsed.data.icpDescription || null;
   let extractedTone: Record<string, unknown> = {};
   let extractedTokens: Record<string, unknown> = {};
@@ -141,8 +159,16 @@ export async function createBrandAction(
     .single<{ id: string }>();
 
   if (inserted.error || !inserted.data) {
+    if (analysisCost > 0) {
+      await admin.rpc("consume_credits", {
+        p_tenant_id: session.tenantId,
+        p_delta: analysisCost,
+        p_reason: "refund_technical_error:brand_create_failed",
+        p_reference_id: chargeRef,
+      });
+    }
     log.error("Falha ao criar marca pelo painel", { message: inserted.error?.message });
-    return { error: "Não foi possível criar a marca agora. Tente novamente." };
+    return { error: "Não foi possível criar a marca agora. Seus créditos foram estornados automaticamente." };
   }
 
   revalidatePath("/settings/brand");
@@ -234,8 +260,9 @@ export async function uploadBrandLogoAction(
       ...brand.visualTokens,
       logo_path: path,
       ...(logoPalettes.length > 0 ? { logo_palettes: logoPalettes } : {}),
-      // Se a marca ainda não definiu cor própria, aplica automaticamente a paleta principal da logo
-      ...(!brand.visualTokens.primary && firstLogoPalette
+      // Aplica automaticamente as cores principais extraídas da nova logomarca
+      // (mantendo as 3 variações clicáveis logo abaixo para o usuário ajustar).
+      ...(firstLogoPalette
         ? {
             primary: firstLogoPalette.primary,
             background: firstLogoPalette.background,

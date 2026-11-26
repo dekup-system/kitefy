@@ -19,7 +19,7 @@ export function OnboardingForm() {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(createBrandFromOnboardingAction, initialState);
   const [templateId, setTemplateId] = useState<string>("");
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState("https://");
 
   useEffect(() => {
     if (state.brandId) {
@@ -115,7 +115,9 @@ export function OnboardingForm() {
                 type="button"
                 onClick={() => {
                   setTemplateId(active ? "" : template.id);
-                  if (!input.trim()) setInput(template.example_input);
+                  if (!input.trim() || /^https?:\/\/?$/i.test(input.trim())) {
+                    setInput(template.example_input);
+                  }
                 }}
                 aria-pressed={active}
                 className={`flex h-full flex-col gap-1.5 rounded-lg border p-3 text-left transition-colors ${

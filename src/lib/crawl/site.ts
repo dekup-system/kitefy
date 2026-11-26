@@ -572,28 +572,94 @@ export async function crawlBrandSite(
     warnings.push("Nenhuma página pôde ser lida (site fora do ar, bloqueio ou HTML vazio).");
   }
 
-  // Fallback para perfis de redes sociais (quando a marca não tem site próprio
-  // e informa Instagram, LinkedIn, TikTok, YouTube ou Facebook).
-  const socialHosts = ["instagram.com", "linkedin.com", "tiktok.com", "youtube.com", "facebook.com"];
+  // Fallback inteligente para perfis de redes sociais (Instagram, TikTok, Facebook,
+  // LinkedIn, YouTube): redes sociais frequentemente retornam tela de login em inglês
+  // ("Create an account or log in to Instagram...") e <title>Instagram</title>.
+  // Nunca usamos esses textos genéricos como nome ou descrição da marca.
+  const socialHosts = ["instagram.com", "linkedin.com", "tiktok.com", "youtube.com", "facebook.com", "threads.net"];
   const hostLower = entry.hostname.toLowerCase();
   const isSocialUrl = socialHosts.some((domain) => hostLower === domain || hostLower.endsWith(`.${domain}`));
 
+  const GENERIC_SOCIAL_NAMES = new Set([
+    "instagram",
+    "tiktok",
+    "facebook",
+    "linkedin",
+    "youtube",
+    "threads",
+    "log in",
+    "login",
+    "entrar",
+    "sign up",
+  ]);
+  const SOCIAL_LOGIN_BOILERPLATE =
+    /create an account|log in to instagram|sign up to see|entrar no instagram|fa[çc]a login|welcome back to instagram|make your day|log into facebook|join facebook|see photos, videos and more|criar uma conta|connect with friends|cadastre-se para ver/i;
+
   let derivedBrandName = homeProfile ? deriveBrandName(homeProfile, entry) : "";
   let derivedDescription = description;
-  if (isSocialUrl && !derivedBrandName) {
-    const segments = entry.pathname
-      .split("/")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !["company", "in", "channel", "c", "user", "p", "reel"].includes(s.toLowerCase()));
-    const handle = (segments[0] ?? "").replace(/^@/, "").replace(/[._-]+/g, " ").trim();
-    if (handle.length >= 2) {
-      derivedBrandName = handle
-        .split(" ")
-        .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ""))
-        .join(" ");
+  let cleanedTopics = topics;
+  let cleanedFacts = facts;
+
+  if (isSocialUrl) {
+    // Remove qualquer texto de tela de login das redes sociais
+    if (SOCIAL_LOGIN_BOILERPLATE.test(derivedDescription)) {
+      derivedDescription = "";
     }
+    cleanedTopics = topics.filter((t) => !SOCIAL_LOGIN_BOILERPLATE.test(t) && !GENERIC_SOCIAL_NAMES.has(t.trim().toLowerCase()));
+    cleanedFacts = facts.filter((f) => !SOCIAL_LOGIN_BOILERPLATE.test(f.claim));
+
+    // Se o título trouxe "Nome Real (@handle) • Instagram...", extrai apenas o Nome Real
+    const rawTitle = homeProfile?.title ?? "";
+    const realNameFromTitle = rawTitle
+      .replace(/\s*\(@[^)]+\).*$/i, "")
+      .replace(/\s*[•|·—–-]\s*(instagram|tiktok|facebook|linkedin|youtube).*$/i, "")
+      .trim();
+
+    if (
+      realNameFromTitle.length >= 2 &&
+      realNameFromTitle.length <= 60 &&
+      !GENERIC_SOCIAL_NAMES.has(realNameFromTitle.toLowerCase()) &&
+      !SOCIAL_LOGIN_BOILERPLATE.test(realNameFromTitle)
+    ) {
+      derivedBrandName = realNameFromTitle;
+    }
+
+    // Se ainda ficou vazio ou genérico ("Instagram", "TikTok"...), extrai o nome real do @handle na URL
+    if (!derivedBrandName || GENERIC_SOCIAL_NAMES.has(derivedBrandName.trim().toLowerCase())) {
+      const ignoredSegments = new Set([
+        "company",
+        "in",
+        "channel",
+        "c",
+        "user",
+        "p",
+        "reel",
+        "reels",
+        "stories",
+        "explore",
+        "accounts",
+        "login",
+        "pages",
+        "profile.php",
+        "share",
+      ]);
+      const segments = entry.pathname
+        .split("/")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && !ignoredSegments.has(s.toLowerCase()));
+      const handle = (segments[0] ?? "").replace(/^@/, "").replace(/[._-]+/g, " ").trim();
+      if (handle.length >= 2) {
+        derivedBrandName = handle
+          .split(" ")
+          .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ""))
+          .join(" ");
+      }
+    }
+
     if (!derivedDescription) {
-      derivedDescription = `Perfil oficial em ${hostLower.replace(/^www\./, "")} (${entry.toString()}).`;
+      warnings.push(
+        "Perfis de Instagram/TikTok/Facebook bloqueiam leitura direta sem login; usamos o nome real da conta e dados públicos indexados.",
+      );
     }
   }
 
@@ -602,8 +668,8 @@ export async function crawlBrandSite(
     pages: pages.map(({ links: _links, ...rest }) => rest),
     brand_name: derivedBrandName,
     description: derivedDescription,
-    topics,
-    facts,
+    topics: cleanedTopics,
+    facts: cleanedFacts,
     json_ld_types: unique(pages.flatMap((page) => page.jsonLdTypes)),
     blocked_by_robots: blockedByRobots,
     warnings,

@@ -47,19 +47,28 @@ function darkenHex(r: number, g: number, b: number, factor = 0.28): string {
   return toHex(r * factor, g * factor, b * factor);
 }
 
+function hueDistance(h1: number, h2: number): number {
+  const diff = Math.abs(h1 - h2);
+  return Math.min(diff, 360 - diff);
+}
+
 /**
- * Analisa os pixels da logomarca (48x48) e devolve 3 variações de paleta
- * derivadas das cores predominantes (Claro, Suave e Escuro).
+ * Analisa os pixels reais da logomarca (64x64) separando a base escura das
+ * cores cromáticas vibrantes (ex.: fundo escuro + laranja + azul) e devolve
+ * 3 variações harmônicas fiéis que aproveitam TODAS as cores principais da marca.
  */
 export async function extractLogoPalettes(buffer: Buffer): Promise<LogoPaletteVariation[]> {
   try {
     const { data, info } = await sharp(buffer)
-      .resize(48, 48, { fit: "inside" })
+      .resize(64, 64, { fit: "inside" })
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    const buckets = new Map<string, { count: number; r: number; g: number; b: number; sat: number }>();
+    const buckets = new Map<
+      string,
+      { count: number; r: number; g: number; b: number; satSum: number; lightSum: number }
+    >();
 
     for (let i = 0; i < data.length; i += info.channels) {
       const r = data[i] ?? 0;
@@ -72,9 +81,9 @@ export async function extractLogoPalettes(buffer: Buffer): Promise<LogoPaletteVa
       const { s, l } = rgbToHsl(r, g, b);
       if (l > 0.93) continue;
 
-      const qr = Math.round(r / 24) * 24;
-      const qg = Math.round(g / 24) * 24;
-      const qb = Math.round(b / 24) * 24;
+      const qr = Math.round(r / 20) * 20;
+      const qg = Math.round(g / 20) * 20;
+      const qb = Math.round(b / 20) * 20;
       const key = `${qr},${qg},${qb}`;
       const prev = buckets.get(key);
       if (prev) {
@@ -82,52 +91,109 @@ export async function extractLogoPalettes(buffer: Buffer): Promise<LogoPaletteVa
         prev.r += r;
         prev.g += g;
         prev.b += b;
+        prev.satSum += s;
+        prev.lightSum += l;
       } else {
-        buckets.set(key, { count: 1, r, g, b, sat: s });
+        buckets.set(key, { count: 1, r, g, b, satSum: s, lightSum: l });
       }
     }
 
     if (buckets.size === 0) return [];
 
-    // Ordena priorizando prevalência + saturação (cores de marca reais antes de cinza neutro)
-    const ranked = [...buckets.values()]
-      .map((entry) => ({
-        avg: [entry.r / entry.count, entry.g / entry.count, entry.b / entry.count] as [
-          number,
-          number,
-          number,
-        ],
-        score: entry.count * (1 + entry.sat * 1.4),
-      }))
-      .sort((a, b) => b.score - a.score);
+    const allColors = [...buckets.values()].map((entry) => {
+      const avg: [number, number, number] = [
+        entry.r / entry.count,
+        entry.g / entry.count,
+        entry.b / entry.count,
+      ];
+      const hsl = rgbToHsl(avg[0], avg[1], avg[2]);
+      return {
+        avg,
+        hsl,
+        count: entry.count,
+        isDarkNeutral: hsl.l < 0.22 || (hsl.s < 0.16 && hsl.l < 0.35),
+        isChromatic: hsl.s >= 0.25 && hsl.l >= 0.14 && hsl.l <= 0.86,
+      };
+    });
 
-    const primaryRgb = ranked[0]?.avg;
-    if (!primaryRgb) return [];
+    // 1. Base escura real da logo (se existir)
+    const darkBase = allColors
+      .filter((c) => c.isDarkNeutral)
+      .sort((a, b) => b.count - a.count)[0];
 
-    // Busca uma segunda cor prevalente visualmente distinta para o acento
-    const accentEntry = ranked.find((entry) => colorDistance(entry.avg, primaryRgb) >= 65);
-    const accentRgb = accentEntry?.avg ?? [
-      Math.min(255, primaryRgb[0] + 45),
-      Math.min(255, primaryRgb[1] + 45),
-      Math.min(255, primaryRgb[2] + 45),
-    ];
+    // 2. Cores cromáticas vibrantes distintas (ex.: laranja e azul nunca colapsam entre si)
+    const chromaticRanked = allColors
+      .filter((c) => c.isChromatic)
+      .sort((a, b) => b.count * (1 + b.hsl.s * 2.2) - a.count * (1 + a.hsl.s * 2.2));
 
-    const primaryHex = toHex(primaryRgb[0], primaryRgb[1], primaryRgb[2]);
-    const accentHex = toHex(accentRgb[0], accentRgb[1], accentRgb[2]);
-    const deepDarkBg = darkenHex(primaryRgb[0], primaryRgb[1], primaryRgb[2], 0.24);
+    const distinctChromatics: typeof chromaticRanked = [];
+    for (const candidate of chromaticRanked) {
+      const tooClose = distinctChromatics.some(
+        (existing) =>
+          colorDistance(existing.avg, candidate.avg) < 72 &&
+          hueDistance(existing.hsl.h, candidate.hsl.h) < 32,
+      );
+      if (!tooClose) {
+        distinctChromatics.push(candidate);
+      }
+      if (distinctChromatics.length >= 3) break;
+    }
+
+    // Caso A: Logo rica com 2+ cores vibrantes (ex.: fundo escuro + azul + laranja)
+    if (distinctChromatics.length >= 2) {
+      const colorA = distinctChromatics[0]!;
+      const colorB = distinctChromatics[1]!;
+      const hexA = toHex(colorA.avg[0], colorA.avg[1], colorA.avg[2]);
+      const hexB = toHex(colorB.avg[0], colorB.avg[1], colorB.avg[2]);
+      const darkHex = darkBase
+        ? toHex(darkBase.avg[0], darkBase.avg[1], darkBase.avg[2])
+        : darkenHex(colorA.avg[0], colorA.avg[1], colorA.avg[2], 0.22);
+      const safeDark = darkHex === "#000000" ? "#14161e" : darkHex;
+
+      return [
+        {
+          label: "Da logo · Principal (2 cores)",
+          primary: hexA,
+          background: "#fdfdfd",
+          accent: hexB,
+        },
+        {
+          label: "Da logo · Destaque invertido",
+          primary: hexB,
+          background: "#f7f8fb",
+          accent: hexA,
+        },
+        {
+          label: "Da logo · Base escura",
+          primary: safeDark,
+          background: "#f4f5f8",
+          accent: hexB,
+        },
+      ];
+    }
+
+    // Caso B: Logo com 1 cor vibrante + base escura ou monocromática
+    const mainColor = distinctChromatics[0] ?? allColors.sort((a, b) => b.count - a.count)[0];
+    if (!mainColor) return [];
+
+    const primaryHex = darkBase
+      ? toHex(darkBase.avg[0], darkBase.avg[1], darkBase.avg[2])
+      : toHex(mainColor.avg[0], mainColor.avg[1], mainColor.avg[2]);
+    const accentHex = toHex(mainColor.avg[0], mainColor.avg[1], mainColor.avg[2]);
+    const deepDarkBg = darkenHex(mainColor.avg[0], mainColor.avg[1], mainColor.avg[2], 0.24);
 
     return [
       {
         label: "Da logo · Claro",
-        primary: primaryHex,
+        primary: primaryHex === "#000000" ? "#18181f" : primaryHex,
         background: "#fdfdfd",
         accent: accentHex,
       },
       {
-        label: "Da logo · Editorial",
-        primary: primaryHex,
+        label: "Da logo · Vibrante",
+        primary: accentHex,
         background: "#f4f4f8",
-        accent: accentHex,
+        accent: primaryHex === "#000000" ? "#18181f" : primaryHex,
       },
       {
         label: "Da logo · Escuro",

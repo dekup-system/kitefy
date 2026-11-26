@@ -276,7 +276,34 @@ export async function extractBrandDraft(
 
       if (site.brand_name) brandName = site.brand_name;
 
-      if (site.description.length > 40) {
+      // Se for rede social sem descrição legível (login wall), busca contexto público via SERP pelo nome da conta
+      const isSocial = /instagram\.com|tiktok\.com|facebook\.com|linkedin\.com|youtube\.com/i.test(
+        seed.website_url,
+      );
+      if (isSocial && site.description.length <= 40 && brandName) {
+        try {
+          const socialSerp = await searchWithCache({
+            query: `"${brandName}" ${new URL(seed.website_url).hostname.replace(/^www\./, "")}`,
+            locale: "pt-BR",
+            num: 5,
+          });
+          const snippets = socialSerp.competitor_gaps
+            .map((g) => g.title)
+            .filter(
+              (t) =>
+                t.length > 15 &&
+                !/create an account|log in to instagram|sign up|entrar no instagram/i.test(t),
+            )
+            .slice(0, 2);
+          if (snippets.length > 0) {
+            icp = `Público interessado em ${brandName} (${snippets.join(" · ")}).`;
+          } else {
+            icp = `Seguidores e potenciais clientes de ${brandName} que acompanham o perfil e buscam soluções práticas da marca.`;
+          }
+        } catch {
+          icp = `Seguidores e potenciais clientes de ${brandName} que acompanham o perfil e buscam soluções práticas da marca.`;
+        }
+      } else if (site.description.length > 40) {
         icp = template
           ? `${site.description} ${template.icp_description}`
           : site.description;

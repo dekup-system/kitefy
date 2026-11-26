@@ -1,12 +1,14 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseServerClient, requireSessionContext } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { extractBrandDraft } from "@/lib/onboarding/extract";
 import { generateBrandAudienceStudy } from "@/lib/audience/persona-generator";
-import { PLANS } from "@/lib/pricing";
+import { CREDIT_COSTS, PLANS } from "@/lib/pricing";
 import { createLogger } from "@/lib/logger";
 import type { AbepClass, PlanTier } from "@/types/domain";
 
@@ -57,6 +59,23 @@ export async function createBrandFromOnboardingAction(
     };
   }
 
+  const analysisCost = session.isPlatformAdmin ? 0 : CREDIT_COSTS.brand_analysis;
+  const chargeRef = `brand_analysis:${randomUUID()}`;
+  const admin = createSupabaseAdminClient();
+  if (analysisCost > 0) {
+    const { error: debitErr } = await admin.rpc("consume_credits", {
+      p_tenant_id: session.tenantId,
+      p_delta: -analysisCost,
+      p_reason: "brand_analysis",
+      p_reference_id: chargeRef,
+    });
+    if (debitErr) {
+      return {
+        error: `Saldo insuficiente: a análise completa da marca custa ${analysisCost} créditos. Recarregue em Plano e créditos.`,
+      };
+    }
+  }
+
   const draft = await extractBrandDraft(parsed.data.input, parsed.data.templateId);
 
   const inserted = await supabase
@@ -74,8 +93,16 @@ export async function createBrandFromOnboardingAction(
     .single<{ id: string }>();
 
   if (inserted.error || !inserted.data) {
+    if (analysisCost > 0) {
+      await admin.rpc("consume_credits", {
+        p_tenant_id: session.tenantId,
+        p_delta: analysisCost,
+        p_reason: "refund_technical_error:onboarding_brand_failed",
+        p_reference_id: chargeRef,
+      });
+    }
     log.error("Falha ao criar marca", { message: inserted.error?.message });
-    return { error: "Não foi possível salvar a marca agora. Tente novamente." };
+    return { error: "Não foi possível salvar a marca agora. Seus créditos foram estornados automaticamente." };
   }
 
   revalidatePath("/app");
@@ -330,21 +357,54 @@ export async function generateAudienceStudyAction(
     return { error: "Marca não encontrada nesta conta." };
   }
 
+  // Cobrança de 2 créditos pelo estudo aprofundado de público-alvo, personas e IBGE.
+  const studyCost = session.isPlatformAdmin ? 0 : CREDIT_COSTS.brand_analysis;
+  const chargeRef = `brand_analysis:${randomUUID()}`;
+  const admin = createSupabaseAdminClient();
+  if (studyCost > 0) {
+    const { error: debitErr } = await admin.rpc("consume_credits", {
+      p_tenant_id: session.tenantId,
+      p_delta: -studyCost,
+      p_reason: "brand_analysis",
+      p_reference_id: chargeRef,
+    });
+    if (debitErr) {
+      return {
+        error: `Saldo insuficiente: gerar o estudo completo da marca e público-alvo custa ${studyCost} créditos.`,
+      };
+    }
+  }
+
   const currentTone = brand.tone_of_voice ?? {};
   const abepClass =
     typeof currentTone.abep_class === "string"
       ? (currentTone.abep_class as AbepClass)
       : undefined;
 
-  const study = await generateBrandAudienceStudy({
-    brandName: brand.brand_name,
-    websiteUrl: brand.website_url,
-    icpDescription: brand.icp_description,
-    region: region || "Brasil",
-    abepClass,
-    entityFacts: brand.entity_facts ?? [],
-    knowledgeHighlights: (chunks ?? []).map((c: { content: string }) => c.content),
-  });
+  let study;
+  try {
+    study = await generateBrandAudienceStudy({
+      brandName: brand.brand_name,
+      websiteUrl: brand.website_url,
+      icpDescription: brand.icp_description,
+      region: region || "Brasil",
+      abepClass,
+      entityFacts: brand.entity_facts ?? [],
+      knowledgeHighlights: (chunks ?? []).map((c: { content: string }) => c.content),
+    });
+  } catch (err) {
+    if (studyCost > 0) {
+      await admin.rpc("consume_credits", {
+        p_tenant_id: session.tenantId,
+        p_delta: studyCost,
+        p_reason: "refund_technical_error:audience_study_failed",
+        p_reference_id: chargeRef,
+      });
+    }
+    return {
+      error: `Erro técnico ao gerar estudo (${err instanceof Error ? err.message : "falha"}). Seus créditos foram estornados.`,
+    };
+  }
 
   const nextTone = {
     ...currentTone,
@@ -361,7 +421,15 @@ export async function generateAudienceStudyAction(
     .eq("tenant_id", session.tenantId);
 
   if (updateErr) {
-    return { error: `Não foi possível salvar o estudo: ${updateErr.message}` };
+    if (studyCost > 0) {
+      await admin.rpc("consume_credits", {
+        p_tenant_id: session.tenantId,
+        p_delta: studyCost,
+        p_reason: "refund_technical_error:audience_study_save_failed",
+        p_reference_id: chargeRef,
+      });
+    }
+    return { error: `Não foi possível salvar o estudo: ${updateErr.message}. Seus créditos foram estornados.` };
   }
 
   revalidatePath("/settings/brand");

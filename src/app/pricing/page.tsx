@@ -33,8 +33,9 @@ const ASSET_LABEL: Record<string, string> = {
   short_script_kit: "Roteiro curto + 3 ganchos A/B",
   typo_carousel: "Carrossel tipográfico (7–10 slides)",
   serp_analysis: "Análise SERP/GEO avulsa",
+  brand_analysis: "Análise completa de marca e estudo de público (IBGE + Personas)",
   single_creative: "Criativo único com imagem",
-  hybrid_carousel: "Carrossel híbrido",
+  hybrid_carousel: "Carrossel ilustrado (5 slides · 2 IA / 7 slides · 3 IA = 6 cr)",
   lp_copy: "Pack de landing page",
   geo_article: "Artigo GEO (1.500–2.500 palavras)",
 };

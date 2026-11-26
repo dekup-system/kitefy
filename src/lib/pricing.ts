@@ -106,11 +106,12 @@ export const CREDIT_COSTS = {
   short_script_kit: 1,
   typo_carousel: 1,
   serp_analysis: 1,
+  brand_analysis: 2,
   single_creative: 2,
   hybrid_carousel: 4,
   lp_copy: 3,
   geo_article: 5,
-} as const satisfies Record<AssetType | "serp_analysis", number>;
+} as const satisfies Record<AssetType | "serp_analysis" | "brand_analysis", number>;
 
 export type CostSubject = keyof typeof CREDIT_COSTS;
 

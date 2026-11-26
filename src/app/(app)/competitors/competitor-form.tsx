@@ -16,7 +16,7 @@ import type { SerpCompetitorAnalysis } from "@/lib/competitors/serp-analysis";
  * cobrem e a marca não. É leitura de site público, sem IA e sem custo por uso.
  */
 export function CompetitorForm({ brandName }: { brandName: string }) {
-  const [urls, setUrls] = useState<string[]>(["", "", ""]);
+  const [urls, setUrls] = useState<string[]>(["https://", "https://", "https://"]);
   const [result, setResult] = useState<CompetitorAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,7 +56,9 @@ export function CompetitorForm({ brandName }: { brandName: string }) {
     }
   }
 
-  const filled = urls.filter((url) => url.trim().length > 3);
+  const filled = urls
+    .map((url) => url.trim())
+    .filter((url) => url.length > 8 && !/^https?:\/\/?$/i.test(url));
 
   async function submit() {
     setError(null);
