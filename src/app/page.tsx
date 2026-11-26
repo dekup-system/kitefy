@@ -5,9 +5,11 @@ import {
   ArrowRight,
   ArrowUpRight,
   BarChart3,
+  BookOpen,
   Check,
   CircleSlash,
   FileJson,
+  Film,
   Gauge,
   Layers,
   Lock,
@@ -67,8 +69,8 @@ const STEPS = [
   },
   {
     step: "02",
-    title: "Biblioteca Científica + Radar de Concorrentes",
-    body: "Nossa IA cruza frameworks consagrados de Marketing de Alto Nível com o DNA da sua marca e ideias extraídas do Radar de Concorrentes para gerar peças sob medida.",
+    title: "Biblioteca Científica, Storytelling e Radar",
+    body: "O Orquestrador cruza grandes autores do Marketing, técnica de Brand Storytelling, DNA da marca e Radar de Concorrentes — garantindo originalidade diária sem repetir abordagens.",
   },
   {
     step: "03",
@@ -79,36 +81,54 @@ const STEPS = [
 
 const DELIVERABLES = [
   {
+    icon: BookOpen,
+    title: "Carrossel Storytelling IA (6 slides)",
+    detail: "História contínua (começo, meio e fim) que vende o valor da marca com 1 parágrafo curto por slide e todas as 6 cenas ilustradas por IA.",
+    cost: 10,
+    highlight: true,
+  },
+  {
+    icon: Film,
+    title: "Roteiro Vídeos IA (3×10s Storytelling)",
+    detail: "Narrativa de marca dividida em 3 clipes contínuos de 10s com prompts cinematográficos prontos para Veo/Sora/Kling + narração.",
+    cost: 2,
+    highlight: true,
+  },
+  {
     icon: Layers,
     title: "Posts e Carrosséis com IA",
     detail: "Carrosséis tipográficos ou ilustrados com IA (5 ou 7 slides) e diagramação exclusiva na identidade da marca.",
     cost: CREDIT_COSTS.typo_carousel,
+    highlight: false,
   },
   {
     icon: Sparkles,
     title: "Roteiros de Vídeo Curto",
     detail: "3 ganchos A/B, roteiro falado natural (30–60s) e guia de cena para gravação humana.",
     cost: CREDIT_COSTS.short_script_kit,
+    highlight: false,
   },
   {
     icon: Search,
     title: "Artigos GEO para Blogs",
     detail: "1.500 a 2.500 palavras estruturadas para ranquear no Google e ser citado por IAs, com Schema.org.",
     cost: CREDIT_COSTS.geo_article,
+    highlight: false,
   },
   {
     icon: FileJson,
     title: "Textos para Páginas de Vendas",
     detail: "Copy completa de alta conversão: hero, problema, mecanismo único, provas, FAQ e CTA.",
     cost: CREDIT_COSTS.lp_copy,
+    highlight: false,
   },
 ];
 
 const WHY = [
   {
     icon: BarChart3,
-    title: "Biblioteca Científica de Marketing + Cruzamento de Dados",
-    body: "Nada de prompts genéricos: cada conteúdo cruza psicologia da persuasão, DNA estratégico da marca, personas, dados demográficos IBGE e telemetria real (incluindo GA4).",
+    title: "Biblioteca Científica, Brand Storytelling e Originalidade Diária",
+    body: "Cada peça cruza os grandes autores do Marketing, narrativa de Storytelling (o cliente como herói e sua marca como guia), 3 personas, dados do IBGE e motor anti-repetição para nunca entregar posts iguais.",
   },
   {
     icon: Gauge,
@@ -125,7 +145,7 @@ const WHY = [
 const FAQ = [
   {
     q: "O que exatamente eu recebo em cada pacote?",
-    a: "Estruturação de marca e personas com dados demográficos IBGE, Radar de Concorrentes, revisão CONAR automática, agendamentos e geração de roteiros (1 cr), carrosséis tipográficos (1 cr), posts únicos (2 cr), páginas de vendas (3 cr), carrosséis ilustrados com IA (4 ou 6 cr) e artigos GEO com Schema.org (5 cr).",
+    a: "Estruturação de marca e 3 personas com dados demográficos IBGE, Radar de Concorrentes, revisão CONAR automática, agendamentos com aviso por e-mail e geração de roteiros (1 cr), roteiros Storytelling para 3 vídeos IA de 10s (2 cr), carrosséis tipográficos (1 cr), posts únicos (2 cr), páginas de vendas (3 cr), carrosséis ilustrados com IA (4 ou 6 cr), Carrossel Storytelling 100% ilustrado por IA (6 slides, 10 cr) e artigos GEO com Schema.org (5 cr).",
   },
   {
     q: "Como funciona a integração com Google Analytics 4 (GA4)?",
@@ -223,10 +243,11 @@ export default function KitefyLandingPage() {
               </h1>
 
               <p className="mt-5 max-w-xl text-pretty text-[1.0625rem] leading-relaxed text-brand-navy-soft">
-                A Kitefy cruza o DNA estratégico da sua marca, personas, dados demográficos reais (IBGE)
-                e o Radar de Concorrentes com uma biblioteca científica de publicidade para criar posts,
-                carrosséis ilustrados com IA, artigos GEO para blogs, roteiros e páginas de vendas — tudo
-                revisado pelas normas do CONAR.
+                A Kitefy cruza o DNA estratégico da sua marca, 3 personas, dados demográficos reais (IBGE)
+                e o Radar de Concorrentes com uma biblioteca científica de Marketing e{" "}
+                <strong className="font-semibold text-brand-navy">Brand Storytelling</strong> para criar
+                carrosséis com história contínua 100% ilustrados por IA, roteiros para vídeos IA (3×10s),
+                artigos GEO para blogs e páginas de vendas — tudo revisado pelas normas do CONAR.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -491,10 +512,55 @@ export default function KitefyLandingPage() {
               </p>
             </div>
 
-            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Destaque Brand Storytelling */}
+            <div className="mt-8 rounded-2xl border border-orange-200 bg-[#FFF5F0] p-6 sm:p-7">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="max-w-2xl space-y-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-signal-text ring-1 ring-orange-200">
+                    <BookOpen className="size-3.5" aria-hidden="true" />
+                    Novo padrão editorial · Brand Storytelling
+                  </span>
+                  <h3 className="text-xl font-semibold tracking-tight text-brand-navy sm:text-2xl">
+                    Venda sua marca através de histórias que prendem atenção do início ao fim.
+                  </h3>
+                  <p className="text-pretty text-sm leading-relaxed text-brand-navy-soft">
+                    Em vez de posts frios e repetitivos, o agente aplica a técnica científica de{" "}
+                    <strong className="font-semibold text-brand-navy">Storytelling de Marca</strong> (começo,
+                    meio e fim com o cliente como protagonista e sua marca como guia) em{" "}
+                    <strong className="font-semibold text-brand-navy">Carrosséis 6 slides 100% ilustrados por IA</strong>{" "}
+                    e em{" "}
+                    <strong className="font-semibold text-brand-navy">Roteiros de 3 vídeos IA de 10 segundos</strong>{" "}
+                    com continuidade narrativa e visual.
+                  </p>
+                </div>
+                <Link href="#pacotes" className="kitefy-cta-compact shrink-0 self-start md:self-center">
+                  Testar Storytelling
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {DELIVERABLES.map((item) => (
-                <article key={item.title} className="flex h-full flex-col rounded-xl border border-brand-border bg-white p-5">
-                  <item.icon className="size-5 text-brand-navy" aria-hidden="true" />
+                <article
+                  key={item.title}
+                  className={`flex h-full flex-col rounded-xl border p-5 ${
+                    item.highlight
+                      ? "border-orange-300 bg-[#FFF8F4]"
+                      : "border-brand-border bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <item.icon
+                      className={`size-5 ${item.highlight ? "text-brand-signal" : "text-brand-navy"}`}
+                      aria-hidden="true"
+                    />
+                    {item.highlight ? (
+                      <span className="rounded-full bg-[#FFF0EB] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C42D00]">
+                        Storytelling
+                      </span>
+                    ) : null}
+                  </div>
                   <h3 className="mt-4 text-base font-semibold text-brand-navy">{item.title}</h3>
                   <p className="mt-1.5 text-pretty text-sm leading-relaxed text-brand-navy-soft">{item.detail}</p>
                   <p className="mt-auto pt-4 text-xs text-[var(--brand-text-muted-strong)]">
