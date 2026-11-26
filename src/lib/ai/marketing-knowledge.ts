@@ -745,6 +745,76 @@ export function selectClassicAuthorsDirective(input: {
 }
 
 /**
+ * Estudo Científico de Brand Storytelling (Venda de Marca através de Histórias):
+ * - Donald Miller (Building a StoryBrand — SB7): cliente é o Herói, marca é o Guia (Empatia + Autoridade).
+ * - Robert McKee (Story): Incidente Incitante -> Conflito Progressivo -> Clímax -> Resolução.
+ * - Matthew Dicks (Storyworthy): abertura in media res + momento de 5s de transformação.
+ * - Paul Zak (Neuroeconomia): tensão inicial libera cortisol (atenção) + empatia libera oxitocina (confiança).
+ * - Adaptação dos Ganchos do Bandit como Incidente Incitante da narrativa.
+ */
+export const BRAND_STORYTELLING_STUDY = {
+  version: "brand-storytelling-v1",
+  authors: [
+    "Donald Miller (Building a StoryBrand — SB7)",
+    "Robert McKee (Story: Substância, Estrutura e Estilo)",
+    "Matthew Dicks (Storyworthy — Momento de 5 segundos)",
+    "Joseph Campbell (Jornada do Herói em 3 Atos)",
+    "Paul Zak (Neuroeconomia do Storytelling: Cortisol + Oxitocina)",
+  ],
+  hookAdaptationByAngle: {
+    vace_pattern_interrupt:
+      "Abertura in media res (Matthew Dicks): comece no meio de uma cena inesperada do dia a dia do cliente que quebra o piloto automático.",
+    contrarian_frame:
+      "Incidente Incitante de quebra de crença (Robert McKee): abra mostrando o protagonista seguindo o conselho comum do mercado e descobrindo por que isso o travava.",
+    outcome_anchored:
+      "Flash-forward emocional (Donald Miller): abra no instante de alívio/resultado concreto do cliente e volte ao momento decisivo em que a história virou.",
+    negative_constraint:
+      "Conflito imediato do erro oculto (Paul Zak): abra no momento exato em que um erro silencioso quase custou tempo ou dinheiro ao protagonista.",
+  } as Record<AngleType, string>,
+};
+
+export function buildStorytellingDirective(input: {
+  mode: "carousel_6_ai" | "video_3x10s";
+  angleType: AngleType;
+  brandName?: string;
+}): string {
+  const brand = input.brandName || "a marca";
+  const hookRule = BRAND_STORYTELLING_STUDY.hookAdaptationByAngle[input.angleType];
+
+  if (input.mode === "carousel_6_ai") {
+    return [
+      `## DIRETRIZ CIENTÍFICA DE BRAND STORYTELLING — CARROSSEL 6 SLIDES 100% ILUSTRADO POR IA (${BRAND_STORYTELLING_STUDY.version})`,
+      `Base teórica: ${BRAND_STORYTELLING_STUDY.authors.join(" · ")}.`,
+      `REGRA DE OURO (Donald Miller SB7): o CLIENTE é o herói da história e ${brand} entra como o GUIA confiável — nunca faça propaganda autoelogiosa; venda o valor da marca pela transformação vivida na história.`,
+      `ADAPTAÇÃO DO GANCHO COMO INCIDENTE INCITANTE: ${hookRule}`,
+      "ESTRUTURA NARRATIVA CONTÍNUA EM EXATAMENTE 6 SLIDES (TODOS com `has_ai_imagery: true`, 1 parágrafo curto de 18 a 32 palavras por slide que dá continuidade direta ao slide anterior):",
+      "- Slide 1 (cover · Começo / Incidente Incitante): cena concreta que prende a atenção nos 3 primeiros segundos e apresenta o protagonista.",
+      "- Slide 2 (point · Começo / Conflito): aprofunda o problema externo e interno que trava o protagonista no dia a dia.",
+      "- Slide 3 (point · Meio / Ponto de Virada): o momento de descoberta ou tensão máxima em que o jeito antigo deixa de fazer sentido.",
+      `- Slide 4 (data · Meio / A Marca como Guia): como o método/diferencial real de ${brand} oferece clareza e um caminho simples sem promessas irreais.`,
+      "- Slide 5 (quote · Fim / Transformação): a nova realidade concreta e o alívio/valor vivido pelo protagonista após a mudança.",
+      `- Slide 6 (cta · Fim / Mensagem de Valor da Marca): lição memorável que fixa o posicionamento de ${brand} + convite natural para o próximo passo.`,
+      "IMPORTANTE: cada slide deve parecer o parágrafo seguinte da MESMA história (use conectivos sutis de continuidade) e descrever cenas visualmente ricas para gerar 6 ilustrações IA coerentes.",
+    ].join("\n");
+  }
+
+  return [
+    `## DIRETRIZ CIENTÍFICA DE BRAND STORYTELLING — ROTEIRO PARA 3 VÍDEOS POR IA DE 10 SEGUNDOS (${BRAND_STORYTELLING_STUDY.version})`,
+    `Base teórica: ${BRAND_STORYTELLING_STUDY.authors.join(" · ")}.`,
+    `REGRA DE OURO (Donald Miller SB7): o CLIENTE é o herói e ${brand} é o guia. Conte UMA única história com começo, meio e fim dividida em 3 clipes contínuos de 10 segundos (30s no total).`,
+    `ADAPTAÇÃO DO GANCHO COMO INCIDENTE INCITANTE: ${hookRule}`,
+    "FORMATO OBRIGATÓRIO DO ROTEIRO PARA GERADORES DE VÍDEO IA (Veo / Sora / Kling / Runway):",
+    "- `hooks`: 3 variantes de abertura/incidente incitante (8 a 15 palavras cada) para testar qual prende mais atenção nos primeiros 3s do Vídeo 1.",
+    "- `body.beats`: EXATAMENTE 3 beats com `seconds: 10` cada:",
+    "   1) `Vídeo 1 (0–10s · Começo)`: cena de abertura + conflito imediato + fala/narração exata para 10 segundos (~20–25 palavras).",
+    "   2) `Vídeo 2 (10–20s · Meio / Virada)`: ponto de virada + entrada natural do método/valor de " + brand + " (~20–25 palavras).",
+    "   3) `Vídeo 3 (20–30s · Fim / Valor da Marca)`: transformação concreta + mensagem de valor que fixa a marca + CTA sutil (~20–25 palavras).",
+    "- `scene_guide`: EXATAMENTE 3 cenas (scene 1, 2 e 3). No campo `visual` de cada cena, escreva um PROMPT CINEMATOGRÁFICO PRONTO para colar em geradores de vídeo IA (descrevendo plano de câmera, movimento, iluminação, cenário e mantendo o MESMO personagem/ambiente para continuidade entre os 3 vídeos de 10s). Em `on_screen_text`, escreva a frase curta de impacto na tela.",
+    "- `recording_notes`: inclua instruções de continuidade visual para IA de vídeo (estilo fotográfico, paleta, ritmo de corte e trilha sonora) para unir os 3 clipes de 10s em um único Reels/TikTok de 30s.",
+  ].join("\n");
+}
+
+/**
  * Serializa a matriz científica cruzada dos 6 pilares + Cânone de Autores Clássicos
  * para injeção direta pelo Agente Orquestrador antes da geração do material.
  */

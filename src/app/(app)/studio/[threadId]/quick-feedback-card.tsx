@@ -43,7 +43,7 @@ export function QuickFeedbackCard({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-sm">Já publicou? Conte em 1 clique como esse post foi</CardTitle>
           {activeRating ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-200">
               <CheckCircle2 className="size-3" aria-hidden="true" />
               Registrado: {RATING_LABELS[activeRating]}
             </span>
@@ -70,7 +70,7 @@ export function QuickFeedbackCard({
             className={
               activeRating === "great"
                 ? "bg-orange-600 text-white hover:bg-orange-700"
-                : "border-orange-200 hover:bg-orange-50"
+                : "border-orange-200 hover:bg-orange-50 dark:border-orange-800/70 dark:hover:bg-orange-950/50"
             }
           >
             {pending ? (

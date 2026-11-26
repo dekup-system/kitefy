@@ -98,8 +98,12 @@ export const CREDIT_TOPUP_PACKS: Record<CreditTopUpPackId, CreditTopUpPack> = {
 
 export const CREDIT_TOPUP_ORDER: CreditTopUpPackId[] = ["extra_50", "extra_100"];
 
-/** Preset do Carrossel Ilustrado (quantidade de slides e imagens geradas por IA). */
-export type HybridCarouselPreset = "5_slides_2_ai" | "7_slides_3_ai";
+/** Preset de formato avançado (Carrossel Ilustrado, Storytelling 6 IA ou Roteiro 3 Vídeos IA 10s). */
+export type HybridCarouselPreset =
+  | "5_slides_2_ai"
+  | "7_slides_3_ai"
+  | "6_slides_storytelling_6_ai"
+  | "ai_video_3x10s_storytelling";
 
 /** Custo em créditos por tipo de ativo. Débito atômico no início com estorno automático em erro técnico. */
 export const CREDIT_COSTS = {
@@ -125,7 +129,8 @@ export function creditCost(subject: CostSubject): number {
 
 /**
  * Custo total de uma geração no estúdio.
- * - Carrossel ilustrado: 4 créditos (5 slides · 2 imagens IA) ou 6 créditos (7 slides · 3 imagens IA).
+ * - Carrossel ilustrado: 4 cr (5 slides · 2 IA), 6 cr (7 slides · 3 IA) ou 10 cr (6 slides · 6 IA Storytelling).
+ * - Roteiro Vídeos IA (3×10s Storytelling): 2 cr (base 1 + 1 cr de direção cinematográfica/prompts IA).
  * - Quando a pesquisa de mercado (SERP) é ativada em formatos que não são
  *   artigos GEO (o artigo GEO já embute SERP nos seus 5 créditos), soma +1 crédito.
  */
@@ -135,10 +140,16 @@ export function totalRunCreditCost(
   carouselPreset?: HybridCarouselPreset,
 ): number {
   const base = CREDIT_COSTS[assetType];
-  const extraCarousel =
-    assetType === "hybrid_carousel" && carouselPreset === "7_slides_3_ai" ? 2 : 0;
+  const extraPreset =
+    assetType === "hybrid_carousel" && carouselPreset === "7_slides_3_ai"
+      ? 2
+      : assetType === "hybrid_carousel" && carouselPreset === "6_slides_storytelling_6_ai"
+        ? 6
+        : assetType === "short_script_kit" && carouselPreset === "ai_video_3x10s_storytelling"
+          ? 1
+          : 0;
   const extraSerp = researchEnabled && assetType !== "geo_article" ? CREDIT_COSTS.serp_analysis : 0;
-  return base + extraCarousel + extraSerp;
+  return base + extraPreset + extraSerp;
 }
 
 export function formatBRL(cents: number): string {

@@ -249,4 +249,37 @@ describe("marketing-knowledge library", () => {
     expect(userPrompt).toContain("Claude Hopkins");
     expect(userPrompt).toContain("Philip Kotler");
   });
+
+  it("injeta diretriz científica de Brand Storytelling para Carrossel 6 IA (10 cr) e Roteiro 3 Vídeos 10s (2 cr)", async () => {
+    const { totalRunCreditCost } = await import("@/lib/pricing");
+    expect(totalRunCreditCost("hybrid_carousel", false, "6_slides_storytelling_6_ai")).toBe(10);
+    expect(totalRunCreditCost("short_script_kit", false, "ai_video_3x10s_storytelling")).toBe(2);
+
+    const storyCarouselPrompt = buildUserPrompt({
+      assetType: "hybrid_carousel",
+      objective: "Contar história de transformação de um empresário",
+      productInput: "Consultoria Atlas",
+      selectedArm: { angle_type: "vace_pattern_interrupt", framework: "bab" },
+      explorationArms: [{ angle_type: "outcome_anchored", framework: "pas" }],
+      serpInsights: null,
+      brand: SAMPLE_B2B_BRAND,
+      carouselPreset: "6_slides_storytelling_6_ai",
+    });
+    expect(storyCarouselPrompt).toContain("BRAND STORYTELLING");
+    expect(storyCarouselPrompt).toContain("Donald Miller");
+    expect(storyCarouselPrompt).toContain("EXATAMENTE 6 SLIDES");
+
+    const storyVideoPrompt = buildUserPrompt({
+      assetType: "short_script_kit",
+      objective: "História curta em 3 vídeos de 10 segundos",
+      productInput: "Consultoria Atlas",
+      selectedArm: { angle_type: "contrarian_frame", framework: "pas" },
+      explorationArms: [{ angle_type: "outcome_anchored", framework: "bab" }],
+      serpInsights: null,
+      brand: SAMPLE_B2B_BRAND,
+      carouselPreset: "ai_video_3x10s_storytelling",
+    });
+    expect(storyVideoPrompt).toContain("3 VÍDEOS POR IA DE 10 SEGUNDOS");
+    expect(storyVideoPrompt).toContain("PROMPT CINEMATOGRÁFICO PRONTO");
+  });
 });

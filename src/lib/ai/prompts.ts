@@ -2,9 +2,11 @@ import type { AssetType, BrandContext, Framework, SerpInsights, AngleType } from
 import {
   analyzeBrandColorPalette,
   buildAdvertisingSynthesisBlock,
+  buildStorytellingDirective,
   buildToneVectorDirective,
   type AdvertisingCrossReference,
 } from "@/lib/ai/marketing-knowledge";
+import type { HybridCarouselPreset } from "@/lib/pricing";
 
 /**
  * Prompts do estúdio — Motor Editorial v2.
@@ -185,7 +187,7 @@ export interface GenerationPromptInput {
   serpInsights: SerpInsights | null;
   brand?: Pick<BrandContext, "brand_name" | "icp_description" | "tone_of_voice" | "visual_tokens">;
   previousErrors?: string[];
-  carouselPreset?: "5_slides_2_ai" | "7_slides_3_ai";
+  carouselPreset?: HybridCarouselPreset;
   strategyBrief?: AdvertisingCrossReference;
 }
 
@@ -245,10 +247,23 @@ export function buildUserPrompt(input: GenerationPromptInput): string {
 
   const hybridDirective =
     input.assetType === "hybrid_carousel"
-      ? input.carouselPreset === "7_slides_3_ai"
-        ? "Configuração obrigatória do Carrossel Ilustrado: gere EXATAMENTE 7 slides no array `slides`, marcando `has_ai_imagery: true` em EXATAMENTE 3 slides (capa slide 0 + 2 slides intermediários, ex.: slides 2 e 4)."
-        : "Configuração obrigatória do Carrossel Ilustrado: gere EXATAMENTE 5 slides no array `slides`, marcando `has_ai_imagery: true` em EXATAMENTE 2 slides (capa slide 0 + 1 slide intermediário, ex.: slide 2)."
-      : "";
+      ? input.carouselPreset === "6_slides_storytelling_6_ai"
+        ? buildStorytellingDirective({
+            mode: "carousel_6_ai",
+            angleType: input.selectedArm.angle_type,
+            brandName: input.brand?.brand_name,
+          })
+        : input.carouselPreset === "7_slides_3_ai"
+          ? "Configuração obrigatória do Carrossel Ilustrado: gere EXATAMENTE 7 slides no array `slides`, marcando `has_ai_imagery: true` em EXATAMENTE 3 slides (capa slide 0 + 2 slides intermediários, ex.: slides 2 e 4)."
+          : "Configuração obrigatória do Carrossel Ilustrado: gere EXATAMENTE 5 slides no array `slides`, marcando `has_ai_imagery: true` em EXATAMENTE 2 slides (capa slide 0 + 1 slide intermediário, ex.: slide 2)."
+      : input.assetType === "short_script_kit" &&
+          input.carouselPreset === "ai_video_3x10s_storytelling"
+        ? buildStorytellingDirective({
+            mode: "video_3x10s",
+            angleType: input.selectedArm.angle_type,
+            brandName: input.brand?.brand_name,
+          })
+        : "";
 
   return [
     `Objetivo editorial: ${input.objective}`,

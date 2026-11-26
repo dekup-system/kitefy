@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Image as ImageIcon, Layers, Lightbulb, Loader2, Sparkles, Type } from "lucide-react";
+import { BookOpen, Film, FileText, Image as ImageIcon, Layers, Lightbulb, Loader2, Sparkles, Type } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,7 +74,11 @@ function buildBrandObjectiveChips(brand?: BrandOption): { label: string; text: s
 }
 
 const ASSET_OPTIONS: {
+  id: string;
   type: AssetType;
+  column: "visual" | "text";
+  preset?: HybridCarouselPreset;
+  creditsLabel: string;
   intent: string;
   eta: string;
   label: string;
@@ -82,7 +86,10 @@ const ASSET_OPTIONS: {
   icon: typeof FileText;
 }[] = [
   {
+    id: "typo_carousel",
     type: "typo_carousel",
+    column: "visual",
+    creditsLabel: `${CREDIT_COSTS.typo_carousel} cr`,
     intent: "Explicar e gerar salvamentos",
     eta: "~35s",
     label: "Carrossel Instagram (7–10 slides)",
@@ -90,15 +97,10 @@ const ASSET_OPTIONS: {
     icon: Layers,
   },
   {
-    type: "short_script_kit",
-    intent: "Atrair seguidores com vídeo",
-    eta: "~25s",
-    label: "Roteiro Reels / TikTok (30–60s)",
-    description: "3 ganchos A/B + guia de cena para gravação humana + legenda.",
-    icon: Type,
-  },
-  {
+    id: "single_creative",
     type: "single_creative",
+    column: "visual",
+    creditsLabel: `${CREDIT_COSTS.single_creative} cr`,
     intent: "Aviso rápido ou oferta direta",
     eta: "~25s",
     label: "Post único para Feed",
@@ -106,7 +108,11 @@ const ASSET_OPTIONS: {
     icon: Sparkles,
   },
   {
+    id: "hybrid_carousel",
     type: "hybrid_carousel",
+    column: "visual",
+    preset: "5_slides_2_ai",
+    creditsLabel: "4–6 cr",
     intent: "Carrossel com imagens IA + diagramação dinâmica",
     eta: "~55s",
     label: "Carrossel ilustrado (5 ou 7 slides)",
@@ -114,7 +120,45 @@ const ASSET_OPTIONS: {
     icon: ImageIcon,
   },
   {
+    id: "storytelling_carousel_6_ai",
+    type: "hybrid_carousel",
+    column: "visual",
+    preset: "6_slides_storytelling_6_ai",
+    creditsLabel: "10 cr",
+    intent: "Storytelling de Marca · 100% ilustrado por IA",
+    eta: "~95s",
+    label: "Carrossel Storytelling IA (6 slides · 6 imagens)",
+    description: "História contínua com começo, meio e fim (1 parágrafo curto/slide) e todas as 6 cenas ilustradas por IA.",
+    icon: BookOpen,
+  },
+  {
+    id: "short_script_kit",
+    type: "short_script_kit",
+    column: "text",
+    creditsLabel: `${CREDIT_COSTS.short_script_kit} cr`,
+    intent: "Atrair seguidores com vídeo",
+    eta: "~25s",
+    label: "Roteiro Reels / TikTok (30–60s)",
+    description: "3 ganchos A/B + guia de cena para gravação humana + legenda.",
+    icon: Type,
+  },
+  {
+    id: "ai_video_3x10s_storytelling",
+    type: "short_script_kit",
+    column: "text",
+    preset: "ai_video_3x10s_storytelling",
+    creditsLabel: "2 cr",
+    intent: "Storytelling para Vídeos Gerados por IA",
+    eta: "~30s",
+    label: "Roteiro Vídeos IA (3×10s Storytelling)",
+    description: "História de marca dividida em 3 clipes contínuos de 10s com prompts prontos para Veo/Sora/Kling + narração.",
+    icon: Film,
+  },
+  {
+    id: "geo_article",
     type: "geo_article",
+    column: "text",
+    creditsLabel: `${CREDIT_COSTS.geo_article} cr`,
     intent: "Aparecer no Google e em IAs",
     eta: "~65s",
     label: "Artigo GEO para Blog / Site",
@@ -122,7 +166,10 @@ const ASSET_OPTIONS: {
     icon: FileText,
   },
   {
+    id: "lp_copy",
     type: "lp_copy",
+    column: "text",
+    creditsLabel: `${CREDIT_COSTS.lp_copy} cr`,
     intent: "Vender serviço ou produto",
     eta: "~45s",
     label: "Texto de Página de Vendas",
@@ -166,6 +213,7 @@ export function NewRunForm({
   const initialBrandId = defaultBrandId ?? brands[0]?.id ?? "";
   const initialBrand = brands.find((b) => b.id === initialBrandId) ?? brands[0];
   const [assetType, setAssetType] = useState<AssetType>(defaultAssetType ?? "typo_carousel");
+  const [selectedOptionId, setSelectedOptionId] = useState<string>(defaultAssetType ?? "typo_carousel");
   const [brandId, setBrandId] = useState(initialBrandId);
   const [objective, setObjective] = useState(defaultObjective ?? "");
   const [product, setProduct] = useState(
@@ -187,11 +235,15 @@ export function NewRunForm({
     assetType === "hybrid_carousel" ||
     assetType === "single_creative";
   const isResearchActive = assetType === "geo_article" ? true : research;
-  const cost = totalRunCreditCost(
-    assetType,
-    isResearchActive,
-    assetType === "hybrid_carousel" ? carouselPreset : undefined,
-  );
+  const effectivePreset: HybridCarouselPreset | undefined =
+    selectedOptionId === "storytelling_carousel_6_ai"
+      ? "6_slides_storytelling_6_ai"
+      : selectedOptionId === "ai_video_3x10s_storytelling"
+        ? "ai_video_3x10s_storytelling"
+        : assetType === "hybrid_carousel"
+          ? carouselPreset
+          : undefined;
+  const cost = totalRunCreditCost(assetType, isResearchActive, effectivePreset);
   const insufficient = creditBalance < cost;
   const canSubmit = Boolean(brandId) && objective.trim().length >= 8 && product.trim().length >= 3 && !insufficient && !pending;
 
@@ -210,7 +262,7 @@ export function NewRunForm({
             researchEnabled: isResearchActive,
             visualFormat,
             visualStyle,
-            ...(assetType === "hybrid_carousel" ? { carouselPreset } : {}),
+            ...(effectivePreset ? { carouselPreset: effectivePreset } : {}),
           }),
         });
 
@@ -274,6 +326,7 @@ export function NewRunForm({
                 type="button"
                 onClick={() => {
                   setAssetType(idea.assetType);
+                  setSelectedOptionId(idea.assetType);
                   setObjective(idea.objective);
                   setProduct(idea.productInput);
                 }}
@@ -299,18 +352,19 @@ export function NewRunForm({
               Criação visual (imagens e carrosséis)
             </p>
             <div className="flex flex-col gap-2">
-              {ASSET_OPTIONS.filter(
-                (o) =>
-                  o.type === "typo_carousel" ||
-                  o.type === "hybrid_carousel" ||
-                  o.type === "single_creative",
-              ).map((option) => {
-                const active = assetType === option.type;
+              {ASSET_OPTIONS.filter((o) => o.column === "visual").map((option) => {
+                const active = selectedOptionId === option.id;
                 return (
                   <button
-                    key={option.type}
+                    key={option.id}
                     type="button"
-                    onClick={() => setAssetType(option.type)}
+                    onClick={() => {
+                      setSelectedOptionId(option.id);
+                      setAssetType(option.type);
+                      if (option.preset === "5_slides_2_ai") {
+                        setCarouselPreset("5_slides_2_ai");
+                      }
+                    }}
                     aria-pressed={active}
                     className={`flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors ${
                       active
@@ -327,7 +381,7 @@ export function NewRunForm({
                         {option.label}
                       </span>
                       <Badge variant="outline" className="border-orange-300 bg-white/80 font-mono text-[11px] dark:border-orange-800 dark:bg-background/60">
-                        {option.type === "hybrid_carousel" ? "4–6 cr" : `${CREDIT_COSTS[option.type]} cr`} · {option.eta}
+                        {option.creditsLabel} · {option.eta}
                       </Badge>
                     </span>
                     <span className="text-xs text-muted-foreground">{option.description}</span>
@@ -343,18 +397,16 @@ export function NewRunForm({
               Criação textual (roteiros, blog e vendas)
             </p>
             <div className="flex flex-col gap-2">
-              {ASSET_OPTIONS.filter(
-                (o) =>
-                  o.type === "short_script_kit" ||
-                  o.type === "geo_article" ||
-                  o.type === "lp_copy",
-              ).map((option) => {
-                const active = assetType === option.type;
+              {ASSET_OPTIONS.filter((o) => o.column === "text").map((option) => {
+                const active = selectedOptionId === option.id;
                 return (
                   <button
-                    key={option.type}
+                    key={option.id}
                     type="button"
-                    onClick={() => setAssetType(option.type)}
+                    onClick={() => {
+                      setSelectedOptionId(option.id);
+                      setAssetType(option.type);
+                    }}
                     aria-pressed={active}
                     className={`flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors ${
                       active
@@ -371,7 +423,7 @@ export function NewRunForm({
                         {option.label}
                       </span>
                       <Badge variant="outline" className="border-indigo-300 bg-white/80 font-mono text-[11px] dark:border-indigo-800 dark:bg-background/60">
-                        {CREDIT_COSTS[option.type]} cr · {option.eta}
+                        {option.creditsLabel} · {option.eta}
                       </Badge>
                     </span>
                     <span className="text-xs text-muted-foreground">{option.description}</span>
@@ -383,7 +435,7 @@ export function NewRunForm({
         </div>
       </fieldset>
 
-      {assetType === "hybrid_carousel" ? (
+      {selectedOptionId === "hybrid_carousel" ? (
         <fieldset className="space-y-2.5 rounded-xl border border-border bg-muted/30 p-4">
           <legend className="text-sm font-medium">Tamanho do Carrossel Ilustrado</legend>
           <p className="text-xs text-muted-foreground">

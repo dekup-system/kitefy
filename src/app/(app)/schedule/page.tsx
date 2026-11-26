@@ -155,7 +155,7 @@ export default async function SchedulePage({
       />
 
       {/* Aviso de lembretes automáticos por e-mail */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange-200 bg-orange-50/70 px-4 py-3 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange-200 bg-orange-50/70 px-4 py-3 text-xs text-muted-foreground dark:border-orange-800/70 dark:bg-orange-950/35 dark:text-orange-100/90">
         <span className="flex items-center gap-2">
           <Mail className="size-4 shrink-0 text-brand-signal" aria-hidden="true" />
           <span>
@@ -258,7 +258,7 @@ export default async function SchedulePage({
                       </a>
                       {item.schedule.emailReminderSentAt ? (
                         <span
-                          className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800"
+                          className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-200"
                           title="Lembrete já enviado por e-mail"
                         >
                           <CheckCircle2 className="size-2.5" aria-hidden="true" />
@@ -266,7 +266,7 @@ export default async function SchedulePage({
                         </span>
                       ) : (
                         <span
-                          className="inline-flex items-center gap-1 rounded border border-orange-200 bg-orange-50/70 px-1.5 py-0.5 text-[10px] font-medium text-orange-950"
+                          className="inline-flex items-center gap-1 rounded border border-orange-200 bg-orange-50/70 px-1.5 py-0.5 text-[10px] font-medium text-orange-950 dark:border-orange-800/70 dark:bg-orange-950/45 dark:text-orange-200"
                           title="Lembrete automático será enviado por e-mail 30 minutos antes do horário agendado"
                         >
                           <Mail className="size-2.5 text-brand-signal" aria-hidden="true" />

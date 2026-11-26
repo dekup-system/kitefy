@@ -97,12 +97,28 @@
 }
 
 .dark {
-  /* Tema escuro derivado do navy: mantém a marca, sem inventar cor nova. */
+  color-scheme: dark;
+
+  /* Tema escuro derivado do navy: mantém a marca com alto contraste WCAG AA/AAA. */
   --brand-canvas: #0f0b22;
   --brand-surface: #171230;
   --brand-subtle: #1f1938;
-  --brand-border: #2c2549;
+  --brand-border: #322a54;
   --surface-inset: #1e183a;
+
+  /* Tokens de texto e sinal adaptados para fundo escuro (evita texto escuro sobre escuro) */
+  --brand-text-primary: #f6f5fb;
+  --brand-text-body: #e5e2f2;
+  --brand-text-muted: #b9b5cc;
+  --brand-text-muted-strong: #c8c4da;
+  --brand-signal-text: #ff8a5b;
+  --brand-signal-tint: #2d1814;
+
+  --pack-start-tint: #221c3d;
+  --pack-start-border: #3a3160;
+  --pack-flow-tint: #102b24;
+  --pack-flow-text: #5eead4;
+  --pack-flow-border: #1d4d40;
 
   --background: var(--brand-canvas);
   --foreground: #f6f5fb;
@@ -113,17 +129,17 @@
   --popover: var(--brand-surface);
   --popover-foreground: #f6f5fb;
 
-  /* No escuro o CTA laranja é o primário (contraste branco 3.58:1 em texto grande). */
+  /* No escuro o CTA laranja é o primário com texto branco de alto contraste. */
   --primary: #fd3e01;
   --primary-foreground: #ffffff;
 
-  --secondary: #221c3d;
+  --secondary: #262045;
   --secondary-foreground: #f6f5fb;
 
   --muted: #221c3d;
-  --muted-foreground: #b9b5cc;
+  --muted-foreground: #c4c0d6;
 
-  --accent: #241e40;
+  --accent: #2a234d;
   --accent-foreground: #f6f5fb;
 
   --destructive: #ff6b5e;
@@ -133,7 +149,7 @@
   --warning: #f0b429;
 
   --border: var(--brand-border);
-  --input: #6e6a85;
+  --input: #8b85a8;
   --ring: #f6f5fb;
 
   --chart-1: #f6f5fb;
@@ -144,9 +160,9 @@
 
   --sidebar: #120d28;
   --sidebar-foreground: #f6f5fb;
-  --sidebar-muted: #b6b1cc;
+  --sidebar-muted: #c4c0d6;
   --sidebar-border: #282148;
-  --sidebar-accent: #221c3d;
+  --sidebar-accent: #262045;
   --sidebar-accent-foreground: #ffffff;
 }
 

@@ -146,31 +146,49 @@ export async function renderAndUploadVisuals(input: RenderVisualInput): Promise<
       return rest;
     });
 
-    // Carrossel híbrido: gera 2 imagens IA (preset 5 slides) ou 3 imagens IA (preset 7 slides)
-    // com direção de arte distinta por slide dentro da mesma identidade da marca.
+    // Carrossel híbrido:
+    // - 5_slides_2_ai -> 2 imagens IA
+    // - 7_slides_3_ai -> 3 imagens IA
+    // - 6_slides_storytelling_6_ai -> TODAS as 6 imagens IA com arco cinematográfico contínuo
     if (input.assetType === "hybrid_carousel" && isLiveImageGenerationEnabled()) {
-      const targetImageCount = input.carouselPreset === "7_slides_3_ai" ? 3 : 2;
-      const chosenIndexes = new Set<number>([0]);
-      slides.forEach((slide, idx) => {
-        if (chosenIndexes.size < targetImageCount && slide.has_ai_imagery) {
-          chosenIndexes.add(idx);
+      const isStorytellingAllAi = input.carouselPreset === "6_slides_storytelling_6_ai";
+      const targetImageCount = isStorytellingAllAi
+        ? slides.length
+        : input.carouselPreset === "7_slides_3_ai"
+          ? 3
+          : 2;
+      const chosenIndexes = new Set<number>(isStorytellingAllAi ? slides.map((_, i) => i) : [0]);
+      if (!isStorytellingAllAi) {
+        slides.forEach((slide, idx) => {
+          if (chosenIndexes.size < targetImageCount && slide.has_ai_imagery) {
+            chosenIndexes.add(idx);
+          }
+        });
+        // Garante distribuição visual equilibrada (ex.: [0, 2] ou [0, 2, 4]) se o LLM marcou menos slides.
+        const fallbackSlots =
+          targetImageCount === 3
+            ? [0, Math.min(2, slides.length - 1), Math.min(4, slides.length - 1)]
+            : [0, Math.min(2, slides.length - 1)];
+        for (const slot of fallbackSlots) {
+          if (chosenIndexes.size >= targetImageCount) break;
+          chosenIndexes.add(slot);
         }
-      });
-      // Garante distribuição visual equilibrada (ex.: [0, 2] ou [0, 2, 4]) se o LLM marcou menos slides.
-      const fallbackSlots =
-        targetImageCount === 3
-          ? [0, Math.min(2, slides.length - 1), Math.min(4, slides.length - 1)]
-          : [0, Math.min(2, slides.length - 1)];
-      for (const slot of fallbackSlots) {
-        if (chosenIndexes.size >= targetImageCount) break;
-        chosenIndexes.add(slot);
       }
 
-      const artDirectionBySlot = [
-        "Hero magazine cover editorial photography, dramatic architectural lighting, deep focal depth, clean negative space",
-        "Modern minimalist studio lifestyle scene, warm natural shadows, crisp editorial composition",
-        "Close-up conceptual visual metaphor, refined textures, contemporary luxury editorial aesthetic",
-      ];
+      const artDirectionBySlot = isStorytellingAllAi
+        ? [
+            "Cinematic storytelling establishing shot, dramatic golden-hour lighting, editorial film still, consistent visual world, clean negative space, no text",
+            "Cinematic storytelling medium shot showing tension and everyday friction, soft moody shadows, same visual world and color harmony, no text",
+            "Cinematic storytelling turning point scene, dynamic composition with emerging warm key light, editorial film grain, consistent palette, no text",
+            "Cinematic storytelling clarity and craft scene, clean organized environment representing method and guidance, refined lighting, no text",
+            "Cinematic storytelling transformation moment, bright natural daylight, genuine relief and progress atmosphere, consistent aesthetic, no text",
+            "Cinematic storytelling inspiring finale wide shot, elevated brand presence, balanced architectural harmony, clean negative space, no text",
+          ]
+        : [
+            "Hero magazine cover editorial photography, dramatic architectural lighting, deep focal depth, clean negative space",
+            "Modern minimalist studio lifestyle scene, warm natural shadows, crisp editorial composition",
+            "Close-up conceptual visual metaphor, refined textures, contemporary luxury editorial aesthetic",
+          ];
 
       // Geração sequencial para evitar rate-limit (HTTP 429) no provedor de imagem IA
       // quando o carrossel pede 2 ou 3 ilustrações na mesma requisição.

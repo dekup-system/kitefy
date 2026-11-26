@@ -37,7 +37,14 @@ const bodySchema = z.object({
   visualStyle: z
     .enum(["auto", "editorial_classic", "magazine_split", "dark_impact", "swiss_minimal"])
     .default("auto"),
-  carouselPreset: z.enum(["5_slides_2_ai", "7_slides_3_ai"]).optional(),
+  carouselPreset: z
+    .enum([
+      "5_slides_2_ai",
+      "7_slides_3_ai",
+      "6_slides_storytelling_6_ai",
+      "ai_video_3x10s_storytelling",
+    ])
+    .optional(),
 });
 
 const activeRunsByTenant = new Map<string, number>();
@@ -92,7 +99,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const carouselPreset =
     parsed.data.assetType === "hybrid_carousel"
       ? (parsed.data.carouselPreset ?? "5_slides_2_ai")
-      : undefined;
+      : parsed.data.assetType === "short_script_kit" &&
+          parsed.data.carouselPreset === "ai_video_3x10s_storytelling"
+        ? "ai_video_3x10s_storytelling"
+        : undefined;
   const cost = isAdmin ? 0 : totalRunCreditCost(parsed.data.assetType, researchEnabled, carouselPreset);
   if (!isAdmin && (!tenant.data || tenant.data.credit_balance < cost)) {
     return NextResponse.json(
