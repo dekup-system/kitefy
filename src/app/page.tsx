@@ -3,7 +3,6 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import {
   ArrowRight,
-  ArrowUpRight,
   BarChart3,
   BookOpen,
   Check,
@@ -18,6 +17,7 @@ import {
   Timer,
 } from "lucide-react";
 import { KitefyLogo, KitefyIcon } from "@/components/brand/kitefy-logo";
+import { HeroIntroVideo } from "@/components/marketing/hero-intro-video";
 import { PackageCard } from "@/components/marketing/package-card";
 import { KITEFY_PACKAGES } from "@/lib/marketing/packages";
 import { CREDIT_COSTS } from "@/lib/pricing";
@@ -279,54 +279,9 @@ export default function KitefyLandingPage() {
               </p>
             </div>
 
-            {/* Painel ilustrativo: métricas com indicadores laranja (10%) */}
+            {/* Vídeo de apresentação da Kitefy (compactado, autoplay + áudio) */}
             <div className="relative">
-              <div className="rounded-xl border border-brand-border bg-white p-5 shadow-[0_24px_60px_-40px_rgba(24,19,49,0.35)]">
-                <div className="flex items-center justify-between gap-3 border-b border-brand-border pb-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--brand-text-muted-strong)]">
-                    Exemplo de painel
-                  </p>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#FFF0EB] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C42D00]">
-                    <span aria-hidden="true" className="inline-block size-1 rounded-full bg-brand-signal" />
-                    ao vivo
-                  </span>
-                </div>
-
-                <dl className="mt-4 space-y-4">
-                  <div>
-                    <dt className="text-sm text-brand-navy-soft">Hook rate médio</dt>
-                    <dd className="mt-1 flex items-end justify-between gap-2">
-                      <span className="font-mono text-3xl font-semibold tracking-tight text-brand-navy">38,4%</span>
-                      <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-signal-text">
-                        <ArrowUpRight className="size-4" aria-hidden="true" />
-                        +6,2 p.p.
-                      </span>
-                    </dd>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-brand-subtle">
-                      <div className="h-full w-[62%] rounded-full bg-brand-navy" aria-hidden="true" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <dt className="text-sm text-brand-navy-soft">Citações em respostas de IA</dt>
-                    <dd className="mt-1 flex items-end justify-between gap-2">
-                      <span className="font-mono text-3xl font-semibold tracking-tight text-brand-navy">12</span>
-                      <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-signal-text">
-                        <ArrowUpRight className="size-4" aria-hidden="true" />
-                        +3 no mês
-                      </span>
-                    </dd>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-brand-border pt-3 text-xs text-[var(--brand-text-muted-strong)]">
-                    <span>Braço vencedor</span>
-                    <span className="font-mono text-brand-navy">vace_pattern_interrupt : pas</span>
-                  </div>
-                </dl>
-              </div>
-              <p className="mt-3 text-xs text-[var(--brand-text-muted-strong)]">
-                Interface ilustrativa. Números reais variam por marca e por categoria.
-              </p>
+              <HeroIntroVideo />
             </div>
           </div>
         </section>
