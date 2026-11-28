@@ -29,6 +29,7 @@ function isPublic(pathname: string): boolean {
   return (
     pathname.startsWith("/api/webhooks/") ||
     pathname.startsWith("/api/jobs/") ||
+    pathname.startsWith("/media/") ||
     pathname.startsWith("/_next/") ||
     pathname === "/favicon.ico"
   );
@@ -99,6 +100,6 @@ export const config = {
      * Roda em tudo, exceto assets estáticos, imagens otimizadas e arquivos de SEO/verificação.
      * Rotas de webhook também são excluídas do guard de sessão (mas validadas por HMAC).
      */
-    "/((?!_next/static|_next/image|favicon.ico|robots\\.txt|sitemap\\.xml|google[a-f0-9]+\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
+    "/((?!_next/static|_next/image|media/|favicon.ico|robots\\.txt|sitemap\\.xml|google[a-f0-9]+\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|mp4|webm|ogg|m4v|mp3|wav)$).*)",
   ],
 };
